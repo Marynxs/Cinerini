@@ -26,6 +26,8 @@ Registro dos pontos em que a primeira proposta foi rejeitada ou corrigida:
 - **`passlib` + `python-jose` descartados.** Uma verificação de instalação revelou que `passlib 1.7.4` quebra com `bcrypt 5.x`. Trocado por `bcrypt` e `PyJWT` diretos.
 - **Ressalva sobre monoespaçado revista.** A ferramenta desaconselhou mono no painel do organizador; a objeção estava mal calibrada, já que mono alinha dado tabular melhor que proporcional. Mantido mono, com exceção só para prosa.
 - **Ambiente corrigido antes do código.** Python 32-bit em máquina 64-bit teria quebrado na instalação do driver do Postgres. Detectado e corrigido no dia 1.
+- **Sala normalizada por questionamento na revisão.** O modelo entregue trazia sala e dimensões como campos soltos em `Showing`. Ao revisar linha a linha, questionei se sala não deveria ser tabela própria. A ferramenta havia argumentado contra, por escopo; mantive a posição, e ao detalhar o raciocínio ficou claro que aqueles campos viravam dado morto após a geração dos assentos. O modelo mudou (decisão D6), com migration nova em vez de reescrita da original.
+- **Migration gerada foi lida antes de aplicada.** O autogenerate do Alembic propôs recriar uma chave estrangeira já existente e nomeou outra como `None`, o que quebraria o `downgrade`. Ambas corrigidas à mão, e o ciclo upgrade/downgrade/upgrade verificado.
 
 ## O que foi feito sem IA
 

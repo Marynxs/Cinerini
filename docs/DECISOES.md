@@ -63,5 +63,3 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 `venue` migrou de `Event` para `Room` no mesmo movimento: normalizar a sala mantendo o local como texto solto no evento deixaria ambíguo a que cinema uma "Sala 3" pertence.
 
 **Onde a normalização para:** o local continua texto, não tabela. Neste escopo o cinema não tem atributo além do nome, e uma tabela de campo único não carrega informação que o texto já não carregue — custaria mais um CRUD no painel do organizador sem nada em troca.
-
-**Nota de processo:** o modelo inicial era o dos campos soltos. A troca partiu de questionamento meu durante a revisão do modelo, e a migration `a8c7bf3f28f7` registra a mudança em vez de reescrever a estrutura original.
