@@ -1,0 +1,61 @@
+# Contexto do projeto
+
+Arquivo de contexto que orienta o agente de IA usado no desenvolvimento. Versionado deliberadamente: mostra como a ferramenta foi conduzida.
+
+## O que é
+
+**Bilheteria** — plataforma de eventos e ingressos de cinema. Organizador publica sessões a partir do catálogo do TMDb, cliente escolhe poltrona e paga (simulado), recebe ingresso com QR, portaria valida na entrada.
+
+Especificação em `docs/ESPECIFICACAO.md`. Decisões em `docs/DECISOES.md`.
+
+## Stack
+
+- **Front:** React + Vite (`web/`)
+- **Back:** FastAPI + SQLAlchemy 2.0 + Alembic (`api/`)
+- **Banco:** PostgreSQL 18 no Neon
+- **Auth:** PyJWT (HS256) e bcrypt direto — não usar passlib nem python-jose
+
+## Garantias inegociáveis
+
+Quatro invariantes. Nenhuma alteração pode enfraquecê-las.
+
+1. **Assento nunca vendido duas vezes.** Índice único parcial `tickets(seat_id) WHERE status <> 'cancelled'`. A garantia vive no banco, não na aplicação — nunca substituir por verificação em Python.
+2. **QR não forjável.** O código é um JWT assinado com `SECRET_KEY`. Nunca expor identificador previsível no lugar dele.
+3. **Ingresso não validado duas vezes.** `UPDATE ... WHERE status='valid'` conferindo linhas afetadas. Nunca `SELECT` seguido de `UPDATE`.
+4. **Evento errado é estado próprio.** Portaria vinculada a `gate_event_id`; divergência não pode colapsar em "inválido".
+
+## Identidade visual
+
+Direção **recibo térmico**: papel, monoespaçado, alinhamentos de cupom fiscal, tracejado como divisor.
+
+| Token | Valor | Uso |
+|---|---|---|
+| `papel` | `#F2EDE2` | fundo de superfície |
+| `papel-fundo` | `#E4DCCB` | fundo da página |
+| `tinta` | `#191512` | texto e ações primárias |
+| `tinta-fraca` | `#7A6C58` | metadados e rótulos |
+| `picote` | `#A99B84` | divisores tracejados |
+| `carimbo` | `#A32B1C` | **reservado**: seleção, erro, recusa |
+
+- Tipografia: **IBM Plex Mono** em todo o sistema. Única exceção: sinopse do TMDb em **IBM Plex Sans**.
+- Escala: display 26/600/uppercase · título 15/600 · corpo 12.5/400 · etiqueta 9/400/`0.16em`
+- O carmim nunca é decoração. Se aparecer sem indicar ação ou atenção, está errado.
+- Estados de assento se distinguem por **forma e textura além de cor** — o par carmim/bege é indistinguível para parte dos usuários.
+
+## Convenções
+
+- Documentação, comentários e mensagens de commit em **português**. Código e identificadores em inglês.
+- Valores monetários em **centavos, como inteiro**. Nunca float.
+- `Showing` é a exibição; `Session` é reservado ao SQLAlchemy.
+- Comentário no código explica **por que**, nunca o que a linha faz.
+- Nenhum arquivo do repositório contém conteúdo introdutório ou didático. A documentação é escrita para quem domina a stack: decisões e trade-offs, não definições.
+
+## Commits
+
+Conventional commits com escopo, em português, imperativo. Uma unidade de trabalho por commit — nunca agrupar features distintas.
+
+Nos commits que tocam as quatro garantias, o corpo registra a alternativa descartada e o motivo.
+
+## Fora de escopo
+
+Nota fiscal, revenda entre usuários, aplicativo nativo, recuperação de senha, envio de ingresso por e-mail.
