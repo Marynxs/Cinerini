@@ -84,7 +84,8 @@ class Event(Base):
     backdrop_url: Mapped[str | None] = mapped_column(String(500))
     runtime_minutes: Mapped[int | None] = mapped_column(Integer)
 
-    venue: Mapped[str] = mapped_column(String(255))
+    # O local não fica aqui: ele é propriedade da sala, e a sala vem pela
+    # exibição. Um mesmo filme pode ser exibido em cinemas diferentes.
     status: Mapped[EventStatus] = mapped_column(String(20), default=EventStatus.DRAFT)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -96,6 +97,32 @@ class Event(Base):
     )
 
 
+class Room(Base):
+    """Uma sala física. O layout é propriedade dela, não da exibição."""
+
+    __tablename__ = "rooms"
+    __table_args__ = (
+        UniqueConstraint("venue", "name", name="uq_room_no_local"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # O cinema. Texto e não tabela própria: neste escopo o local não tem
+    # atributo nenhum além do nome, e uma tabela de um campo só não carrega
+    # informação que o texto já não carregue.
+    venue: Mapped[str] = mapped_column(String(255), index=True)
+    name: Mapped[str] = mapped_column(String(60))
+
+    rows: Mapped[int] = mapped_column(Integer, default=8)
+    seats_per_row: Mapped[int] = mapped_column(Integer, default=12)
+
+    showings: Mapped[list["Showing"]] = relationship(back_populates="room")
+
+    @property
+    def capacity(self) -> int:
+        return self.rows * self.seats_per_row
+
+
 class Showing(Base):
     """Uma exibição: o mesmo filme em sala, data e preço específicos."""
 
@@ -104,17 +131,20 @@ class Showing(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
 
+    # RESTRICT: apagar uma sala com exibições agendadas deve falhar, não
+    # apagar as exibições em cascata nem deixar a sessão sem lugar.
+    room_id: Mapped[int] = mapped_column(
+        ForeignKey("rooms.id", ondelete="RESTRICT"), index=True
+    )
+
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    room: Mapped[str] = mapped_column(String(60))
     audio: Mapped[str] = mapped_column(String(30), default="Dublado")
 
     # Dinheiro em centavos: inteiro não acumula erro de arredondamento.
     price_cents: Mapped[int] = mapped_column(Integer)
 
-    rows: Mapped[int] = mapped_column(Integer, default=8)
-    seats_per_row: Mapped[int] = mapped_column(Integer, default=12)
-
     event: Mapped["Event"] = relationship(back_populates="showings")
+    room: Mapped["Room"] = relationship(back_populates="showings")
     seats: Mapped[list["Seat"]] = relationship(
         back_populates="showing", cascade="all, delete-orphan"
     )

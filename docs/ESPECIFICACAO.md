@@ -19,7 +19,9 @@ Portaria é vinculada a um evento. É essa vinculação que permite responder "e
 ## Fluxos
 
 ### Publicação
-Organizador busca no TMDb → escolhe o filme → o sistema importa título, sinopse, pôster e duração → organizador define sala, horário, preço e dimensões da sala → publica. A publicação gera os assentos.
+Organizador busca no TMDb → escolhe o filme → o sistema importa título, sinopse, pôster e duração → organizador escolhe a sala e define horário e preço → publica. A publicação gera os assentos a partir do layout da sala.
+
+Salas são cadastradas uma vez, com local, nome e dimensões, e reaproveitadas por qualquer exibição.
 
 ### Compra
 Cliente abre a sessão → vê o mapa com assentos livres, ocupados e em espera → escolhe → o assento entra em espera por 10 minutos → paga → o ingresso é emitido com código assinado.

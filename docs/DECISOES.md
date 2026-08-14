@@ -49,3 +49,19 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 **Descartado:** Next.js.
 
 **Por quê:** o back-end é o FastAPI. As funcionalidades que justificam o Next — renderização no servidor e rotas de API próprias — ou não têm uso aqui ou duplicariam responsabilidade que já vive na API. Vite entrega o mesmo resultado com menos superfície.
+
+---
+
+## D6 · Sala como entidade própria
+
+**Decidido:** `Room` vira tabela, com `venue`, `name` e o layout (`rows`, `seats_per_row`). `Showing` passa a apontar para uma sala em vez de repetir esses dados; `venue` sai de `Event`.
+
+**Descartado:** manter sala e layout como campos soltos em `Showing`, que era o modelo inicial.
+
+**Por quê:** o layout é propriedade física da sala, não da exibição — "Sala 3" tem 8×12 lugares independente de qual filme passa nela. No modelo anterior, `rows` e `seats_per_row` viravam dado morto assim que os assentos eram gerados, e passariam a mentir sobre o conteúdo real de `seats` se alguém os editasse depois. Agora o layout é cadastrado uma vez e toda exibição naquela sala herda a mesma geometria.
+
+`venue` migrou de `Event` para `Room` no mesmo movimento: normalizar a sala mantendo o local como texto solto no evento deixaria ambíguo a que cinema uma "Sala 3" pertence.
+
+**Onde a normalização para:** o local continua texto, não tabela. Neste escopo o cinema não tem atributo além do nome, e uma tabela de campo único não carrega informação que o texto já não carregue — custaria mais um CRUD no painel do organizador sem nada em troca.
+
+**Nota de processo:** o modelo inicial era o dos campos soltos. A troca partiu de questionamento meu durante a revisão do modelo, e a migration `a8c7bf3f28f7` registra a mudança em vez de reescrever a estrutura original.
