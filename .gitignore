@@ -1,0 +1,27 @@
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Ferramentas de apoio (não fazem parte da entrega)
+.superpowers/
+
+# Enunciado do desafio — material da Verzel, não redistribuir
+Desafio-Elite-Dev-2026.pdf
+
+# Sistema
+.DS_Store
+Thumbs.db
