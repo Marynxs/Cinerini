@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # quem valida é a portaria, e a fonte de verdade sobre uso é o banco.
     access_token_hours: int = 12
 
+    # Só ligar quando houver um proxy confiável à frente reescrevendo
+    # X-Forwarded-For. Ligado sem proxy, qualquer cliente forja o próprio IP
+    # e escapa do limite de tentativas.
+    trust_proxy: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
