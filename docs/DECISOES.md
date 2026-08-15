@@ -79,3 +79,27 @@ A cidade é indexada porque é o primeiro filtro que o cliente aplica, antes mes
 **Onde a normalização para agora:** fora ficaram coordenadas geográficas, fuso horário, telefone e horário de funcionamento. Todos existem em sistemas reais — o fuso, em particular, é obrigatório em rede nacional, já que o Brasil tem quatro e uma sessão gravada em UTC precisa ser exibida no horário local de cada cinema. Nenhum deles entra aqui porque **nenhuma tela do projeto os leria**, e campo que nada consome ainda custa seed, formulário e manutenção.
 
 O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim "existe tela que consome esse campo?".
+
+---
+
+## D8 · Cadastro revela e-mail já cadastrado, com limite de tentativas
+
+**Decidido:** o cadastro responde `409` explicitamente quando o e-mail já tem conta. A exposição é compensada por limite de tentativas por IP e por conta.
+
+**Descartado:** responder sempre sucesso e informar o resultado real por e-mail.
+
+**Por quê:** o descarte é a solução correta — quem já tem conta recebe um aviso, quem não tem recebe o link de confirmação, e nada vaza para quem só está sondando. Ela depende de envio de e-mail, listado como fora de escopo no enunciado. Sem esse canal, esconder a informação apenas trocaria o vazamento por um usuário travado sem entender por que o cadastro não conclui.
+
+**O que isso expõe:** enumeração de usuários. Quem tiver uma lista de e-mails descobre quais têm conta tentando cadastrar cada um. É a mesma informação que o login recusa deliberadamente a entregar — ali senha errada e e-mail inexistente retornam resposta idêntica — e admitir a inconsistência é mais honesto do que fingir que o cuidado no login basta.
+
+**Mitigação implementada:** duas janelas deslizantes independentes.
+
+| Janela | Limite | Defende de |
+|---|---|---|
+| Cadastro por IP | 20 / hora | Varredura de lista de e-mails |
+| Login por IP | 60 / 5 min | Volume anormal de rede |
+| Login por conta | 8 / 15 min | Força bruta de senha |
+
+Os limites por IP são folgados de propósito: escritório, universidade e operadora móvel colocam muita gente atrás de um endereço só, e apertar ali puniria usuário legítimo sem impedir quem distribui o ataque entre vários endereços. A defesa efetiva contra força bruta é a janela **por conta**, que independe de origem. Acerto de senha zera a contagem, para que erro de digitação não bloqueie o dono.
+
+**Limitação conhecida:** a contagem vive em memória e zera quando o processo reinicia — no Render, que hiberna por inatividade, isso ocorre. Persistir em banco custaria uma escrita por tentativa, o que transformaria o próprio limitador em vetor de esgotamento de disco. É mitigação de custo, não bloqueio absoluto, e vai declarada como tal no README.
