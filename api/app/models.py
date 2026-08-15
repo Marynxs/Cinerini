@@ -97,25 +97,48 @@ class Event(Base):
     )
 
 
+class Venue(Base):
+    """Um cinema. Agrupa salas e é a unidade de busca por localização."""
+
+    __tablename__ = "venues"
+    __table_args__ = (
+        UniqueConstraint("name", "city", name="uq_venue_na_cidade"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(String(255))
+
+    # Indexada porque é o filtro principal do catálogo: o cliente escolhe
+    # cidade antes de escolher filme.
+    city: Mapped[str] = mapped_column(String(120), index=True)
+    state: Mapped[str] = mapped_column(String(2))
+    address: Mapped[str] = mapped_column(String(255))
+
+    rooms: Mapped[list["Room"]] = relationship(back_populates="venue")
+
+
 class Room(Base):
     """Uma sala física. O layout é propriedade dela, não da exibição."""
 
     __tablename__ = "rooms"
     __table_args__ = (
-        UniqueConstraint("venue", "name", name="uq_room_no_local"),
+        UniqueConstraint("venue_id", "name", name="uq_room_no_venue"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # O cinema. Texto e não tabela própria: neste escopo o local não tem
-    # atributo nenhum além do nome, e uma tabela de um campo só não carrega
-    # informação que o texto já não carregue.
-    venue: Mapped[str] = mapped_column(String(255), index=True)
+    # RESTRICT: apagar um cinema que ainda tem salas deve falhar. Salas órfãs
+    # não teriam onde ser exibidas no catálogo.
+    venue_id: Mapped[int] = mapped_column(
+        ForeignKey("venues.id", ondelete="RESTRICT"), index=True
+    )
     name: Mapped[str] = mapped_column(String(60))
 
     rows: Mapped[int] = mapped_column(Integer, default=8)
     seats_per_row: Mapped[int] = mapped_column(Integer, default=12)
 
+    venue: Mapped["Venue"] = relationship(back_populates="rooms")
     showings: Mapped[list["Showing"]] = relationship(back_populates="room")
 
     @property

@@ -62,4 +62,20 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 `venue` migrou de `Event` para `Room` no mesmo movimento: normalizar a sala mantendo o local como texto solto no evento deixaria ambíguo a que cinema uma "Sala 3" pertence.
 
-**Onde a normalização para:** o local continua texto, não tabela. Neste escopo o cinema não tem atributo além do nome, e uma tabela de campo único não carrega informação que o texto já não carregue — custaria mais um CRUD no painel do organizador sem nada em troca.
+**Onde a normalização para:** revisto em D7.
+
+---
+
+## D7 · Cinema como entidade própria
+
+**Decidido:** `Venue` vira tabela com `name`, `city`, `state` e `address`. `Room` aponta para ela em vez de guardar o nome do cinema como texto.
+
+**Descartado:** manter o cinema como texto em `Room`, que era a posição adotada em D6.
+
+**Por quê:** o argumento de D6 — "o cinema não tem atributo além do nome" — estava errado, e a evidência é o filtro. A busca que estrutura toda plataforma de ingresso é por **cidade e cinema**, não por título. Com o local como texto não existia campo de cidade, então filtrar por região era impossível, e listar cinemas dependeria de `SELECT DISTINCT venue`, frágil a qualquer divergência de digitação: "Cinemark Eldorado" e "cinemark eldorado" virariam dois cinemas.
+
+A cidade é indexada porque é o primeiro filtro que o cliente aplica, antes mesmo de escolher filme.
+
+**Onde a normalização para agora:** fora ficaram coordenadas geográficas, fuso horário, telefone e horário de funcionamento. Todos existem em sistemas reais — o fuso, em particular, é obrigatório em rede nacional, já que o Brasil tem quatro e uma sessão gravada em UTC precisa ser exibida no horário local de cada cinema. Nenhum deles entra aqui porque **nenhuma tela do projeto os leria**, e campo que nada consome ainda custa seed, formulário e manutenção.
+
+O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim "existe tela que consome esse campo?".

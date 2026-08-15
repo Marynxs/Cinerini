@@ -11,7 +11,7 @@ O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não
 | Papel | Pode |
 |---|---|
 | **Organizador** | Buscar filmes no TMDb, criar eventos e sessões, definir sala, horário, preço e capacidade, publicar, acompanhar vendas |
-| **Cliente** | Navegar e buscar sessões publicadas, escolher poltrona, pagar, ver seus ingressos, compartilhar um ingresso por link |
+| **Cliente** | Navegar e buscar sessões publicadas por cidade, cinema, data e título, escolher poltrona, pagar, ver seus ingressos, compartilhar um ingresso por link |
 | **Portaria** | Validar ingressos de **um evento específico**, por câmera ou digitação |
 
 Portaria é vinculada a um evento. É essa vinculação que permite responder "evento errado" em vez de "inválido".
@@ -21,7 +21,7 @@ Portaria é vinculada a um evento. É essa vinculação que permite responder "e
 ### Publicação
 Organizador busca no TMDb → escolhe o filme → o sistema importa título, sinopse, pôster e duração → organizador escolhe a sala e define horário e preço → publica. A publicação gera os assentos a partir do layout da sala.
 
-Salas são cadastradas uma vez, com local, nome e dimensões, e reaproveitadas por qualquer exibição.
+Cinemas e salas são cadastrados uma vez e reaproveitados por qualquer exibição: o cinema guarda nome, cidade, estado e endereço; a sala guarda nome e dimensões.
 
 ### Compra
 Cliente abre a sessão → vê o mapa com assentos livres, ocupados e em espera → escolhe → o assento entra em espera por 10 minutos → paga → o ingresso é emitido com código assinado.
