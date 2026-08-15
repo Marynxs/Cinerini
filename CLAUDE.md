@@ -54,7 +54,11 @@ Direção **recibo térmico**: papel, monoespaçado, alinhamentos de cupom fisca
 
 Conventional commits com escopo, em português, imperativo. Uma unidade de trabalho por commit — nunca agrupar features distintas.
 
+**Assunto:** até 50 caracteres. **Corpo:** quebrado em 72 colunas, e só quando a decisão não é óbvia lendo o diff — então em 2 a 5 linhas, explicando o porquê e nunca o como. Mudança mecânica (renomear, formatar, ajustar dependência) fica só com o assunto. Quando houver decisão registrada em `docs/DECISOES.md`, o corpo aponta para o `D#` em vez de repetir o texto: duas fontes para a mesma justificativa divergem.
+
 Nos commits que tocam as quatro garantias, o corpo registra a alternativa descartada e o motivo.
+
+Alterações em `AI-USAGE.md` entram no mesmo commit da mudança que registram, nunca em commit próprio — o registro e o fato são a mesma unidade de trabalho.
 
 ## Fora de escopo
 
