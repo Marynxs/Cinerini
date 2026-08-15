@@ -46,6 +46,10 @@ A ferramenta recomendou cache em tabela alegando que, sem ele, o catálogo sairi
 **Prazo de validade do cache recalculado.**
 Perguntei se o cache precisava de tempo de vida. A ferramenta implementou 30 minutos, e eu questionei se aquilo ajudava em alguma coisa — o organizador buscaria, e meia hora depois a entrada teria sido descartada à toa. A objeção procedia, e expôs uma confusão na justificativa: quem limita memória é o teto de entradas, não o prazo. O prazo serve só contra dado velho, e sinopse e pôster de filme lançado praticamente não mudam. Subiu para seis horas, que atravessam uma jornada do organizador sem expirar nada.
 
+**Troca de sala checada antes de virar regra.**
+A ferramenta levantou o caso de trocar a sala de uma sessão já vendida e ofereceu três tratamentos. Antes de escolher, pedi que verificasse se aquilo acontece de verdade num cinema — não queria regra construída sobre hipótese. Acontece: projetor quebra, sessão vende mal e migra para sala menor, sessão esgota e é promovida. A verificação também corrigiu a descrição do problema, que estava errada: os assentos não ficariam órfãos, já que pertencem à exibição e não à sala. O que quebra é a correspondência com a sala física. Virou a decisão D9.
+
+
 ## Ajustes surgidos na verificação
 
 **`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**

@@ -103,3 +103,65 @@ O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim
 Os limites por IP são folgados de propósito: escritório, universidade e operadora móvel colocam muita gente atrás de um endereço só, e apertar ali puniria usuário legítimo sem impedir quem distribui o ataque entre vários endereços. A defesa efetiva contra força bruta é a janela **por conta**, que independe de origem. Acerto de senha zera a contagem, para que erro de digitação não bloqueie o dono.
 
 **Limitação conhecida:** a contagem vive em memória e zera quando o processo reinicia — no Render, que hiberna por inatividade, isso ocorre. Persistir em banco custaria uma escrita por tentativa, o que transformaria o próprio limitador em vetor de esgotamento de disco. É mitigação de custo, não bloqueio absoluto, e vai declarada como tal no README.
+
+---
+
+## D9 · Sala travada depois da primeira venda
+
+**Decidido:** a sala de uma exibição pode ser trocada enquanto não houver ingresso. Sem venda, o mapa é descartado e refeito no layout da sala nova. Com venda, a troca é recusada.
+
+**Descartado:** travar a sala já na publicação, e permitir a troca com remapeamento dos ingressos vendidos.
+
+**Por quê:** trocar de sala é operação real de cinema — projetor quebra, sessão vende mal e migra para uma sala menor, sessão esgota e é promovida para uma maior. Ignorar o caso deixaria o organizador sem saída legítima.
+
+O que a troca quebra não é integridade referencial: `Seat` pertence à exibição, não à sala, então nenhum assento fica órfão. O que quebra é a correspondência com a sala física — a exibição passaria a anunciar "Sala 5" exibindo um mapa gerado do layout da Sala 3, e o cliente compraria a F7 de uma sala que pode não ter fileira F.
+
+Travar já na publicação seria mais simples, mas custaria o caso mais comum: publicar, notar a sala errada e corrigir antes de vender. O remapeamento dos ingressos é o que uma rede real faria, e exige interface de realocação e política de reembolso — sistema à parte.
+
+**Onde a linha foi traçada:** o gatilho é a primeira venda, não a publicação. Preço, horário e áudio continuam editáveis mesmo com ingresso vendido: quem comprou pagou o valor registrado no pedido, e promoção é operação corriqueira.
+
+---
+
+## D10 · Sessão cancelada permanece visível, com motivo
+
+**Decidido:** cancelar uma sessão não a remove. Ela ganha estado próprio e um campo de motivo em texto livre, exibido a quem tem ingresso: *"Sessão cancelada: problema no projetor."* Os ingressos passam a `cancelled` e os pedidos registram o reembolso simulado.
+
+**Descartado:** remover a sessão do sistema, e cancelá-la silenciosamente sem justificativa.
+
+**Por quê:** remover deixaria o ingresso do cliente desaparecer sem explicação — ele abriria "Meus ingressos" e encontraria um vazio, sem saber se perdeu o acesso, se foi golpe ou se o evento mudou. Cancelar sem motivo é pouco melhor: informa que algo aconteceu e esconde o quê.
+
+O motivo em texto livre existe porque a causa é operacional e imprevisível — falha de equipamento, público mínimo não atingido, interdição da sala. Uma lista fechada de opções não cobriria os casos reais e obrigaria a escolher "outro" com frequência.
+
+**Efeito colateral já resolvido:** liberar os assentos não exige código. O índice único é parcial em `status <> 'cancelled'`, então o ingresso cancelado sai do índice e a poltrona volta ao estoque sozinha — a decisão D-inicial do modelo pagando aqui.
+
+**Pendente de implementação.** Depende do fluxo de compra existir para ter o que cancelar. Entra junto com ele.
+
+**Beco sem saída que motivou a decisão:** a D9 recusa a troca de sala orientando "cancele a sessão e crie outra", mas remover sessão com ingresso também é recusado. Sem D10, o organizador com sala interditada e ingressos vendidos não tem saída nenhuma.
+
+---
+
+## D11 · Regra de negócio em módulos, não em classes de serviço
+
+**Decidido:** vira classe o que guarda algo entre chamadas; vira função de módulo o que só transforma entrada em saída. A regra de negócio fica em arquivos próprios — `seating.py`, `security.py`, `tmdb.py` — e não dentro das rotas.
+
+**Descartado:** classes de serviço agrupando funções, e uma camada de acesso a dados por cima do SQLAlchemy.
+
+**Por quê:** classe que não guarda nada não protege nada — em Python o próprio arquivo já agrupa funções, ao contrário de linguagens onde toda função precisa morar numa classe. E envolver o SQLAlchemy numa camada de acesso repetiria o que ele já entrega: a `Session` é exatamente essa camada, e a classe extra só encaminharia chamadas.
+
+Onde há estado, a classe está lá: `TTLCache` e `SlidingWindow` guardam dados entre chamadas e as regras que os governam.
+
+**Consequência:** o fluxo de reserva encadeia disponibilidade, trava com prazo, pagamento e emissão do ingresso. Isso não cabe dentro de uma rota, e vai para módulo próprio — por tamanho, não por paradigma.
+
+---
+
+## D12 · Sessão é recurso de primeiro nível
+
+**Decidido:** operações sobre uma sessão específica ficam em `/showings/{id}`. Criar e listar sessões de um evento continuam em `/events/{id}/showings`.
+
+**Descartado:** manter tudo aninhado sob `/events/`, como estava.
+
+**Por quê:** as rotas de detalhe, edição, remoção e mapa de assentos não usam o `event_id` — ele aparecia na URL sem participar da resolução. Aninhamento que não identifica nada é ruído, e obrigaria o front a carregar o evento só para montar o endereço da sessão.
+
+A convenção adotada é a usual: coleção sob o pai, item na raiz.
+
+**Momento da mudança:** feita antes de o front existir. Depois do dia 4 custaria alterar os dois lados ao mesmo tempo.

@@ -48,6 +48,8 @@ Direção **recibo térmico**: papel, monoespaçado, alinhamentos de cupom fisca
 - Valores monetários em **centavos, como inteiro**. Nunca float.
 - `Showing` é a exibição; `Session` é reservado ao SQLAlchemy.
 - Comentário no código explica **por que**, nunca o que a linha faz.
+- Classe onde há estado ou identidade a proteger; função de módulo onde não há (D11). Regra de negócio em módulo próprio, fora do handler de rota. Sem camada de repositório sobre o SQLAlchemy.
+- Coleção sob o recurso pai, item na raiz: `/events/{id}/showings` para listar e criar, `/showings/{id}` para operar sobre uma (D12).
 - Nenhum arquivo do repositório contém conteúdo introdutório ou didático. A documentação é escrita para quem domina a stack: decisões e trade-offs, não definições.
 
 ## Commits
