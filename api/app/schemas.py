@@ -10,7 +10,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.models import EventStatus, Role, SeatKind
+from app.models import EventStatus, OrderStatus, Role, SeatKind, TicketStatus
 
 
 class RegisterIn(BaseModel):
@@ -170,3 +170,94 @@ class SeatOut(BaseModel):
     row_label: str
     number: int
     kind: SeatKind
+    label: str
+
+    # Ocupado cobre vendido e em checkout. O cliente não precisa saber a
+    # diferença: nos dois casos a poltrona não está disponível para ele.
+    taken: bool = False
+
+
+# ------------------------------------------------------------ reserva
+
+
+class ReservationIn(BaseModel):
+    seat_ids: list[int] = Field(min_length=1, max_length=10)
+
+
+class TicketOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    jti: str
+    status: TicketStatus
+    seat_label: str
+    row_label: str
+    number: int
+
+
+class OrderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    showing_id: int
+    status: OrderStatus
+    total_cents: int
+    held_until: datetime | None
+    tickets: list[TicketOut]
+
+
+class PaymentIn(BaseModel):
+    card_number: str = Field(min_length=13, max_length=25)
+    holder_name: str = Field(min_length=2, max_length=120)
+
+
+class PaymentOut(BaseModel):
+    approved: bool
+    reason: str | None
+    order: OrderOut
+
+
+class MyTicketOut(BaseModel):
+    """Ingresso na área do cliente, com o conteúdo do QR."""
+
+    id: int
+    jti: str
+    status: TicketStatus
+    seat_label: str
+    qr_token: str
+
+    event_title: str
+    poster_url: str | None
+    venue_name: str
+    room_name: str
+    starts_at: datetime
+    audio: str
+    price_cents: int
+
+
+# ---------------------------------------------------- compartilhamento
+
+
+class ShareLinkOut(BaseModel):
+    token: str
+    revoked: bool
+    created_at: datetime
+
+
+class SharedTicketOut(BaseModel):
+    """Ingresso visto por quem recebeu o link.
+
+    Sem o nome de quem comprou: o link circula por mensagem e pode chegar a
+    mais gente do que o titular pretendia.
+    """
+
+    status: TicketStatus
+    seat_label: str
+    qr_token: str
+
+    event_title: str
+    poster_url: str | None
+    venue_name: str
+    room_name: str
+    starts_at: datetime
+    audio: str

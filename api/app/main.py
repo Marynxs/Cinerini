@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, catalog, events, showings, venues
+from app.routers import (
+    auth, bookings, catalog, events, sharing, showings, venues,
+)
 
 settings = get_settings()
 
@@ -26,6 +28,8 @@ app.include_router(catalog.router)
 app.include_router(venues.router)
 app.include_router(events.router)
 app.include_router(showings.router)
+app.include_router(bookings.router)
+app.include_router(sharing.router)
 
 
 @app.get("/health", tags=["infra"])

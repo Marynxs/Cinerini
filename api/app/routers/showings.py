@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from app.deps import DbSession, Organizer
 from app.models import Event, Room, Seat, Showing, User
 from app.schemas import SeatOut, ShowingOut, ShowingUpdate
-from app.seating import generate_seats, sold_count
+from app.seating import generate_seats, sold_count, taken_seat_ids
 
 router = APIRouter(prefix="/showings", tags=["sessões"])
 
@@ -37,15 +37,25 @@ def get_showing(showing_id: int, db: DbSession) -> Showing:
 
 
 @router.get("/{showing_id}/seats", response_model=list[SeatOut])
-def list_seats(showing_id: int, db: DbSession) -> list[Seat]:
+def list_seats(showing_id: int, db: DbSession) -> list[SeatOut]:
+    """Mapa da sessão com a ocupação atual."""
     _showing_or_404(db, showing_id)
-    return list(
-        db.scalars(
-            select(Seat)
-            .where(Seat.showing_id == showing_id)
-            .order_by(Seat.row_label, Seat.number)
+
+    assentos = db.scalars(
+        select(Seat)
+        .where(Seat.showing_id == showing_id)
+        .order_by(Seat.row_label, Seat.number)
+    ).all()
+
+    ocupados = taken_seat_ids(db, showing_id)
+
+    return [
+        SeatOut(
+            id=a.id, row_label=a.row_label, number=a.number, kind=a.kind,
+            label=a.label, taken=a.id in ocupados,
         )
-    )
+        for a in assentos
+    ]
 
 
 @router.patch("/{showing_id}", response_model=ShowingOut)

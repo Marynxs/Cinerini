@@ -1,8 +1,9 @@
-"""Geração do mapa de assentos de uma exibição."""
+"""Mapa de assentos de uma exibição: geração e disponibilidade."""
 
+from datetime import datetime, timezone
 from string import ascii_uppercase
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Seat, SeatKind, Showing, Ticket, TicketStatus
@@ -42,6 +43,29 @@ def has_seats(db: Session, showing_id: int) -> bool:
     return db.scalar(
         select(Seat.id).where(Seat.showing_id == showing_id).limit(1)
     ) is not None
+
+
+def taken_seat_ids(db: Session, showing_id: int) -> set[int]:
+    """Assentos com ingresso vivo: vendidos ou em checkout.
+
+    Espera vencida não conta — o assento já voltou ao estoque, e considerá-lo
+    ocupado esconderia poltrona livre do cliente.
+    """
+    agora = datetime.now(timezone.utc)
+
+    linhas = db.scalars(
+        select(Ticket.seat_id)
+        .join(Seat, Ticket.seat_id == Seat.id)
+        .where(
+            Seat.showing_id == showing_id,
+            Ticket.status != TicketStatus.CANCELLED,
+            or_(
+                Ticket.status != TicketStatus.HELD,
+                Ticket.held_until > agora,
+            ),
+        )
+    )
+    return set(linhas)
 
 
 def sold_count(db: Session, showing_id: int) -> int:

@@ -20,7 +20,9 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 **Descartado:** duas direções alternativas — uma escura com âmbar de marquise, outra editorial em branco com grid suíço.
 
-**Por quê:** o objeto que o sistema produz é um bilhete, e a interface adota a linguagem do próprio objeto. A escolha também é uma resposta ao critério declarado no enunciado: uma paleta de papel não é o que uma ferramenta generativa produz por padrão, e a coerência entre o meio e o produto sustenta a decisão além do gosto pessoal.
+**Por quê:** papel, monoespaçado e picote remetem ao bilhete de cinema antigo — o canhoto que se destacava na entrada. É o ar de cinema que o produto precisava ter, e nenhuma das outras duas direções entregava: escuro com âmbar puxa para aplicativo de streaming, e o editorial em branco puxa para revista.
+
+O objeto que o sistema produz é um bilhete, então a interface adota a linguagem do próprio objeto. Essa coerência entre meio e produto é o que sustenta a decisão além do gosto pessoal.
 
 **Regra que decorre daí:** o carmim `#A32B1C` é reservado a ação e atenção — assento selecionado, erro, recusa. Nunca decoração.
 
