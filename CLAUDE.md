@@ -4,7 +4,7 @@ Arquivo de contexto que orienta o agente de IA usado no desenvolvimento. Version
 
 ## O que é
 
-**Bilheteria** — plataforma de eventos e ingressos de cinema. Organizador publica sessões a partir do catálogo do TMDb, cliente escolhe poltrona e paga (simulado), recebe ingresso com QR, portaria valida na entrada.
+**Cinerini** — plataforma de eventos e ingressos de cinema. Organizador publica sessões a partir do catálogo do TMDb, cliente escolhe poltrona e paga (simulado), recebe ingresso com QR, portaria valida na entrada.
 
 Especificação em `docs/ESPECIFICACAO.md`. Decisões em `docs/DECISOES.md`.
 

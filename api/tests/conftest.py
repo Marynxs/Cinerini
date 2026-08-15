@@ -67,15 +67,15 @@ def reset_rate_limits() -> None:
 @pytest.fixture
 def users(db: Session) -> dict[str, User]:
     criados = {
-        "organizer": User(name="Org", email="org@bilheteria.com.br",
+        "organizer": User(name="Org", email="org@cinerini.com.br",
                           password_hash=hash_password(SENHA), role=Role.ORGANIZER),
-        "organizer2": User(name="Org 2", email="org2@bilheteria.com.br",
+        "organizer2": User(name="Org 2", email="org2@cinerini.com.br",
                            password_hash=hash_password(SENHA), role=Role.ORGANIZER),
-        "customer": User(name="Cliente", email="cli@bilheteria.com.br",
+        "customer": User(name="Cliente", email="cli@cinerini.com.br",
                          password_hash=hash_password(SENHA), role=Role.CUSTOMER),
-        "customer2": User(name="Cliente 2", email="cli2@bilheteria.com.br",
+        "customer2": User(name="Cliente 2", email="cli2@cinerini.com.br",
                           password_hash=hash_password(SENHA), role=Role.CUSTOMER),
-        "gate": User(name="Portaria", email="port@bilheteria.com.br",
+        "gate": User(name="Portaria", email="port@cinerini.com.br",
                      password_hash=hash_password(SENHA), role=Role.GATE),
     }
     db.add_all(criados.values())

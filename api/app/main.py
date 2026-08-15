@@ -7,7 +7,7 @@ from app.routers import auth, catalog, events, showings, venues
 settings = get_settings()
 
 app = FastAPI(
-    title="Bilheteria",
+    title="Cinerini",
     description="Plataforma de eventos e ingressos.",
     version="0.1.0",
 )

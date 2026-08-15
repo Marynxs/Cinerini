@@ -29,16 +29,16 @@ from app.seating import generate_seats
 from app.security import hash_password
 from app.tmdb import movie_details
 
-SENHA = "bilheteria123"
+SENHA = "cinerini123"
 
 # Domínio comum e não um TLD reservado como .test ou .local: o validador de
 # e-mail recusa reservados, e as contas semeadas ficariam impossíveis de usar
 # pela API mesmo existindo no banco.
 USUARIOS = [
-    ("Marina Alencar", "organizador@bilheteria.com.br", Role.ORGANIZER),
-    ("Bruno Tavares", "cliente1@bilheteria.com.br", Role.CUSTOMER),
-    ("Carla Nogueira", "cliente2@bilheteria.com.br", Role.CUSTOMER),
-    ("Portaria Sala 1", "portaria@bilheteria.com.br", Role.GATE),
+    ("Marina Alencar", "organizador@cinerini.com.br", Role.ORGANIZER),
+    ("Bruno Tavares", "cliente1@cinerini.com.br", Role.CUSTOMER),
+    ("Carla Nogueira", "cliente2@cinerini.com.br", Role.CUSTOMER),
+    ("Portaria Sala 1", "portaria@cinerini.com.br", Role.GATE),
 ]
 
 VENUES = [

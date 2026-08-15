@@ -26,7 +26,7 @@ O enunciado não foi colado na ferramenta pedindo o sistema pronto. A ordem foi 
 
 O `CLAUDE.md` é o que impede a IA de reintroduzir soluções já rejeitadas — por exemplo, trocar a constraint do banco por uma verificação em Python.
 
-## Mudanças que parti de mim
+## Mudanças que partiram de mim
 
 **Monoespaçado mantido no sistema inteiro.**
 A ferramenta desaconselhou tipografia monoespaçada no painel do organizador, alegando cansaço visual. Escolhi a direção mesmo assim. Ao detalhar, a objeção não se sustentava: mono alinha dado tabular melhor que proporcional, e o painel é exatamente isso. O ponto fraco real do mono é prosa corrida — a sinopse do TMDb, e só ela, ficou em fonte proporcional.
@@ -66,7 +66,7 @@ O primeiro valor era 10 logins por IP a cada 5 minutos. Os testes começaram a f
 
 ## O que foi feito sem IA
 
-A escolha da stack, do escopo de reserva, da direção visual e do nome do produto. A decisão de usar TMDb com mapa de assentos em vez de pista por quantidade. E a leitura crítica de cada explicação antes de aceitar o código — de onde saíram as quatro mudanças da seção acima.
+A escolha da stack, do escopo de reserva, da direção visual e do nome do produto. A decisão de usar TMDb com mapa de assentos em vez de pista por quantidade. E a leitura crítica de cada explicação antes de aceitar o código — de onde saíram as mudanças listadas acima.
 
 ---
 

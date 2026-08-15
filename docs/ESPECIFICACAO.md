@@ -45,7 +45,7 @@ Cliente gera um link para um ingresso. Quem abre vê o ingresso e o QR. O link �
 
 ## Regras de negócio
 
-1. Um assento pertence a uma sessão e não pode ter dois ingressos não-cancelados.
+1. Um assento pertence a uma sessão e não pode ter dois ingressos não cancelados.
 2. Ingresso em espera ocupa o assento. Espera dura 10 minutos.
 3. Pagamento recusado cancela o pedido e libera os assentos.
 4. Cancelamento devolve o assento ao estoque.

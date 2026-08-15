@@ -8,7 +8,7 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 **Decidido:** TMDb como fonte do catálogo, modelando o domínio como cinema.
 
-**Descartado:** Ticketmaster Discovery. A API é mais rica em dados de venue reais, mas o fluxo que ela sugere — shows com pista e setores — se resolve por quantidade de ingressos, não por assento.
+**Descartado:** Ticketmaster Discovery. A API é mais rica em dados reais de local, mas o fluxo que ela sugere — shows com pista e setores — se resolve por quantidade de ingressos, não por assento.
 
 **Por quê:** o requisito de assento único é a garantia técnica mais interessante do desafio, e ela só aparece de verdade num mapa de assentos. Cinema também dá uma cadeia coerente: filme em cartaz → sessão → poltrona. O TMDb ainda fornece pôster e backdrop, o que resolve boa parte da carga visual sem produção de imagem.
 
@@ -62,7 +62,7 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 `venue` migrou de `Event` para `Room` no mesmo movimento: normalizar a sala mantendo o local como texto solto no evento deixaria ambíguo a que cinema uma "Sala 3" pertence.
 
-**Onde a normalização para:** revisto em D7.
+**Até onde a normalização vai:** revisto em D7.
 
 ---
 
@@ -76,7 +76,7 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 A cidade é indexada porque é o primeiro filtro que o cliente aplica, antes mesmo de escolher filme.
 
-**Onde a normalização para agora:** fora ficaram coordenadas geográficas, fuso horário, telefone e horário de funcionamento. Todos existem em sistemas reais — o fuso, em particular, é obrigatório em rede nacional, já que o Brasil tem quatro e uma sessão gravada em UTC precisa ser exibida no horário local de cada cinema. Nenhum deles entra aqui porque **nenhuma tela do projeto os leria**, e campo que nada consome ainda custa seed, formulário e manutenção.
+**Até onde a normalização vai agora:** fora ficaram coordenadas geográficas, fuso horário, telefone e horário de funcionamento. Todos existem em sistemas reais — o fuso, em particular, é obrigatório em rede nacional, já que o Brasil tem quatro e uma sessão gravada em UTC precisa ser exibida no horário local de cada cinema. Nenhum deles entra aqui porque **nenhuma tela do projeto os leria**, e campo que nada consome ainda custa seed, formulário e manutenção.
 
 O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim "existe tela que consome esse campo?".
 
@@ -88,9 +88,9 @@ O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim
 
 **Descartado:** responder sempre sucesso e informar o resultado real por e-mail.
 
-**Por quê:** o descarte é a solução correta — quem já tem conta recebe um aviso, quem não tem recebe o link de confirmação, e nada vaza para quem só está sondando. Ela depende de envio de e-mail, listado como fora de escopo no enunciado. Sem esse canal, esconder a informação apenas trocaria o vazamento por um usuário travado sem entender por que o cadastro não conclui.
+**Por quê:** a alternativa descartada é a solução correta — quem já tem conta recebe um aviso, quem não tem recebe o link de confirmação, e nada vaza para quem só está sondando. Mas ela depende de envio de e-mail, listado como fora de escopo no enunciado. Sem esse canal, esconder a informação apenas trocaria o vazamento por um usuário travado sem entender por que o cadastro não conclui.
 
-**O que isso expõe:** enumeração de usuários. Quem tiver uma lista de e-mails descobre quais têm conta tentando cadastrar cada um. É a mesma informação que o login recusa deliberadamente a entregar — ali senha errada e e-mail inexistente retornam resposta idêntica — e admitir a inconsistência é mais honesto do que fingir que o cuidado no login basta.
+**O que isso expõe:** enumeração de usuários. Quem tiver uma lista de e-mails descobre quais têm conta tentando cadastrar cada um. É a mesma informação que o login se recusa deliberadamente a entregar — ali senha errada e e-mail inexistente retornam resposta idêntica — e admitir a inconsistência é mais honesto do que fingir que o cuidado no login basta.
 
 **Mitigação implementada:** duas janelas deslizantes independentes.
 
@@ -102,7 +102,7 @@ O critério que separa D6 de D7 é esse: não "isso é mais normalizado?", e sim
 
 Os limites por IP são folgados de propósito: escritório, universidade e operadora móvel colocam muita gente atrás de um endereço só, e apertar ali puniria usuário legítimo sem impedir quem distribui o ataque entre vários endereços. A defesa efetiva contra força bruta é a janela **por conta**, que independe de origem. Acerto de senha zera a contagem, para que erro de digitação não bloqueie o dono.
 
-**Limitação conhecida:** a contagem vive em memória e zera quando o processo reinicia — no Render, que hiberna por inatividade, isso ocorre. Persistir em banco custaria uma escrita por tentativa, o que transformaria o próprio limitador em vetor de esgotamento de disco. É mitigação de custo, não bloqueio absoluto, e vai declarada como tal no README.
+**Limitação conhecida:** a contagem vive em memória e zera quando o processo reinicia — no Render, que hiberna por inatividade, isso ocorre. Persistir em banco custaria uma escrita por tentativa, o que transformaria o próprio limitador em vetor de esgotamento de disco. É mitigação de custo, não bloqueio absoluto, e fica declarada como tal no README.
 
 ---
 
@@ -114,7 +114,7 @@ Os limites por IP são folgados de propósito: escritório, universidade e opera
 
 **Por quê:** trocar de sala é operação real de cinema — projetor quebra, sessão vende mal e migra para uma sala menor, sessão esgota e é promovida para uma maior. Ignorar o caso deixaria o organizador sem saída legítima.
 
-O que a troca quebra não é integridade referencial: `Seat` pertence à exibição, não à sala, então nenhum assento fica órfão. O que quebra é a correspondência com a sala física — a exibição passaria a anunciar "Sala 5" exibindo um mapa gerado do layout da Sala 3, e o cliente compraria a F7 de uma sala que pode não ter fileira F.
+O que a troca quebra não é integridade referencial: `Seat` pertence à exibição, não à sala, então nenhum assento fica órfão. O que quebra é a correspondência com a sala física — a exibição passaria a anunciar "Sala 5" exibindo um mapa gerado a partir do layout da Sala 3, e o cliente compraria a F7 de uma sala que pode não ter fileira F.
 
 Travar já na publicação seria mais simples, mas custaria o caso mais comum: publicar, notar a sala errada e corrigir antes de vender. O remapeamento dos ingressos é o que uma rede real faria, e exige interface de realocação e política de reembolso — sistema à parte.
 
@@ -132,7 +132,7 @@ Travar já na publicação seria mais simples, mas custaria o caso mais comum: p
 
 O motivo em texto livre existe porque a causa é operacional e imprevisível — falha de equipamento, público mínimo não atingido, interdição da sala. Uma lista fechada de opções não cobriria os casos reais e obrigaria a escolher "outro" com frequência.
 
-**Efeito colateral já resolvido:** liberar os assentos não exige código. O índice único é parcial em `status <> 'cancelled'`, então o ingresso cancelado sai do índice e a poltrona volta ao estoque sozinha — a decisão D-inicial do modelo pagando aqui.
+**Efeito colateral já resolvido:** liberar os assentos não exige código. O índice único é parcial em `status <> 'cancelled'`, então o ingresso cancelado sai do índice e a poltrona volta ao estoque sozinha — a escolha de índice parcial, feita na modelagem inicial, pagando aqui.
 
 **Pendente de implementação.** Depende do fluxo de compra existir para ter o que cancelar. Entra junto com ele.
 
@@ -150,7 +150,7 @@ O motivo em texto livre existe porque a causa é operacional e imprevisível —
 
 Onde há estado, a classe está lá: `TTLCache` e `SlidingWindow` guardam dados entre chamadas e as regras que os governam.
 
-**Consequência:** o fluxo de reserva encadeia disponibilidade, trava com prazo, pagamento e emissão do ingresso. Isso não cabe dentro de uma rota, e vai para módulo próprio — por tamanho, não por paradigma.
+**Consequência:** o fluxo de reserva encadeia verificação de disponibilidade, trava com prazo, pagamento e emissão do ingresso. Isso não cabe dentro de uma rota, e vai para módulo próprio — por tamanho, não por paradigma.
 
 ---
 

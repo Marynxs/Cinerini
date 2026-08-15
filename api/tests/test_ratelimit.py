@@ -106,7 +106,7 @@ class TestRegisterFlood:
         for i in range(21):
             r = client.post("/auth/register", json={
                 "name": f"Usuario {i}",
-                "email": f"u{i}@bilheteria.com.br",
+                "email": f"u{i}@cinerini.com.br",
                 "password": "senhaForte123",
             })
             codigos.append(r.status_code)

@@ -12,7 +12,7 @@ from app.security import TOKEN_TYPE_TICKET, create_access_token
 
 from .conftest import SENHA
 
-NOVO = {"name": "Ana Prado", "email": "ana@bilheteria.com.br",
+NOVO = {"name": "Ana Prado", "email": "ana@cinerini.com.br",
         "password": "senhaForte123"}
 
 
@@ -78,7 +78,7 @@ class TestLogin:
         )
         inexistente = client.post(
             "/auth/login",
-            json={"email": "ninguem@bilheteria.com.br", "password": SENHA},
+            json={"email": "ninguem@cinerini.com.br", "password": SENHA},
         )
 
         assert senha_errada.status_code == inexistente.status_code == 401
@@ -97,7 +97,7 @@ class TestProtectedRoute:
     def test_valid_token_identifies_the_user(self, client: TestClient, auth) -> None:
         r = client.get("/auth/me", headers=auth("customer"))
         assert r.status_code == 200
-        assert r.json()["email"] == "cli@bilheteria.com.br"
+        assert r.json()["email"] == "cli@cinerini.com.br"
 
 
 class TestTokenIntegrity:

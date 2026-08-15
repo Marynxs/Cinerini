@@ -136,7 +136,7 @@ class TestReferentialIntegrity:
         from app.models import Role
         from app.security import hash_password
 
-        db.add(User(name="Portaria Fantasma", email="fantasma@bilheteria.com.br",
+        db.add(User(name="Portaria Fantasma", email="fantasma@cinerini.com.br",
                     password_hash=hash_password("x"), role=Role.GATE,
                     gate_event_id=999_999_999))
         with pytest.raises(IntegrityError):
