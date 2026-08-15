@@ -27,7 +27,8 @@ Registro dos pontos em que a primeira proposta foi rejeitada ou corrigida:
 - **Ressalva sobre monoespaçado revista.** A ferramenta desaconselhou mono no painel do organizador; a objeção estava mal calibrada, já que mono alinha dado tabular melhor que proporcional. Mantido mono, com exceção só para prosa.
 - **Ambiente corrigido antes do código.** Python 32-bit em máquina 64-bit teria quebrado na instalação do driver do Postgres. Detectado e corrigido no dia 1.
 - **Sala normalizada por questionamento na revisão.** O modelo entregue trazia sala e dimensões como campos soltos em `Showing`. Ao revisar linha a linha, questionei se sala não deveria ser tabela própria. A ferramenta havia argumentado contra, por escopo; mantive a posição, e ao detalhar o raciocínio ficou claro que aqueles campos viravam dado morto após a geração dos assentos. O modelo mudou (decisão D6), com migration nova em vez de reescrita da original.
-- **Migration gerada foi lida antes de aplicada.** O autogenerate do Alembic propôs recriar uma chave estrangeira já existente e nomeou outra como `None`, o que quebraria o `downgrade`. Ambas corrigidas à mão, e o ciclo upgrade/downgrade/upgrade verificado.
+- **Migration gerada foi lida antes de aplicada.** O autogenerate nomeou uma chave estrangeira como `None`, o que quebraria o `downgrade`. Corrigido à mão nas duas migrations em que ocorreu.
+- **Cinema extraído para tabela, contra a posição anterior da ferramenta.** A ferramenta havia argumentado que o local não merecia entidade própria por não ter atributos além do nome. Pedi que reconsiderasse pensando em implementação real, e o argumento caiu: o filtro por cidade, que estrutura toda plataforma de ingresso, é impossível sem esse campo. Decisão D7 reverte a D6 nesse ponto.
 
 ## O que foi feito sem IA
 

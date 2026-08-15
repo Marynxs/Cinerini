@@ -41,9 +41,11 @@ def upgrade() -> None:
     op.drop_column('showings', 'seats_per_row')
     op.drop_column('showings', 'rows')
 
-    # O autogenerate propôs recriar fk_users_gate_event aqui. É falso
-    # positivo: ele não reconhece a chave declarada com use_alter como já
-    # existente. Recriá-la falharia com constraint duplicada.
+    # O autogenerate propôs criar fk_users_gate_event aqui e a proposta foi
+    # removida por engano, sob a suposição de que a chave já existia. Ela não
+    # existia: declarada com use_alter na migration inicial, foi omitida do
+    # CREATE TABLE sem que o ALTER correspondente fosse emitido. Criada na
+    # migration 9d3e1c7a4f52.
 
 
 def downgrade() -> None:
