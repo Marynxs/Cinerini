@@ -2,38 +2,62 @@
 
 ## Ferramenta
 
-Claude Code (Opus 5), em sessão única e contínua, conduzida por prompt no terminal.
+Claude Code (Opus 5), em sessão contínua conduzida por prompt no terminal.
 
-## Como foi conduzida
+## Como o projeto foi conduzido
 
-O enunciado **não** foi colado na ferramenta pedindo a aplicação pronta. A condução seguiu uma ordem deliberada:
+O enunciado não foi colado na ferramenta pedindo o sistema pronto. A ordem foi outra:
 
-1. **Leitura e estratégia antes de código.** A primeira tarefa dada à ferramenta foi analisar o enunciado e propor o que priorizar, não implementar. O resultado foi um plano de sete dias com uma regra de corte definida: o fluxo completo precisa rodar antes de qualquer polimento.
-2. **Decisões de produto tomadas por mim.** Stack, escopo de reserva, direção visual e nome foram escolhas minhas. Em ao menos um caso — a personalidade tipográfica — escolhi contra a recomendação da ferramenta.
-3. **Identidade visual decidida por comparação.** Três direções foram prototipadas lado a lado antes de qualquer tela real ser construída, e a escolhida foi travada em tokens no `CLAUDE.md` antes do primeiro componente.
-4. **Explicação exigida a cada bloco.** Cada peça foi explicada antes de ser aceita. Onde a explicação não convenceu, o código mudou.
+**1. Estratégia antes de código.** A primeira tarefa foi analisar o desafio e propor o que priorizar — não implementar. Saiu um plano de sete dias com uma regra de corte: o fluxo completo roda antes de qualquer polimento.
+
+**2. Decisões de produto tomadas por mim.** Stack, escopo de reserva, direção visual e nome do produto. Numa delas — a personalidade tipográfica — escolhi contra a recomendação da ferramenta.
+
+**3. Identidade visual travada antes da primeira tela.** Três direções foram prototipadas lado a lado e comparadas. A escolhida virou tokens no `CLAUDE.md` antes de qualquer componente existir, para não construir genérico e reestilizar depois.
+
+**4. Explicação exigida a cada bloco.** Nada foi aceito sem eu entender o porquê. Onde a explicação não se sustentou, o código mudou — os casos estão listados abaixo.
 
 ## Artefatos de condução
 
-- `CLAUDE.md` — arquivo de contexto que orienta a ferramenta: garantias inegociáveis, tokens visuais, convenções. É o que impede a IA de reintroduzir soluções já descartadas.
-- `docs/ESPECIFICACAO.md` — o que o sistema faz, escrito antes da implementação.
-- `docs/DECISOES.md` — registro cronológico com o que foi descartado e por quê.
+| Arquivo | Função |
+|---|---|
+| `CLAUDE.md` | Restringe a ferramenta: garantias inegociáveis, tokens visuais, convenções |
+| `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado |
 
-## Correções feitas sobre a saída da ferramenta
+O `CLAUDE.md` é o que impede a IA de reintroduzir soluções já rejeitadas — por exemplo, trocar a constraint do banco por uma verificação em Python.
 
-Registro dos pontos em que a primeira proposta foi rejeitada ou corrigida:
+## Mudanças que parti de mim
 
-- **`passlib` + `python-jose` descartados.** Uma verificação de instalação revelou que `passlib 1.7.4` quebra com `bcrypt 5.x`. Trocado por `bcrypt` e `PyJWT` diretos.
-- **Ressalva sobre monoespaçado revista.** A ferramenta desaconselhou mono no painel do organizador; a objeção estava mal calibrada, já que mono alinha dado tabular melhor que proporcional. Mantido mono, com exceção só para prosa.
-- **Ambiente corrigido antes do código.** Python 32-bit em máquina 64-bit teria quebrado na instalação do driver do Postgres. Detectado e corrigido no dia 1.
-- **Sala normalizada por questionamento na revisão.** O modelo entregue trazia sala e dimensões como campos soltos em `Showing`. Ao revisar linha a linha, questionei se sala não deveria ser tabela própria. A ferramenta havia argumentado contra, por escopo; mantive a posição, e ao detalhar o raciocínio ficou claro que aqueles campos viravam dado morto após a geração dos assentos. O modelo mudou (decisão D6), com migration nova em vez de reescrita da original.
-- **Migration gerada foi lida antes de aplicada.** O autogenerate nomeou uma chave estrangeira como `None`, o que quebraria o `downgrade`. Corrigido à mão nas duas migrations em que ocorreu.
-- **Cinema extraído para tabela, contra a posição anterior da ferramenta.** A ferramenta havia argumentado que o local não merecia entidade própria por não ter atributos além do nome. Pedi que reconsiderasse pensando em implementação real, e o argumento caiu: o filtro por cidade, que estrutura toda plataforma de ingresso, é impossível sem esse campo. Decisão D7 reverte a D6 nesse ponto.
+**Monoespaçado mantido no sistema inteiro.**
+A ferramenta desaconselhou tipografia monoespaçada no painel do organizador, alegando cansaço visual. Escolhi a direção mesmo assim. Ao detalhar, a objeção não se sustentava: mono alinha dado tabular melhor que proporcional, e o painel é exatamente isso. O ponto fraco real do mono é prosa corrida — a sinopse do TMDb, e só ela, ficou em fonte proporcional.
+
+**Sala virou tabela própria.**
+O modelo trazia sala e dimensões como campos soltos em `Showing`. Ao revisar linha a linha, questionei por que sala não era entidade. A ferramenta argumentou contra, por escopo. Mantive o questionamento, e ao detalhar ficou claro que `rows` e `seats_per_row` viravam dado morto depois que os assentos eram gerados — e passariam a mentir sobre a tabela `seats` se fossem editados. Virou a decisão D6.
+
+**Cinema virou tabela própria.**
+A ferramenta havia argumentado que o cinema não merecia entidade por não ter atributos além do nome. Pedi que reconsiderasse pensando em como isso seria feito num sistema real. O argumento caiu: a busca que estrutura qualquer plataforma de ingresso é por cidade e cinema, e sem campo de cidade ela é impossível. Virou a decisão D7, que reverte a D6 nesse ponto.
+
+**Enumeração de usuários no cadastro.**
+Ao revisar as rotas de autenticação, perguntei se responder "já existe uma conta com este e-mail" não era falha de segurança. Era. E a ferramenta havia tomado o cuidado oposto no login, onde senha errada e e-mail inexistente retornam a mesma resposta — a inconsistência passou despercebida. Fechar de verdade exige confirmação por e-mail, que está fora do escopo. Pedi que a exposição fosse documentada com o motivo e compensada por limite de tentativas. Virou a decisão D8 e o módulo `app/ratelimit.py`.
+
+## Ajustes surgidos na verificação
+
+**`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**
+A lista inicial de dependências usava as duas primeiras. Um teste de instalação revelou que `passlib 1.7.4` quebra com `bcrypt 5.x` — lê um atributo interno removido na versão 4.1. As bibliotecas diretas resolvem e ainda tiram duas dependências.
+
+**Ambiente corrigido antes da primeira linha.**
+O Python instalado era 32-bit numa máquina 64-bit. Pacotes como `psycopg` e `pydantic-core` não distribuem versão pronta para essa combinação, e a instalação falharia tentando compilar do zero. Detectado antes de escrever código.
+
+**Migrations lidas antes de aplicadas.**
+O `--autogenerate` do Alembic nomeou uma chave estrangeira como `None`, o que quebraria o `downgrade`. Corrigido à mão nas duas migrations em que ocorreu.
+
+**Limite de tentativas recalibrado.**
+O primeiro valor era 10 logins por IP a cada 5 minutos. Os testes começaram a falhar por esbarrar nele — que é exatamente o que aconteceria com usuários reais atrás de um IP compartilhado de escritório ou operadora móvel. O limite por IP subiu para 60; a defesa contra força bruta ficou na janela por conta, que independe de origem.
 
 ## O que foi feito sem IA
 
-Escolha da stack, do escopo de reserva, da direção visual e do nome do produto. A decisão de usar TMDb com mapa de assentos em vez de pista por quantidade. A leitura crítica de cada explicação antes de aceitar o código.
+A escolha da stack, do escopo de reserva, da direção visual e do nome do produto. A decisão de usar TMDb com mapa de assentos em vez de pista por quantidade. E a leitura crítica de cada explicação antes de aceitar o código — de onde saíram as quatro mudanças da seção acima.
 
 ---
 
-*Documento atualizado ao longo do desenvolvimento.*
+*Atualizado ao longo do desenvolvimento.*
