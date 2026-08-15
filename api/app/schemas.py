@@ -36,3 +36,20 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class TmdbSearchOut(BaseModel):
+    tmdb_id: int
+    title: str
+    year: str | None
+    synopsis: str | None
+    poster_url: str | None
+
+
+class TmdbDetailOut(BaseModel):
+    tmdb_id: int
+    title: str
+    synopsis: str | None
+    poster_url: str | None
+    backdrop_url: str | None
+    runtime_minutes: int | None

@@ -40,6 +40,12 @@ A ferramenta havia argumentado que o cinema não merecia entidade por não ter a
 **Enumeração de usuários no cadastro.**
 Ao revisar as rotas de autenticação, perguntei se responder "já existe uma conta com este e-mail" não era falha de segurança. Era. E a ferramenta havia tomado o cuidado oposto no login, onde senha errada e e-mail inexistente retornam a mesma resposta — a inconsistência passou despercebida. Fechar de verdade exige confirmação por e-mail, que está fora do escopo. Pedi que a exposição fosse documentada com o motivo e compensada por limite de tentativas. Virou a decisão D8 e o módulo `app/ratelimit.py`.
 
+**Argumento falso sobre o cache do TMDb derrubado.**
+A ferramenta recomendou cache em tabela alegando que, sem ele, o catálogo sairia do ar caso o TMDb caísse. Perguntei por que reiniciar o processo seria um problema. A justificativa não se sustentava: o catálogo do cliente lê da nossa tabela `events`, porque os dados do filme são copiados na publicação — o TMDb só é consultado enquanto o organizador procura o filme. Ficou cache em memória, proporcional ao uso real.
+
+**Prazo de validade do cache recalculado.**
+Perguntei se o cache precisava de tempo de vida. A ferramenta implementou 30 minutos, e eu questionei se aquilo ajudava em alguma coisa — o organizador buscaria, e meia hora depois a entrada teria sido descartada à toa. A objeção procedia, e expôs uma confusão na justificativa: quem limita memória é o teto de entradas, não o prazo. O prazo serve só contra dado velho, e sinopse e pôster de filme lançado praticamente não mudam. Subiu para seis horas, que atravessam uma jornada do organizador sem expirar nada.
+
 ## Ajustes surgidos na verificação
 
 **`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**
