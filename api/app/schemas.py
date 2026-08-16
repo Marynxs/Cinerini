@@ -172,6 +172,10 @@ class ShowingOut(BaseModel):
     venue_city: str
     room_name: str
     seats_available: int
+    seats_total: int
+
+    cancelled_at: datetime | None = None
+    cancellation_reason: str | None = None
 
     # A tela de assentos exibe o filme junto do mapa. Sem estes campos ela
     # faria uma segunda requisição só para descobrir o título.
@@ -192,6 +196,11 @@ class CatalogEventOut(BaseModel):
     backdrop_url: str | None
     runtime_minutes: int | None
     showings: list[ShowingOut]
+
+
+class CancelIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=255,
+                        description="Aparece para quem tem ingresso")
 
 
 class SeatOut(BaseModel):
@@ -269,6 +278,11 @@ class MyTicketOut(BaseModel):
     starts_at: datetime
     audio: str
     price_cents: int
+
+    # Quem tem ingresso de sessão cancelada precisa achar a explicação onde
+    # procuraria o ingresso.
+    showing_cancelled: bool = False
+    cancellation_reason: str | None = None
 
 
 # ---------------------------------------------------- compartilhamento

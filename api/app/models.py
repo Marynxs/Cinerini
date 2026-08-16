@@ -166,6 +166,15 @@ class Showing(Base):
     # Dinheiro em centavos: inteiro não acumula erro de arredondamento.
     price_cents: Mapped[int] = mapped_column(Integer)
 
+    # Sessão cancelada não é removida: quem tem ingresso precisa encontrar a
+    # explicação onde procuraria o ingresso (D10). O motivo é texto livre
+    # porque a causa é operacional — projetor, interdição, público mínimo — e
+    # uma lista fechada obrigaria a escolher "outro" na maior parte das vezes.
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    cancellation_reason: Mapped[str | None] = mapped_column(String(255))
+
     event: Mapped["Event"] = relationship(back_populates="showings")
     room: Mapped["Room"] = relationship(back_populates="showings")
     seats: Mapped[list["Seat"]] = relationship(
@@ -243,6 +252,11 @@ class Ticket(Base):
 
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     validated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+
+    # Instante do cancelamento, par de `used_at`. Existe porque o ingresso
+    # cancelado deixa de ser listado depois de um prazo, e sem a data não há
+    # de onde contá-lo — `status` sozinho não diz quando mudou.
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     order: Mapped["Order"] = relationship(back_populates="tickets")
     seat: Mapped["Seat"] = relationship()

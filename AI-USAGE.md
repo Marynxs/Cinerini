@@ -64,6 +64,9 @@ Reservei poltronas, fui ao pagamento e voltei ao mapa: as minhas estavam marcada
 **Retorno explícito em todas as telas.**
 Cobrei que não dava para voltar do mapa ao catálogo, nem do pagamento ao mapa. O botão do navegador existe, mas não é visível dentro da página — e num fluxo de compra a pessoa precisa ver que dá para recuar sem perder o que escolheu.
 
+**Ingresso cancelado ficava na lista para sempre.**
+Perguntei se fazia sentido o bilhete cancelado nunca sair de "Meus ingressos". Não fazia — mas a resposta óbvia, um prazo único, também não: quem cancela o próprio ingresso já sabe o motivo, enquanto quem teve a sessão cancelada precisa lê-lo perto da data em que iria. Ficaram dois prazos, e o filtro na consulta em vez de apagar a linha. Virou a decisão D16.
+
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
@@ -80,7 +83,6 @@ O `--autogenerate` do Alembic nomeou uma chave estrangeira como `None`, o que qu
 
 **Três "bugs" que eram ambiente, não código.**
 Num mesmo dia: a API servindo um contrato antigo porque fora subida sem recarga; o `tsc --noEmit` passando onde `npm run build` falhava, por não aplicar o `tsconfig` do projeto; e vários servidores dividindo a porta 8000, porque `uvicorn --reload` encerrado à força deixa processos filhos vivos herdando o socket. Nos três casos o sintoma apontava para o código, e a causa era ter verificado contra um substituto conveniente. Deu origem ao `api/dev.py`, que recusa subir com a porta ocupada, e à seção de verificação do `CLAUDE.md`.
-
 **Limite de tentativas recalibrado.**
 O primeiro valor era 10 logins por IP a cada 5 minutos. Os testes começaram a falhar por esbarrar nele — que é exatamente o que aconteceria com usuários reais atrás de um IP compartilhado de escritório ou operadora móvel. O limite por IP subiu para 60; a defesa contra força bruta ficou na janela por conta, que independe de origem.
 

@@ -10,7 +10,8 @@ from sqlalchemy import delete, select
 
 from app.deps import DbSession, Organizer
 from app.models import Event, Room, Seat, Showing, User
-from app.schemas import SeatOut, ShowingOut, ShowingUpdate
+from app.cancellation import CancellationError, cancel_showing
+from app.schemas import CancelIn, SeatOut, ShowingOut, ShowingUpdate
 from app.catalog import uma_sessao
 from app.seating import generate_seats, sold_count, taken_seat_ids
 
@@ -96,6 +97,22 @@ def update_showing(
     db.commit()
     db.refresh(showing)
     return uma_sessao(db, showing.id)
+
+
+@router.post("/{showing_id}/cancel", response_model=ShowingOut)
+def cancel(
+    showing_id: int, data: CancelIn, db: DbSession, organizer: Organizer
+) -> ShowingOut:
+    """Cancela a sessão com motivo, devolvendo os assentos ao estoque (D10)."""
+    showing = _showing_or_404(db, showing_id)
+    _owned(db, showing, organizer)
+
+    try:
+        cancel_showing(db, showing, data.reason)
+    except CancellationError as erro:
+        raise HTTPException(status.HTTP_409_CONFLICT, erro.message)
+
+    return uma_sessao(db, showing_id)
 
 
 @router.delete("/{showing_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -55,7 +55,8 @@ def _total_por_sessao(db: Session, showing_ids: list[int]) -> dict[int, int]:
 
 
 def montar_sessao(
-    showing: Showing, room: Room, venue: Venue, event: Event, disponiveis: int
+    showing: Showing, room: Room, venue: Venue, event: Event,
+    disponiveis: int, total: int = 0,
 ) -> ShowingOut:
     return ShowingOut(
         id=showing.id,
@@ -68,6 +69,9 @@ def montar_sessao(
         venue_city=venue.city,
         room_name=room.name,
         seats_available=disponiveis,
+        seats_total=total,
+        cancelled_at=showing.cancelled_at,
+        cancellation_reason=showing.cancellation_reason,
         event_title=event.title,
         poster_url=event.poster_url,
         runtime_minutes=event.runtime_minutes,
@@ -90,6 +94,7 @@ def listar(db: Session, city: str | None = None) -> list[CatalogEventOut]:
         .where(
             Event.status == EventStatus.PUBLISHED,
             Showing.starts_at > agora,
+            Showing.cancelled_at.is_(None),
         )
         .order_by(Event.title, Showing.starts_at)
     )
@@ -120,7 +125,8 @@ def listar(db: Session, city: str | None = None) -> list[CatalogEventOut]:
             )
 
         catalogo[event.id].showings.append(
-            montar_sessao(showing, room, venue, event, disponiveis)
+            montar_sessao(showing, room, venue, event, disponiveis,
+                          totais.get(showing.id, 0))
         )
 
     return list(catalogo.values())
@@ -142,4 +148,4 @@ def uma_sessao(db: Session, showing_id: int) -> ShowingOut | None:
     total = _total_por_sessao(db, [showing_id]).get(showing_id, 0)
     ocupado = _ocupados_por_sessao(db, [showing_id]).get(showing_id, 0)
 
-    return montar_sessao(showing, room, venue, event, total - ocupado)
+    return montar_sessao(showing, room, venue, event, total - ocupado, total)

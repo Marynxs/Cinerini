@@ -195,3 +195,17 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **A regra é por sessão, não por cliente:** quem está comprando ingressos de dois filmes ao mesmo tempo mantém as duas reservas.
 
 **Consequência na interface:** as poltronas da reserva aberta voltam ao mapa já selecionadas e editáveis, em vez de bloqueadas. Marcá-las como ocupadas faria o cliente pensar que perdeu a própria escolha.
+
+---
+
+## D16 · Ingresso cancelado sai da lista em dois prazos diferentes
+
+**Decidido:** o ingresso cancelado deixa de aparecer em "Meus ingressos" depois de um prazo que depende de quem cancelou — trinta minutos quando foi o próprio cliente, até o horário da sessão quando foi o cinema. A linha nunca é apagada do banco.
+
+**Descartado:** um prazo único para os dois casos, e sumir no instante do cancelamento.
+
+**Por quê:** os dois cancelamentos têm leitores diferentes. Quem cancelou o próprio ingresso já sabe o motivo, e o único papel da janela é não fazer o bilhete evaporar no mesmo clique — desaparecimento instantâneo se lê como erro, não como confirmação. Quem teve a sessão cancelada pelo cinema precisa do oposto: a explicação tem de estar lá justamente perto da data em que iria, que é quando vai procurar. Um prazo só serviria mal aos dois.
+
+**Filtro na consulta, nunca `DELETE`:** o ingresso é registro de uma compra que existiu, e o índice parcial de D1 depende do status da linha. Apagá-la trocaria uma lista limpa por um histórico falsificado.
+
+**Custo:** a coluna `tickets.cancelled_at` passou a existir para que haja de onde contar o prazo — `status` sozinho não diz quando mudou. É o par de `used_at`, que existe pela mesma razão.

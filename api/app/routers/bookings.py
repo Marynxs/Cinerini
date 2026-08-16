@@ -1,10 +1,13 @@
 """Reserva, pagamento e ingressos do cliente."""
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.booking import BookingError, hold_seats, pay
+from app.cancellation import CancellationError, cancel_ticket
 from app.deps import Customer, DbSession
 from app.models import (
     Event, Order, Room, Seat, Showing, Ticket, TicketStatus, Venue,
@@ -15,6 +18,11 @@ from app.schemas import (
 from app.security import create_ticket_token
 
 router = APIRouter(tags=["reserva e ingressos"])
+
+# Quanto tempo o ingresso que o próprio cliente cancelou continua na lista.
+# Curto de propósito: ele sabe por que cancelou, e o único papel da janela é
+# não fazer o bilhete evaporar no mesmo instante do clique.
+JANELA_CANCELADO_PELO_CLIENTE = timedelta(minutes=30)
 
 
 def _as_order_out(db: Session, order: Order) -> OrderOut:
@@ -104,6 +112,25 @@ def my_orders(db: DbSession, customer: Customer) -> list[OrderOut]:
 @router.get("/me/tickets", response_model=list[MyTicketOut], tags=["cliente"])
 def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
     """Área de "Meus ingressos": tudo que a tela precisa numa consulta só."""
+    agora = datetime.now(timezone.utc)
+
+    # O ingresso cancelado sai da lista, mas os dois cancelamentos têm prazos
+    # diferentes porque servem a leitores diferentes: quem cancelou já sabe o
+    # motivo, quem teve a sessão cancelada precisa lê-lo justamente perto da
+    # data em que iria. Filtrar aqui e nunca apagar a linha — o ingresso é
+    # registro de uma compra, e o índice parcial depende do status.
+    ainda_listavel = or_(
+        Ticket.status != TicketStatus.CANCELLED,
+        and_(
+            Showing.cancelled_at.is_not(None),
+            Showing.starts_at > agora,
+        ),
+        and_(
+            Showing.cancelled_at.is_(None),
+            Ticket.cancelled_at > agora - JANELA_CANCELADO_PELO_CLIENTE,
+        ),
+    )
+
     linhas = db.execute(
         select(Ticket, Seat, Showing, Event, Room, Venue)
         .join(Seat, Ticket.seat_id == Seat.id)
@@ -112,10 +139,11 @@ def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
         .join(Room, Showing.room_id == Room.id)
         .join(Venue, Room.venue_id == Venue.id)
         .join(Order, Ticket.order_id == Order.id)
+        # A reserva não paga nunca aparece: ela ainda não é um ingresso.
         .where(
             Order.customer_id == customer.id,
             Ticket.status != TicketStatus.HELD,
-            Ticket.status != TicketStatus.CANCELLED,
+            ainda_listavel,
         )
         .order_by(Showing.starts_at)
     ).all()
@@ -134,6 +162,33 @@ def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
             starts_at=showing.starts_at,
             audio=showing.audio,
             price_cents=showing.price_cents,
+            showing_cancelled=showing.cancelled_at is not None,
+            cancellation_reason=showing.cancellation_reason,
         )
         for t, seat, showing, event, room, venue in linhas
     ]
+
+
+@router.post(
+    "/tickets/{ticket_id}/cancel",
+    response_model=list[MyTicketOut],
+    tags=["cliente"],
+    summary="Cancela o próprio ingresso e devolve a poltrona ao estoque",
+)
+def cancel_my_ticket(
+    ticket_id: int, db: DbSession, customer: Customer
+) -> list[MyTicketOut]:
+    ingresso = db.get(Ticket, ticket_id)
+    dono = db.scalar(
+        select(Order.customer_id).where(Order.id == ingresso.order_id)
+    ) if ingresso else None
+
+    if ingresso is None or dono != customer.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ingresso não encontrado.")
+
+    try:
+        cancel_ticket(db, ingresso)
+    except CancellationError as erro:
+        raise HTTPException(status.HTTP_409_CONFLICT, erro.message)
+
+    return my_tickets(db, customer)
