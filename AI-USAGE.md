@@ -86,6 +86,8 @@ O `--autogenerate` do Alembic nomeou uma chave estrangeira como `None`, o que qu
 
 **Três "bugs" que eram ambiente, não código.**
 Num mesmo dia: a API servindo um contrato antigo porque fora subida sem recarga; o `tsc --noEmit` passando onde `npm run build` falhava, por não aplicar o `tsconfig` do projeto; e vários servidores dividindo a porta 8000, porque `uvicorn --reload` encerrado à força deixa processos filhos vivos herdando o socket. Nos três casos o sintoma apontava para o código, e a causa era ter verificado contra um substituto conveniente. Deu origem ao `api/dev.py`, que recusa subir com a porta ocupada, e à seção de verificação do `CLAUDE.md`.
+
+Voltou a acontecer horas depois, agora como um `NaN/undefined` na ocupação das sessões: um campo novo no schema, um servidor que subira antes dele. O `dev.py` evita o caso pior — servidores concorrentes na mesma porta — mas não obriga ninguém a reiniciar depois de editar. A regra virou explícita no `CLAUDE.md`: alteração em `models.py` ou `schemas.py` só está verificada depois de a API reiniciar e o `/openapi.json` servido confirmar o campo.
 **Limite de tentativas recalibrado.**
 O primeiro valor era 10 logins por IP a cada 5 minutos. Os testes começaram a falhar por esbarrar nele — que é exatamente o que aconteceria com usuários reais atrás de um IP compartilhado de escritório ou operadora móvel. O limite por IP subiu para 60; a defesa contra força bruta ficou na janela por conta, que independe de origem.
 

@@ -59,7 +59,7 @@ Verificar sempre contra o artefato que vai para produção, nunca contra um subs
 - `npm run build` no front, **nunca** `tsc --noEmit`: o `tsconfig` do projeto tem `erasableSyntaxOnly`, que o `--noEmit` avulso não aplica.
 - API subida por `python dev.py`, que recusa começar se a porta estiver ocupada. `uvicorn --reload` encerrado à força deixa processo filho vivo herdando o socket, e vários servidores passam a dividir a porta com versões diferentes do código em memória.
 - Percurso ponta a ponta por HTTP contra o servidor rodando, e não pelo `TestClient` em processo — só o primeiro exercita serialização, CORS e o contrato realmente publicado.
-
+- Alteração em `models.py` ou `schemas.py` só está verificada depois de a API reiniciar. O processo no ar carrega o schema que tinha ao subir, e serve campo faltando sem erro nenhum — o sintoma aparece no front como `undefined`.
 Antes de afirmar que algo funciona, conferir o contrato servido em `/openapi.json`, não o schema no arquivo.
 
 ## Commits
