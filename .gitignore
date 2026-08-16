@@ -25,3 +25,7 @@ Desafio-Elite-Dev-2026.pdf
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Protótipo de design: a imagem é artefato de processo e vai versionada.
+# O arquivo de edição fica de fora — pesa megabytes e ninguém o abriria.
+Prototipos/*.psd

@@ -1,29 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { SeatMap, type Seat } from '../components/SeatMap';
+import { Link } from 'react-router-dom';
+
+import type { OrderOut, SeatOut, ShowingOut } from '../api/types';
+import { SeatMap } from '../components/SeatMap';
 import { Stepper } from '../components/Stepper';
 import './SeatSelection.css';
 
 /** Mesmo limite do schema da API, para o cliente não descobrir no erro. */
 const MAX_POLTRONAS = 10;
 
-export interface Showing {
-  id: number;
-  starts_at: string;
-  audio: string;
-  price_cents: number;
-  event_title: string;
-  poster_url: string | null;
-  runtime_minutes: number | null;
-  venue_name: string;
-  room_name: string;
-}
-
 interface Props {
-  showing: Showing;
-  seats: Seat[];
+  showing: ShowingOut;
+  seats: SeatOut[];
   onConfirm: (seatIds: number[]) => void;
   submitting?: boolean;
+  /** Mensagem vinda da API, já pronta para exibir. */
+  erro?: string | null;
+  /** Poltronas que outra pessoa levou durante a escolha. */
+  perdidas?: string[];
+  /** Reserva do próprio cliente ainda dentro do prazo, se houver. */
+  reserva?: OrderOut | null;
 }
 
 const dinheiro = (centavos: number) =>
@@ -45,7 +42,7 @@ const duracao = (minutos: number) =>
   `${Math.floor(minutos / 60)}h${String(minutos % 60).padStart(2, '0')}`;
 
 export function SeatSelection({
-  showing, seats, onConfirm, submitting,
+  showing, seats, onConfirm, submitting, erro, perdidas = [], reserva,
 }: Props) {
   const [selecionadas, setSelecionadas] = useState<number[]>([]);
   const [limiteAtingido, setLimiteAtingido] = useState(false);
@@ -58,11 +55,30 @@ export function SeatSelection({
     [seats, selecionadas],
   );
 
+  // Reserva aberta chega já marcada no mapa: o cliente voltou para mexer na
+  // escolha, e ver as poltronas em branco pareceria tê-las perdido. Depende
+  // do id do pedido para não reescrever o que ele desmarcou em seguida.
+  useEffect(() => {
+    if (reserva) setSelecionadas(reserva.tickets.map((t) => t.seat_id));
+  }, [reserva?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+
   // O aviso some sozinho quando o cliente libera uma poltrona: deixá-lo na
   // tela depois de resolvido viraria ruído.
   useEffect(() => {
     if (selecionadas.length < MAX_POLTRONAS) setLimiteAtingido(false);
   }, [selecionadas.length]);
+
+  // Poltrona perdida sai da seleção sozinha: mantê-la marcada faria o
+  // cliente tentar reservar de novo exatamente o que já não está livre.
+  useEffect(() => {
+    if (perdidas.length === 0) return;
+    const idsPerdidos = seats
+      .filter((a) => perdidas.includes(a.label))
+      .map((a) => a.id);
+    if (idsPerdidos.length > 0) {
+      setSelecionadas((atuais) => atuais.filter((i) => !idsPerdidos.includes(i)));
+    }
+  }, [perdidas, seats]);
 
   const total = escolhidas.length * showing.price_cents;
 
@@ -83,7 +99,15 @@ export function SeatSelection({
     <div className="tela">
       <header className="cabecalho">
         <div className="cabecalho-conteudo">
-          <span className="marca">Cinerini</span>
+          <Link to="/" className="marca">Cinerini</Link>
+          <Link to="/" className="voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                 aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+            Voltar ao catálogo
+          </Link>
         </div>
       </header>
 
@@ -145,6 +169,18 @@ export function SeatSelection({
             <Stepper atual="poltronas" />
           </div>
 
+          {reserva && (
+            <p className="reserva-aberta">
+              <span>
+                Você tem uma reserva em andamento nesta sessão. Altere as
+                poltronas abaixo ou siga para o pagamento.
+              </span>
+              <Link to={`/pedidos/${reserva.id}/pagamento`} className="elo">
+                Pagar agora
+              </Link>
+            </p>
+          )}
+
           <div className="mapa-area">
             <SeatMap
               seats={seats}
@@ -193,14 +229,24 @@ export function SeatSelection({
               disabled={escolhidas.length === 0 || submitting}
               onClick={() => onConfirm(selecionadas)}
             >
-              {submitting ? 'Reservando…' : 'Reservar'}
+              {submitting ? 'Reservando…'
+                : reserva ? 'Atualizar reserva' : 'Reservar'}
             </button>
 
             <p className="acao-aviso">
-              As poltronas ficam reservadas por 10 minutos.
+              {reserva
+                ? 'A reserva anterior é substituída por esta.'
+                : 'As poltronas ficam reservadas por 10 minutos.'}
             </p>
           </div>
         </aside>
+
+        {erro && (
+          <p className="aviso-limite" role="alert">
+            <span className="aviso-limite-marca" aria-hidden="true">!</span>
+            {erro}
+          </p>
+        )}
 
         {limiteAtingido && (
           <p className="aviso-limite" role="alert">

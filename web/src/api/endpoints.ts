@@ -5,8 +5,8 @@
 
 import { request } from './client';
 import type {
-  EventOut, MyTicket, OrderOut, PaymentOut, SeatOut, SharedTicket,
-  ShowingOut, TokenOut, User, Venue,
+  CatalogEvent, EventOut, MyTicket, OrderOut, PaymentOut, SeatOut,
+  SharedTicket, ShowingOut, TokenOut, User, Venue,
 } from './types';
 
 export const auth = {
@@ -32,7 +32,11 @@ export const catalogo = {
       { publica: true },
     ),
 
-  eventos: () => request<EventOut[]>('/events', { publica: true }),
+  eventos: (cidade?: string) =>
+    request<CatalogEvent[]>(
+      cidade ? `/events?city=${encodeURIComponent(cidade)}` : '/events',
+      { publica: true },
+    ),
 
   evento: (id: number) =>
     request<EventOut>(`/events/${id}`, { publica: true }),

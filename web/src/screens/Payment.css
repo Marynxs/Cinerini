@@ -1,0 +1,180 @@
+/* Pagamento.
+
+   Duas colunas: o formulário à esquerda, o recibo do que está sendo comprado
+   à direita — o cliente confere o que vai pagar sem sair da tela. */
+
+.pagamento {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 380px);
+  gap: var(--e7);
+  align-items: start;
+  margin-top: var(--e5);
+}
+
+@media (max-width: 940px) {
+  .pagamento {
+    grid-template-columns: 1fr;
+    gap: var(--e5);
+  }
+}
+
+/* --- contagem regressiva --- */
+
+.prazo {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+  padding: var(--e3) var(--e4);
+  border: 1.5px solid var(--picote);
+  margin-bottom: var(--e4);
+}
+
+.prazo-rotulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+.prazo-valor {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* Menos de dois minutos: carmim, que aqui indica atenção e não erro. */
+.prazo--acabando {
+  border-color: var(--carimbo);
+  color: var(--carimbo);
+}
+
+.prazo--acabando .prazo-rotulo {
+  color: var(--carimbo);
+}
+
+/* --- formulário --- */
+
+.forma {
+  background: var(--papel);
+  border: var(--linha);
+  padding: var(--e5);
+}
+
+.forma-titulo {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--e4);
+}
+
+.campo-duplo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e3);
+}
+
+.cartao-numero {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+/* --- cartões de teste ---
+   O desfecho é determinístico e precisa ser descoberto sem ler o README. */
+.cartoes-teste {
+  margin-top: var(--e5);
+  padding-top: var(--e4);
+  border-top: var(--linha-tracejada);
+}
+
+.cartao-teste {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e2);
+  width: 100%;
+  padding: var(--e2);
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta);
+  border-bottom: 1px dotted var(--picote);
+}
+
+.cartao-teste:hover {
+  background: var(--papel-escuro);
+}
+
+.cartao-teste-efeito {
+  font-size: 9px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
+
+.cartao-teste-efeito--recusa {
+  color: var(--carimbo);
+}
+
+/* --- desfecho --- */
+
+.desfecho {
+  max-width: var(--largura-recibo);
+  margin: var(--e7) auto;
+  background: var(--papel);
+  border: var(--linha);
+  text-align: center;
+  padding: var(--e6) var(--e5);
+}
+
+.desfecho-marca {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--e4);
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.desfecho-marca svg {
+  width: 28px;
+  height: 28px;
+}
+
+.desfecho--aprovado {
+  color: var(--tinta);
+}
+
+.desfecho--recusado {
+  color: var(--carimbo);
+}
+
+.desfecho-titulo {
+  font-family: var(--mono);
+  font-size: 21px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--e2);
+}
+
+.desfecho-texto {
+  font-size: 12.5px;
+  color: var(--tinta-fraca);
+  max-width: 40ch;
+  margin: 0 auto var(--e5);
+  line-height: 1.5;
+}
+
+.desfecho-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}

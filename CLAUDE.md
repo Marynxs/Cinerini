@@ -52,6 +52,16 @@ Direção **recibo térmico**: papel, monoespaçado, alinhamentos de cupom fisca
 - Coleção sob o recurso pai, item na raiz: `/events/{id}/showings` para listar e criar, `/showings/{id}` para operar sobre uma (D12).
 - Nenhum arquivo do repositório contém conteúdo introdutório ou didático. A documentação é escrita para quem domina a stack: decisões e trade-offs, não definições.
 
+## Verificação
+
+Verificar sempre contra o artefato que vai para produção, nunca contra um substituto conveniente. Três episódios do dia 4 vieram de ignorar isso:
+
+- `npm run build` no front, **nunca** `tsc --noEmit`: o `tsconfig` do projeto tem `erasableSyntaxOnly`, que o `--noEmit` avulso não aplica.
+- API subida por `python dev.py`, que recusa começar se a porta estiver ocupada. `uvicorn --reload` encerrado à força deixa processo filho vivo herdando o socket, e vários servidores passam a dividir a porta com versões diferentes do código em memória.
+- Percurso ponta a ponta por HTTP contra o servidor rodando, e não pelo `TestClient` em processo — só o primeiro exercita serialização, CORS e o contrato realmente publicado.
+
+Antes de afirmar que algo funciona, conferir o contrato servido em `/openapi.json`, não o schema no arquivo.
+
 ## Commits
 
 Conventional commits com escopo, em português, imperativo. Uma unidade de trabalho por commit — nunca agrupar features distintas.

@@ -1,0 +1,162 @@
+/* Casca comum das telas: cabeçalho fixo com a marca e a barra do cliente. */
+
+.casca {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topo {
+  border-bottom: var(--linha-forte);
+  background: var(--papel);
+  flex: none;
+}
+
+.topo-conteudo {
+  max-width: var(--largura-maxima);
+  margin: 0 auto;
+  padding: var(--e3) var(--e5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+}
+
+.topo-marca {
+  font-family: var(--mono);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+}
+
+.topo-usuario {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+/* Ação secundária: sublinhada, sem caixa. Botão em toda parte competiria
+   com a ação principal de cada tela. */
+.elo {
+  font: var(--etiqueta);
+  font-size: 10.5px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1.5px solid var(--tinta);
+  padding-bottom: 2px;
+}
+
+.elo:hover {
+  color: var(--carimbo);
+  border-bottom-color: var(--carimbo);
+}
+
+.elo--fraco {
+  color: var(--tinta-fraca);
+  border-bottom-color: var(--picote);
+}
+
+.conteudo {
+  flex: 1;
+  width: 100%;
+  max-width: var(--largura-maxima);
+  margin: 0 auto;
+  padding: var(--e5);
+}
+
+@media (max-width: 620px) {
+  .topo-conteudo,
+  .conteudo {
+    padding-left: var(--e4);
+    padding-right: var(--e4);
+  }
+
+  .topo-marca {
+    font-size: 17px;
+    letter-spacing: 0.18em;
+  }
+
+  .topo-usuario {
+    display: none;
+  }
+}
+
+/* --- voltar --- */
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  font: var(--etiqueta);
+  font-size: 10.5px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  text-decoration: none;
+  padding: var(--e1) 0;
+  margin-bottom: var(--e3);
+}
+
+.voltar:hover {
+  color: var(--tinta);
+}
+
+.voltar svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* --- estados de carregamento e vazio, comuns a várias telas --- */
+
+.aviso-tela {
+  padding: var(--e8) var(--e4);
+  text-align: center;
+  color: var(--tinta-fraca);
+}
+
+.aviso-tela-titulo {
+  font: var(--titulo);
+  text-transform: uppercase;
+  color: var(--tinta);
+  margin-bottom: var(--e2);
+}
+
+.aviso-tela p {
+  font-size: 12.5px;
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
+/* Traço piscando enquanto carrega: sem spinner girando, que é de outro
+   vocabulário visual. */
+.carregando::after {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 2px;
+  background: var(--tinta-fraca);
+  margin-left: var(--e2);
+  animation: pulso 900ms ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes pulso {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}

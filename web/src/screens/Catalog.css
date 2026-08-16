@@ -1,0 +1,387 @@
+/* Catálogo.
+
+   Cada filme é um bloco de papel: pôster à esquerda, ficha à direita, e as
+   sessões como etiquetas destacáveis — a mesma linguagem do ingresso que o
+   sistema emite no fim. */
+
+.catalogo-cabeca {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  padding-bottom: var(--e4);
+  border-bottom: var(--linha-forte);
+}
+
+.catalogo-titulo {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.catalogo-contagem {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+/* --- busca e filtro --- */
+
+.controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  margin-top: var(--e4);
+}
+
+.campo-busca {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e2) var(--e3);
+  border: 1.5px solid var(--picote);
+  background: var(--papel);
+  min-width: 280px;
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.campo-busca:focus-within {
+  border-color: var(--tinta);
+}
+
+.campo-busca-lupa {
+  width: 15px;
+  height: 15px;
+  color: var(--tinta-fraca);
+  flex: none;
+}
+
+.campo-busca-entrada {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--tinta);
+}
+
+.campo-busca-entrada::placeholder {
+  color: var(--tinta-fraca);
+}
+
+/* O X nativo do type=search tem a aparencia do navegador, que destoa. */
+.campo-busca-entrada::-webkit-search-cancel-button {
+  display: none;
+}
+
+.campo-busca-limpar {
+  border: none;
+  background: none;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  padding: 0 var(--e1);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.campo-busca-limpar:hover {
+  color: var(--carimbo);
+}
+
+.filtro {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  flex-wrap: wrap;
+}
+
+.filtro-rotulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+  margin-right: var(--e2);
+}
+
+.cidade {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: var(--e2) var(--e3);
+  border: 1.5px solid var(--picote);
+  background: transparent;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  transition: background-color 90ms linear;
+}
+
+.cidade:hover {
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+.cidade--ativa {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+/* --- lista de filmes --- */
+
+.filmes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e5);
+  margin-top: var(--e5);
+}
+
+.filme {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: var(--e5);
+  background: var(--papel);
+  border: var(--linha);
+  padding: var(--e4);
+}
+
+.filme-poster {
+  width: 132px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--papel-escuro);
+  border: var(--linha);
+  display: block;
+}
+
+.filme-titulo {
+  font-family: var(--mono);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.filme-meta {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+  margin-top: var(--e2);
+}
+
+/* A sinopse é o único texto corrido do sistema, e por isso a única coisa
+   em fonte proporcional (D3). */
+.filme-sinopse {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tinta-media);
+  margin-top: var(--e3);
+  max-width: 68ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.filme-sinopse--aberta {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  overflow: visible;
+}
+
+.sinopse-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--e1);
+}
+
+.sinopse-mais {
+  font: var(--etiqueta);
+  font-size: 9.5px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid var(--tinta);
+}
+
+.sinopse-mais:hover {
+  color: var(--carimbo);
+  border-bottom-color: var(--carimbo);
+}
+
+/* --- sessões, agrupadas por cinema --- */
+
+.cinemas {
+  margin-top: var(--e4);
+}
+
+.cinema {
+  padding-top: var(--e3);
+  border-top: var(--linha-tracejada);
+}
+
+.cinema + .cinema {
+  margin-top: var(--e3);
+}
+
+/* Nome do cinema e cidade na mesma linha: sem a cidade, dois cinemas
+   homônimos em estados diferentes ficariam indistinguíveis. */
+.cinema-nome {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--e1);
+}
+
+/* Etiqueta com contorno: em texto corrido e cinza a cidade sumia ao lado do
+   nome do cinema, e é ela que o cliente confere primeiro. */
+.cinema-cidade {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--tinta);
+  text-transform: uppercase;
+  border: 1px solid var(--tinta-fraca);
+  padding: 2px var(--e2);
+  white-space: nowrap;
+}
+
+.sessoes-dia {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e3);
+  flex-wrap: wrap;
+  padding: var(--e2) 0;
+}
+
+.sessoes-dia + .sessoes-dia {
+  border-top: 1px dotted var(--picote);
+}
+
+.sessoes-data {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 84px;
+  flex: none;
+}
+
+.sessoes-data-nome {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta);
+  text-transform: uppercase;
+}
+
+.sessoes-data-numero {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  font-variant-numeric: tabular-nums;
+}
+
+.sessoes-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+}
+
+/* Cada horário é um destacável: borda cheia, canto reto, e o preço embaixo
+   como num canhoto. */
+.sessao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: var(--e2) var(--e3);
+  border: 1.5px solid var(--tinta);
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 90ms linear, color 90ms linear;
+}
+
+.sessao:hover {
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.sessao-hora {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sessao-detalhe {
+  font: var(--etiqueta);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* Esgotada: sem borda forte, sem clique. Continua visível porque saber que
+   esgotou é informação. */
+.sessao--esgotada {
+  border-color: var(--picote);
+  color: var(--tinta-fraca);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (max-width: 620px) {
+  .filme {
+    grid-template-columns: 92px 1fr;
+    gap: var(--e4);
+    padding: var(--e3);
+  }
+
+  .filme-poster {
+    width: 92px;
+  }
+
+  .filme-titulo {
+    font-size: 17px;
+  }
+
+  .filme-sinopse {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .sessoes-data {
+    width: 100%;
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--e2);
+  }
+}

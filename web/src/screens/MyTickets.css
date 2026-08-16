@@ -1,0 +1,209 @@
+/* Meus ingressos.
+
+   Cada ingresso é um bilhete de verdade: corpo com a ficha, picote, e o
+   canhoto com o QR. O picote é feito com máscara nas laterais, para o
+   recorte aparecer no papel e não só como linha desenhada. */
+
+.ingressos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--e5);
+  margin-top: var(--e5);
+}
+
+.bilhete {
+  background: var(--papel);
+  border: var(--linha);
+  display: flex;
+  flex-direction: column;
+}
+
+.bilhete--usado,
+.bilhete--cancelado {
+  color: var(--tinta-fraca);
+}
+
+.bilhete--usado .bilhete-poster,
+.bilhete--cancelado .bilhete-poster {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/* --- corpo --- */
+
+.bilhete-corpo {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: var(--e4);
+  padding: var(--e4);
+}
+
+.bilhete-poster {
+  width: 76px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--papel-escuro);
+  border: var(--linha);
+  display: block;
+}
+
+.bilhete-titulo {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.bilhete-linhas {
+  margin-top: var(--e3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bilhete-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e3);
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.bilhete-linha dt {
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: var(--tracking-etiqueta);
+  align-self: center;
+}
+
+.bilhete-linha dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.bilhete-poltrona {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* --- picote ---
+   O recorte é desenhado com dois círculos do tom do fundo nas pontas, sobre
+   a linha tracejada: é o que faz o papel parecer destacável. */
+.bilhete-picote {
+  position: relative;
+  border-top: var(--picote-espesso);
+  margin: 0 var(--e4);
+}
+
+.bilhete-picote::before,
+.bilhete-picote::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--papel-fundo);
+  border: var(--linha);
+}
+
+.bilhete-picote::before {
+  left: calc(var(--e4) * -1 - 8px);
+}
+
+.bilhete-picote::after {
+  right: calc(var(--e4) * -1 - 8px);
+}
+
+/* --- canhoto --- */
+
+.bilhete-canhoto {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--e4);
+  align-items: center;
+  padding: var(--e4);
+}
+
+.bilhete-qr {
+  padding: var(--e2);
+  background: #fff;
+  border: var(--linha);
+  line-height: 0;
+}
+
+.bilhete-qr--apagado {
+  opacity: 0.3;
+}
+
+.bilhete-codigo {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+  color: var(--tinta-fraca);
+}
+
+.bilhete-codigo strong {
+  display: block;
+  font-size: 9px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+
+/* --- estado --- */
+
+.selo {
+  display: inline-block;
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  padding: 2px var(--e2);
+  border: 1px solid currentColor;
+  margin-top: var(--e2);
+}
+
+.selo--usado {
+  color: var(--tinta-fraca);
+}
+
+.selo--cancelado {
+  color: var(--carimbo);
+}
+
+/* --- ações do canhoto --- */
+
+.bilhete-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  padding: 0 var(--e4) var(--e4);
+}
+
+.compartilhado {
+  padding: var(--e3) var(--e4);
+  margin: 0 var(--e4) var(--e4);
+  border: 1.5px solid var(--picote);
+  background: var(--papel-escuro);
+}
+
+.compartilhado-url {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  word-break: break-all;
+  color: var(--tinta);
+  margin-bottom: var(--e2);
+}
+
+@media (max-width: 620px) {
+  .ingressos {
+    grid-template-columns: 1fr;
+  }
+}

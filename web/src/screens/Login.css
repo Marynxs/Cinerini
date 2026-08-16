@@ -1,0 +1,146 @@
+/* Entrada e cadastro no mesmo recibo, alternados por aba.
+
+   Duas telas separadas obrigariam quem errou o caminho a voltar e procurar
+   o outro link. */
+
+.entrada {
+  max-width: var(--largura-recibo);
+  margin: var(--e7) auto;
+  background: var(--papel);
+  border: var(--linha);
+}
+
+.entrada-abas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: var(--picote-espesso);
+}
+
+.entrada-aba {
+  padding: var(--e3);
+  border: none;
+  background: none;
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.entrada-aba--ativa {
+  color: var(--tinta);
+  font-weight: 600;
+  border-bottom-color: var(--tinta);
+}
+
+.entrada-corpo {
+  padding: var(--e5);
+}
+
+.entrada-titulo {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--e4);
+}
+
+.campo {
+  display: block;
+  margin-bottom: var(--e4);
+}
+
+.campo-rotulo {
+  display: block;
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+  margin-bottom: var(--e1);
+}
+
+.campo-entrada {
+  width: 100%;
+  padding: var(--e2) var(--e3);
+  border: 1.5px solid var(--picote);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--tinta);
+}
+
+.campo-entrada:focus {
+  outline: none;
+  border-color: var(--tinta);
+}
+
+.campo-ajuda {
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  margin-top: var(--e1);
+}
+
+.erro-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  padding: var(--e3);
+  border: 2px solid var(--carimbo);
+  color: var(--carimbo);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: var(--e4);
+}
+
+.erro-form-marca {
+  font-weight: 600;
+  flex: none;
+}
+
+/* --- contas semeadas ---
+   Atalho para quem avalia: digitar quatro e-mails à mão é atrito sem
+   propósito. Some quando a API não é a local. */
+.contas {
+  margin-top: var(--e5);
+  padding-top: var(--e4);
+  border-top: var(--linha-tracejada);
+}
+
+.contas-titulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+  margin-bottom: var(--e2);
+}
+
+.conta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e2);
+  width: 100%;
+  padding: var(--e2);
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta);
+  border-bottom: 1px dotted var(--picote);
+}
+
+.conta:hover {
+  background: var(--papel-escuro);
+}
+
+.conta-papel {
+  font-size: 9px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}

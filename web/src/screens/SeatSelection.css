@@ -26,9 +26,18 @@
   max-width: var(--largura-maxima);
   margin: 0 auto;
   padding: var(--e3) var(--e5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+}
+
+.cabecalho .voltar {
+  margin-bottom: 0;
 }
 
 .marca {
+  text-decoration: none;
   font-family: var(--mono);
   font-size: 21px;
   font-weight: 600;
@@ -140,6 +149,29 @@
 .trilha-area {
   flex: none;
   margin: var(--e5) 0;
+}
+
+/* --- reserva em andamento --- */
+
+.reserva-aberta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  padding: var(--e3) var(--e4);
+  border: 1.5px solid var(--carimbo);
+  color: var(--carimbo);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  flex: none;
+  margin-bottom: var(--e3);
+}
+
+.reserva-aberta .elo {
+  color: var(--carimbo);
+  border-bottom-color: var(--carimbo);
+  flex: none;
 }
 
 /* --- mapa: é ele que cede altura quando a janela é baixa --- */

@@ -55,6 +55,27 @@ export interface ShowingOut {
   starts_at: string;
   audio: string;
   price_cents: number;
+
+  venue_name: string;
+  venue_city: string;
+  room_name: string;
+  seats_available: number;
+
+  /** Repetido do evento para a tela de assentos não precisar buscá-lo. */
+  event_title: string;
+  poster_url: string | null;
+  runtime_minutes: number | null;
+}
+
+/** Filme em cartaz com suas sessões, como o catálogo devolve. */
+export interface CatalogEvent {
+  id: number;
+  title: string;
+  synopsis: string | null;
+  poster_url: string | null;
+  backdrop_url: string | null;
+  runtime_minutes: number | null;
+  showings: ShowingOut[];
 }
 
 export interface SeatOut {
@@ -70,6 +91,7 @@ export interface TicketOut {
   id: number;
   jti: string;
   status: TicketStatus;
+  seat_id: number;
   seat_label: string;
   row_label: string;
   number: number;

@@ -55,6 +55,17 @@ O agente apresentou o arranque a frio do Render como desvantagem fixa: dezenas d
 **Mapa de assentos revisado até virar o que eu queria.**
 Devolvi a primeira versão da tela com dez apontamentos: mapa pequeno demais, poltrona ocupada em cinza claro demais para ser notada, tela do cinema fina e no lugar errado, símbolo de acessibilidade ausente, dados da sessão em corpo pequeno demais para conferir antes de comprar, ausência de pôster e falta de numeração nas colunas. Duas mudanças alcançaram o back-end: pedir a tela do cinema embaixo obrigou a inverter a ordem das fileiras, para a fileira A encostar nela em vez de ficar no fundo da sala; e mover as poltronas acessíveis para a fileira A mudou a geração do mapa em `seating.py`.
 
+**Cartão recusado deixava a compra num beco sem saída.**
+Percorrendo o fluxo, digitei um cartão inválido e o sistema ofereceu "tentar outro cartão" — mas qualquer nova tentativa falhava. O agente havia decidido que recusa devolve as poltronas na hora, com o argumento de que segurá-las puniria outros clientes. O argumento não se sustenta: a reserva já tem prazo, e cartão negado quase sempre significa que a pessoa vai tentar outro. Um dígito errado custava a escolha inteira de poltronas. Virou a decisão D14, e três testes substituíram o que afirmava o contrário.
+
+**Poltronas próprias apareciam como de terceiros.**
+Reservei poltronas, fui ao pagamento e voltei ao mapa: as minhas estavam marcadas como ocupadas, indistinguíveis das de outra pessoa, e não havia caminho de volta ao pedido. A primeira correção do agente as marcou com um estado próprio, mas bloqueadas. Recusei: se a poltrona é minha, devo poder desmarcar, trocar, escolher outra. A versão final devolve a reserva já selecionada e editável, e reservar de novo substitui a anterior liberando as poltronas antigas na hora. Virou a decisão D15.
+
+**Retorno explícito em todas as telas.**
+Cobrei que não dava para voltar do mapa ao catálogo, nem do pagamento ao mapa. O botão do navegador existe, mas não é visível dentro da página — e num fluxo de compra a pessoa precisa ver que dá para recuar sem perder o que escolheu.
+
+**Protótipo de design versionado.**
+Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
 ## Ajustes surgidos na verificação
 
@@ -66,6 +77,9 @@ O Python instalado era 32-bit numa máquina 64-bit. Pacotes como `psycopg` e `py
 
 **Migrations revisadas antes de aplicar.**
 O `--autogenerate` do Alembic nomeou uma chave estrangeira como `None`, o que quebraria o `downgrade`. Corrigido à mão nas duas migrations em que ocorreu.
+
+**Três "bugs" que eram ambiente, não código.**
+Num mesmo dia: a API servindo um contrato antigo porque fora subida sem recarga; o `tsc --noEmit` passando onde `npm run build` falhava, por não aplicar o `tsconfig` do projeto; e vários servidores dividindo a porta 8000, porque `uvicorn --reload` encerrado à força deixa processos filhos vivos herdando o socket. Nos três casos o sintoma apontava para o código, e a causa era ter verificado contra um substituto conveniente. Deu origem ao `api/dev.py`, que recusa subir com a porta ocupada, e à seção de verificação do `CLAUDE.md`.
 
 **Limite de tentativas recalibrado.**
 O primeiro valor era 10 logins por IP a cada 5 minutos. Os testes começaram a falhar por esbarrar nele — que é exatamente o que aconteceria com usuários reais atrás de um IP compartilhado de escritório ou operadora móvel. O limite por IP subiu para 60; a defesa contra força bruta ficou na janela por conta, que independe de origem.

@@ -1,18 +1,8 @@
+import type { SeatOut } from '../api/types';
 import './SeatMap.css';
 
-export type SeatKind = 'standard' | 'accessible';
-
-export interface Seat {
-  id: number;
-  row_label: string;
-  number: number;
-  kind: SeatKind;
-  label: string;
-  taken: boolean;
-}
-
 interface Props {
-  seats: Seat[];
+  seats: SeatOut[];
   selected: number[];
   onToggle: (seatId: number) => void;
   disabled?: boolean;
@@ -31,8 +21,8 @@ function SimboloAcessivel() {
   );
 }
 
-function agruparPorFileira(seats: Seat[]): [string, Seat[]][] {
-  const fileiras = new Map<string, Seat[]>();
+function agruparPorFileira(seats: SeatOut[]): [string, SeatOut[]][] {
+  const fileiras = new Map<string, SeatOut[]>();
 
   for (const assento of seats) {
     const atual = fileiras.get(assento.row_label) ?? [];
@@ -42,7 +32,7 @@ function agruparPorFileira(seats: Seat[]): [string, Seat[]][] {
 
   return [...fileiras.entries()]
     .map(([letra, lista]) =>
-      [letra, lista.sort((x, y) => x.number - y.number)] as [string, Seat[]])
+      [letra, lista.sort((x, y) => x.number - y.number)] as [string, SeatOut[]])
     // Ordem decrescente: a fileira A fica embaixo, encostada na tela.
     .sort(([a], [b]) => b.localeCompare(a));
 }
@@ -97,7 +87,7 @@ export function SeatMap({ seats, selected, onToggle, disabled }: Props) {
 }
 
 interface PoltronaProps {
-  assento: Seat;
+  assento: SeatOut;
   escolhido: boolean;
   onToggle: (seatId: number) => void;
   disabled?: boolean;
