@@ -61,10 +61,22 @@ export interface ShowingOut {
   room_name: string;
   seats_available: number;
 
+  seats_total: number;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+
   /** Repetido do evento para a tela de assentos não precisar buscá-lo. */
   event_title: string;
   poster_url: string | null;
   runtime_minutes: number | null;
+}
+
+export interface TmdbSearchResult {
+  tmdb_id: number;
+  title: string;
+  year: string | null;
+  synopsis: string | null;
+  poster_url: string | null;
 }
 
 /** Filme em cartaz com suas sessões, como o catálogo devolve. */
@@ -125,6 +137,8 @@ export interface MyTicket {
   starts_at: string;
   audio: string;
   price_cents: number;
+  showing_cancelled: boolean;
+  cancellation_reason: string | null;
 }
 
 export interface SharedTicket {

@@ -1,0 +1,241 @@
+/* Painel do organizador.
+
+   Densidade de planilha, não de vitrine: quem opera o cinema confere muitas
+   linhas por vez, e o monoespaçado alinha as colunas sozinho. É o caso em
+   que a decisão D3 se paga. */
+
+.painel-secao {
+  margin-top: var(--e6);
+}
+
+.painel-secao:first-of-type {
+  margin-top: var(--e4);
+}
+
+.painel-titulo {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-etiqueta);
+  padding-bottom: var(--e2);
+  border-bottom: var(--linha-forte);
+  margin-bottom: var(--e3);
+}
+
+/* --- busca no TMDb --- */
+
+.tmdb-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--e3);
+  margin-top: var(--e3);
+}
+
+.tmdb-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: var(--e3);
+  padding: var(--e2);
+  background: var(--papel);
+  border: var(--linha);
+  text-align: left;
+  cursor: pointer;
+  align-items: start;
+}
+
+.tmdb-item:hover {
+  border-color: var(--tinta);
+}
+
+.tmdb-poster {
+  width: 52px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--papel-escuro);
+  display: block;
+}
+
+.tmdb-titulo {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tmdb-ano {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  margin-top: 2px;
+}
+
+/* --- evento --- */
+
+.evento {
+  background: var(--papel);
+  border: var(--linha);
+  margin-bottom: var(--e3);
+}
+
+.evento-cabeca {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+  flex-wrap: wrap;
+  padding: var(--e3) var(--e4);
+  border-bottom: var(--picote-espesso);
+}
+
+.evento-nome {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.evento-acoes {
+  display: flex;
+  gap: var(--e3);
+  align-items: center;
+}
+
+.marca-estado {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  padding: 2px var(--e2);
+  border: 1px solid currentColor;
+}
+
+.marca-estado--rascunho {
+  color: var(--tinta-fraca);
+}
+
+.marca-estado--publicado {
+  color: var(--tinta);
+}
+
+/* --- tabela de sessões --- */
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.tabela th {
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  font-weight: 400;
+  padding: var(--e2) var(--e3);
+  border-bottom: 1px solid var(--picote);
+}
+
+.tabela td {
+  padding: var(--e2) var(--e3);
+  border-bottom: 1px dotted var(--picote);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+.tabela tr:last-child td {
+  border-bottom: none;
+}
+
+/* Precisa alcançar `.tabela th`, que já alinha à esquerda: sem repetir o
+   seletor pai, o cabeçalho fica à esquerda e o valor à direita na mesma
+   coluna. */
+.tabela th.tabela-num,
+.tabela td.tabela-num {
+  text-align: right;
+}
+
+.linha-cancelada td {
+  color: var(--tinta-fraca);
+}
+
+.motivo {
+  color: var(--carimbo);
+  font-size: 11px;
+}
+
+.vazio-linha {
+  padding: var(--e4);
+  color: var(--tinta-fraca);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* --- formulários inline --- */
+
+.forma-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  align-items: flex-end;
+  padding: var(--e3) var(--e4);
+  border-top: var(--linha-tracejada);
+}
+
+.campo-curto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.campo-curto .campo-rotulo {
+  margin: 0;
+}
+
+.campo-curto input,
+.campo-curto select {
+  padding: var(--e1) var(--e2);
+  border: 1.5px solid var(--picote);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--tinta);
+}
+
+.campo-curto input:focus,
+.campo-curto select:focus {
+  outline: none;
+  border-color: var(--tinta);
+}
+
+/* Largura explicita: sem ela o flex aperta o campo e o navegador esconde
+   parte do conteudo, que foi como o horario sumiu. */
+.campo-data {
+  min-width: 150px;
+}
+
+.campo-hora {
+  min-width: 104px;
+}
+
+/* O icone nativo do seletor vem em azul do sistema, unica cor fora da
+   paleta em toda a interface. */
+.campo-data::-webkit-calendar-picker-indicator,
+.campo-hora::-webkit-calendar-picker-indicator {
+  filter: grayscale(1);
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+/* `.botao-compacto` mora em Layout.css: o diálogo de confirmação o usa e
+   não carrega esta folha. */
+
+@media (max-width: 620px) {
+  .tabela {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

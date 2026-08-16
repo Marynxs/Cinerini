@@ -28,6 +28,9 @@ export function Layout({ children, semPadding }: Props) {
                     Meus ingressos
                   </Link>
                 )}
+                {user.role === 'organizer' && (
+                  <Link to="/painel" className="elo">Painel</Link>
+                )}
                 <button type="button" className="elo elo--fraco" onClick={sair}>
                   Sair
                 </button>

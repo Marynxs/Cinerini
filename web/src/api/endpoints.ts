@@ -5,8 +5,8 @@
 
 import { request } from './client';
 import type {
-  CatalogEvent, EventOut, MyTicket, OrderOut, PaymentOut, SeatOut,
-  SharedTicket, ShowingOut, TokenOut, User, Venue,
+  CatalogEvent, EventOut, MyTicket, OrderOut, PaymentOut, Room, SeatOut,
+  SharedTicket, ShowingOut, TmdbSearchResult, TokenOut, User, Venue,
 } from './types';
 
 export const auth = {
@@ -49,6 +49,48 @@ export const catalogo = {
 
   assentos: (showingId: number) =>
     request<SeatOut[]>(`/showings/${showingId}/seats`, { publica: true }),
+
+  salas: (venueId: number) =>
+    request<Room[]>(`/venues/${venueId}/rooms`, { publica: true }),
+};
+
+export const organizador = {
+  meusEventos: () => request<EventOut[]>('/events/mine'),
+
+  buscarFilme: (termo: string) =>
+    request<TmdbSearchResult[]>(
+      `/catalog/search?q=${encodeURIComponent(termo)}`),
+
+  criarEvento: (tmdbId: number) =>
+    request<EventOut>('/events', { method: 'POST', body: { tmdb_id: tmdbId } }),
+
+  publicar: (eventId: number) =>
+    request<EventOut>(`/events/${eventId}/publish`, { method: 'POST' }),
+
+  despublicar: (eventId: number) =>
+    request<EventOut>(`/events/${eventId}/unpublish`, { method: 'POST' }),
+
+  criarSessao: (eventId: number, dados: {
+    room_id: number; starts_at: string; price_cents: number; audio: string;
+  }) =>
+    request<ShowingOut>(`/events/${eventId}/showings`, {
+      method: 'POST', body: dados,
+    }),
+
+  cancelarSessao: (showingId: number, reason: string) =>
+    request<ShowingOut>(`/showings/${showingId}/cancel`, {
+      method: 'POST', body: { reason },
+    }),
+
+  criarCinema: (dados: {
+    name: string; city: string; state: string; address: string;
+  }) => request<Venue>('/venues', { method: 'POST', body: dados }),
+
+  criarSala: (venueId: number, dados: {
+    name: string; rows: number; seats_per_row: number;
+  }) => request<Room>(`/venues/${venueId}/rooms`, {
+    method: 'POST', body: dados,
+  }),
 };
 
 export const compra = {
@@ -66,6 +108,9 @@ export const compra = {
   meusPedidos: () => request<OrderOut[]>('/me/orders'),
 
   meusIngressos: () => request<MyTicket[]>('/me/tickets'),
+
+  cancelarIngresso: (ticketId: number) =>
+    request<MyTicket[]>(`/tickets/${ticketId}/cancel`, { method: 'POST' }),
 };
 
 export const compartilhamento = {
