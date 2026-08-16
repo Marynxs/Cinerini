@@ -159,6 +159,13 @@ def semear(db: Session) -> None:
     db.flush()
     print(f"  {len(salas)} salas")
 
+    cidade_da_sala = {
+        sala.id: venue.city
+        for sala in salas
+        for venue in venues
+        if venue.id == sala.venue_id
+    }
+
     horarios = _horarios(dias=5)
     total_sessoes = 0
 
@@ -172,12 +179,22 @@ def semear(db: Session) -> None:
         # Cada filme ocupa uma sala e três horários, em dias alternados, para
         # que o catálogo tenha mais de uma data sem ficar poluído.
         sala = salas[i % len(salas)]
-        for h in horarios[i * 3:(i * 3) + 3]:
+        agenda = [(sala, h) for h in horarios[i * 3:(i * 3) + 3]]
+
+        # O primeiro filme ganha sessões num cinema de outra cidade. Sem isso
+        # não há como demonstrar o agrupamento por cinema nem o filtro por
+        # cidade: com um filme por local, os dois parecem não fazer nada.
+        if i == 0:
+            fora = next(s for s in salas
+                        if cidade_da_sala[s.id] != cidade_da_sala[sala.id])
+            agenda += [(fora, h) for h in horarios[1:3]]
+
+        for sala_da_vez, h in agenda:
             s = Showing(
                 event_id=evento.id,
-                room_id=sala.id,
+                room_id=sala_da_vez.id,
                 starts_at=h,
-                price_cents=3200 if sala.rows > 5 else 2600,
+                price_cents=3200 if sala_da_vez.rows > 5 else 2600,
                 audio="Dublado" if total_sessoes % 2 == 0 else "Legendado",
             )
             db.add(s)

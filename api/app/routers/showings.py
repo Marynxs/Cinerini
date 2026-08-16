@@ -11,6 +11,7 @@ from sqlalchemy import delete, select
 from app.deps import DbSession, Organizer
 from app.models import Event, Room, Seat, Showing, User
 from app.schemas import SeatOut, ShowingOut, ShowingUpdate
+from app.catalog import uma_sessao
 from app.seating import generate_seats, sold_count, taken_seat_ids
 
 router = APIRouter(prefix="/showings", tags=["sessões"])
@@ -32,8 +33,9 @@ def _owned(db: DbSession, showing: Showing, organizer: User) -> None:
 
 
 @router.get("/{showing_id}", response_model=ShowingOut)
-def get_showing(showing_id: int, db: DbSession) -> Showing:
-    return _showing_or_404(db, showing_id)
+def get_showing(showing_id: int, db: DbSession) -> ShowingOut:
+    _showing_or_404(db, showing_id)
+    return uma_sessao(db, showing_id)
 
 
 @router.get("/{showing_id}/seats", response_model=list[SeatOut])
@@ -61,7 +63,7 @@ def list_seats(showing_id: int, db: DbSession) -> list[SeatOut]:
 @router.patch("/{showing_id}", response_model=ShowingOut)
 def update_showing(
     showing_id: int, data: ShowingUpdate, db: DbSession, organizer: Organizer
-) -> Showing:
+) -> ShowingOut:
     showing = _showing_or_404(db, showing_id)
     _owned(db, showing, organizer)
 
@@ -93,7 +95,7 @@ def update_showing(
 
     db.commit()
     db.refresh(showing)
-    return showing
+    return uma_sessao(db, showing.id)
 
 
 @router.delete("/{showing_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -9,7 +9,8 @@ from sqlalchemy import select
 
 from app.deps import DbSession, Organizer
 from app.models import Event, EventStatus, Room, Showing, User
-from app.schemas import EventIn, EventOut, ShowingIn, ShowingOut
+from app.catalog import listar, uma_sessao
+from app.schemas import CatalogEventOut, EventIn, EventOut, ShowingIn, ShowingOut
 from app.seating import generate_seats, has_seats
 from app.tmdb import movie_details
 
@@ -25,16 +26,10 @@ def _owned_event(db: DbSession, event_id: int, organizer: User) -> Event:
     return event
 
 
-@router.get("", response_model=list[EventOut])
-def list_published(db: DbSession) -> list[Event]:
-    """Catálogo público: só o que está publicado."""
-    return list(
-        db.scalars(
-            select(Event)
-            .where(Event.status == EventStatus.PUBLISHED)
-            .order_by(Event.title)
-        )
-    )
+@router.get("", response_model=list[CatalogEventOut])
+def list_published(db: DbSession, city: str | None = None) -> list[CatalogEventOut]:
+    """Catálogo público: filmes em cartaz com suas sessões futuras."""
+    return listar(db, city)
 
 
 @router.get("/mine", response_model=list[EventOut])
@@ -117,16 +112,17 @@ def unpublish(event_id: int, db: DbSession, organizer: Organizer) -> Event:
 
 
 @router.get("/{event_id}/showings", response_model=list[ShowingOut])
-def list_showings(event_id: int, db: DbSession) -> list[Showing]:
+def list_showings(event_id: int, db: DbSession) -> list[ShowingOut]:
     if db.get(Event, event_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento não encontrado.")
-    return list(
-        db.scalars(
-            select(Showing)
-            .where(Showing.event_id == event_id)
-            .order_by(Showing.starts_at)
-        )
-    )
+
+    sessoes = db.scalars(
+        select(Showing)
+        .where(Showing.event_id == event_id)
+        .order_by(Showing.starts_at)
+    ).all()
+
+    return [uma_sessao(db, s.id) for s in sessoes]
 
 
 @router.post(
@@ -136,7 +132,7 @@ def list_showings(event_id: int, db: DbSession) -> list[Showing]:
 )
 def create_showing(
     event_id: int, data: ShowingIn, db: DbSession, organizer: Organizer
-) -> Showing:
+) -> ShowingOut:
     event = _owned_event(db, event_id, organizer)
 
     if db.get(Room, data.room_id) is None:
@@ -153,4 +149,4 @@ def create_showing(
 
     db.commit()
     db.refresh(showing)
-    return showing
+    return uma_sessao(db, showing.id)

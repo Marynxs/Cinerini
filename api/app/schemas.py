@@ -153,6 +153,12 @@ class ShowingUpdate(BaseModel):
 
 
 class ShowingOut(BaseModel):
+    """Traz o local resolvido, não só o id da sala.
+
+    O catálogo precisa exibir data, local e preço; sem o nome do cinema aqui,
+    o front faria uma consulta por filme só para descobri-lo.
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -161,6 +167,31 @@ class ShowingOut(BaseModel):
     starts_at: datetime
     audio: str
     price_cents: int
+
+    venue_name: str
+    venue_city: str
+    room_name: str
+    seats_available: int
+
+    # A tela de assentos exibe o filme junto do mapa. Sem estes campos ela
+    # faria uma segunda requisição só para descobrir o título.
+    event_title: str
+    poster_url: str | None
+    runtime_minutes: int | None
+
+
+class CatalogEventOut(BaseModel):
+    """Filme em cartaz com suas sessões, numa requisição só."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    synopsis: str | None
+    poster_url: str | None
+    backdrop_url: str | None
+    runtime_minutes: int | None
+    showings: list[ShowingOut]
 
 
 class SeatOut(BaseModel):
@@ -190,6 +221,11 @@ class TicketOut(BaseModel):
     id: int
     jti: str
     status: TicketStatus
+
+    # O mapa precisa cruzar ingresso e poltrona para marcar como "sua" o que
+    # o próprio cliente reservou. Cruzar por rótulo funcionaria, mas amarraria
+    # a interface a comparar texto.
+    seat_id: int
     seat_label: str
     row_label: str
     number: int
