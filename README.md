@@ -1,0 +1,199 @@
+# Cinerini
+
+Plataforma de eventos e ingressos de cinema. O organizador publica sessões a partir do catálogo do TMDb, o cliente escolhe a poltrona num mapa e paga (simulado), recebe um ingresso com código em QR e pode compartilhá-lo por link. Na entrada, a portaria valida o ingresso.
+
+*Cinerini* — cinema + Marini.
+
+---
+
+## O problema que o sistema resolve
+
+**Um lugar não pode ser vendido duas vezes**, mesmo com duas pessoas clicando na mesma poltrona no mesmo milissegundo. **Um ingresso não pode entrar duas vezes**, mesmo que o QR seja lido em dois leitores ao mesmo tempo.
+
+As quatro garantias abaixo são a espinha do projeto, e cada uma vive no lugar onde não pode ser burlada.
+
+### 1. Assento nunca vendido duas vezes
+
+```sql
+CREATE UNIQUE INDEX uq_seat_ocupado ON tickets (seat_id)
+  WHERE status <> 'cancelled'
+```
+
+A reserva **não consulta a disponibilidade antes de inserir**. Ela tenta inserir e deixa o banco arbitrar. O motivo é que entre um `SELECT` que verifica e um `INSERT` que reserva cabe outra transação inteira: duas pessoas consultariam, ambas veriam "livre", ambas inseririam. Nenhuma quantidade de código de aplicação fecha essa janela — a constraint fecha, porque verificação e escrita acontecem no mesmo passo atômico. Quem perde recebe `IntegrityError`, traduzido em qual poltrona foi perdida.
+
+O índice é **parcial** para que o cancelamento devolva o assento ao estoque sem código adicional: a linha cancelada sai do índice e a poltrona volta a ser vendável.
+
+### 2. QR não forjável
+
+O código dentro do QR é um JWT assinado com a chave do servidor, contendo o identificador público do ingresso e o evento. Sem a chave não há como produzir um código aceito.
+
+O token **não expira**: quem decide se o ingresso vale é a portaria consultando o banco. Prazo no token criaria uma segunda fonte de verdade sobre validade, e duas fontes divergem.
+
+### 3. Ingresso não validado duas vezes
+
+```sql
+UPDATE tickets SET status='used', used_at=now()
+WHERE id = :id AND status='valid'
+```
+
+Zero linhas afetadas significa que já foi usado. Nunca um `SELECT` seguido de `UPDATE`, que teria a mesma janela de corrida do item 1.
+
+### 4. "Evento errado" é estado próprio
+
+O usuário de portaria é vinculado a um evento. Ingresso legítimo de outro evento retorna um estado distinto de "inválido" — são situações diferentes e exigem reações diferentes de quem está na entrada.
+
+---
+
+## Stack
+
+| Camada | Escolha | Por quê |
+|---|---|---|
+| Front | React + Vite, TypeScript | Sem SSR: o back-end é o FastAPI, e o Next.js só somaria conceito |
+| Estilo | CSS puro com variáveis | Framework de estilo traz a estética dele junto, que é a cara que o desafio manda evitar |
+| Back | FastAPI + SQLAlchemy 2.0 + Alembic | Validação por anotação de tipo, OpenAPI automático, migrations versionadas |
+| Banco | PostgreSQL 18 (Neon) | As garantias vivem em constraints, e índice parcial é recurso dele |
+| Auth | PyJWT (HS256) + bcrypt | Sem `passlib` nem `python-jose`: o primeiro quebra com bcrypt 5.x, o segundo está sem manutenção |
+| Catálogo | TMDb | Filme em cartaz → sessão → poltrona é a cadeia que justifica o mapa de assentos |
+
+---
+
+## Como executar
+
+Requisitos: **Python 3.13 ou 3.14 (64-bit)**, **Node 20+** e um banco PostgreSQL.
+
+### 1. Banco
+
+Crie um banco PostgreSQL. A forma mais rápida é o plano gratuito da [Neon](https://neon.com), que devolve uma string de conexão pronta. Um Postgres local também serve.
+
+### 2. API
+
+```bash
+cd api
+python -m venv .venv
+.venv/Scripts/activate        # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env          # preencha DATABASE_URL e SECRET_KEY
+alembic upgrade head          # cria as tabelas
+python -m app.seed            # popula o cenário de teste
+python dev.py                 # sobe em http://localhost:8000
+```
+
+Gere a `SECRET_KEY` com:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+A documentação interativa da API fica em **http://localhost:8000/docs**.
+
+### 3. Front
+
+```bash
+cd web
+npm install
+cp .env.example .env          # VITE_API_URL aponta para a API
+npm run dev                   # sobe em http://localhost:5173
+```
+
+---
+
+## Contas de teste
+
+Criadas pelo seed. Senha de todas: **`cinerini123`**
+
+| Papel | E-mail | O que faz |
+|---|---|---|
+| Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica e cancela |
+| Cliente | `cliente1@cinerini.com.br` | Compra, vê ingressos, compartilha e cancela |
+| Cliente | `cliente2@cinerini.com.br` | Serve para demonstrar a disputa por poltrona |
+| Portaria | `portaria@cinerini.com.br` | Valida ingressos de **um** evento específico |
+
+O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 11 sessões. Um dos filmes passa **nos dois cinemas**, para que o agrupamento por cinema e o filtro por cidade sejam perceptíveis.
+
+A portaria é vinculada ao primeiro filme de propósito: é o que permite demonstrar o retorno "evento errado" usando um ingresso de outro filme.
+
+O seed é idempotente — rodar duas vezes não duplica nada. Para refazer do zero: `python -m app.seed --reset`.
+
+---
+
+## Pagamento
+
+A cobrança é **simulada**, sem transação financeira real. O desfecho é determinístico para que ambos os caminhos sejam demonstráveis quando se quiser, e não quando a sorte permitir:
+
+| Cartão | Resultado |
+|---|---|
+| `4111 1111 1111 1111` | Aprovado |
+| `4111 1111 1111 1110` | **Recusado** — qualquer cartão terminado em zero |
+
+Os dois aparecem na própria tela de pagamento, clicáveis.
+
+**Sobre usar um provedor real.** O enunciado permite o ambiente de testes de um provedor de verdade. O módulo `api/app/payment.py` isola a decisão numa função com a assinatura que um provedor real usaria — inclusive o valor, que a simulação não consulta. Trocar por Stripe em modo de teste exigiria implementar `charge` e um webhook de confirmação, sem alterar o fluxo de reserva.
+
+Não foi feito por duas razões: colocaria um serviço externo no caminho crítico que o avaliador precisa percorrer, e a tela de pagamento hospedada substituiria a identidade visual do projeto pela do provedor, justamente no passo mais importante da compra.
+
+---
+
+## Testes
+
+```bash
+cd api
+pytest                  # 157 casos, sem rede e sem chave do TMDb
+pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
+```
+
+Cada teste roda dentro de uma transação desfeita ao final, com savepoints para que o `commit` do código sob teste funcione sem persistir. Isso permite rodar a suíte **contra o mesmo banco de desenvolvimento sem destruir os dados semeados**.
+
+As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
+
+O TMDb é substituído por um duplo na suíte padrão — teste que depende de rede é lento, quebra sem internet e falha para quem não tem chave. Como o duplo concorda consigo mesmo por definição, os três testes de contrato batem na API real e verificam só o formato da resposta.
+
+---
+
+## Chave do TMDb
+
+Só é necessária para **rodar localmente** e afeta apenas a busca de filmes pelo organizador. Todo o resto do fluxo funciona sem ela: os dados do filme são copiados para a tabela `events` no momento da publicação, e o seed tem uma ficha embutida de reserva caso a API do TMDb não responda.
+
+Obtenha em [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) — é gratuita e sai na hora. Use a **API Key (v3 auth)**, a chave curta.
+
+---
+
+## Limitações conhecidas
+
+Declaradas porque existem, não porque passaram despercebidas.
+
+**Enumeração de usuários no cadastro.** Ao tentar criar conta com um e-mail já usado, a resposta confirma que a conta existe. Esconder isso exigiria confirmação por e-mail, listado como fora de escopo — e sem esse canal, esconder trocaria o vazamento por um usuário travado sem entender por que o cadastro não conclui. A exposição é compensada por limite de tentativas por IP e por conta. Registrado em `docs/DECISOES.md` como D8.
+
+**O limitador de tentativas vive em memória.** A contagem zera quando o processo reinicia. Persistir em banco custaria uma escrita por tentativa de login, o que transformaria o próprio limitador em vetor de esgotamento de disco. É mitigação de custo, não bloqueio absoluto.
+
+**O cache do TMDb também é em memória**, com prazo de seis horas e teto de 200 entradas. Some quando o processo reinicia, e isso é aceitável: o catálogo do cliente não depende dele.
+
+**Não há recuperação de senha**, nem envio de e-mail, nem nota fiscal, nem revenda entre usuários — todos fora de escopo pelo enunciado.
+
+**Só há mapa de assentos.** O desafio pede um dos dois modos, e a escolha foi assento numerado por ser onde a garantia de unicidade aparece de verdade.
+
+---
+
+## Documentação do projeto
+
+| Arquivo | O que responde |
+|---|---|
+| `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 16 decisões |
+| `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
+| `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
+| `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |
+
+---
+
+## Identidade visual
+
+Direção **recibo térmico**: papel creme, tipografia monoespaçada, alinhamentos de cupom fiscal, tracejado como divisor. Seis cores no total.
+
+A escolha não é estética por si só — o objeto que o sistema produz **é um bilhete**, e a interface adota a linguagem do próprio objeto. O ingresso na tela tem picote com recorte, corpo e canhoto.
+
+Uma regra sustenta a paleta: o carmim `#A32B1C` é **reservado** a ação e atenção — poltrona selecionada, erro, recusa. Se aparecer como decoração, está errado.
+
+Os estados de assento se distinguem por **forma e textura além de cor**: livre é contorno, ocupada é preenchida, selecionada tem marca de conferido, acessível é círculo com o símbolo internacional. Tirando a cor da tela, o mapa continua utilizável — o par carmim/bege é indistinguível para parte das pessoas.
+
+A única exceção ao monoespaçado é a sinopse vinda do TMDb, em fonte proporcional. Mono alinha dado tabular sozinho e perde em prosa corrida; a sinopse é o único texto longo do sistema.
