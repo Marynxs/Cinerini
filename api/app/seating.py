@@ -12,12 +12,11 @@ from app.models import Seat, SeatKind, Showing, Ticket, TicketStatus
 def generate_seats(db: Session, showing: Showing) -> int:
     """Cria as poltronas a partir do layout da sala. Devolve quantas criou.
 
-    Fileira A é a mais próxima da tela. As duas primeiras poltronas da última
-    fileira são acessíveis: é onde o acesso é plano em sala inclinada, e é
-    onde salas reais costumam reservá-las.
+    Fileira A é a mais próxima da tela, e é onde ficam as duas poltronas
+    acessíveis: o piso ali é plano, sem os degraus da arquibancada, e a
+    entrada da sala dá nesse nível.
     """
     room = showing.room
-    ultima_fileira = ascii_uppercase[room.rows - 1]
 
     seats = [
         Seat(
@@ -26,7 +25,7 @@ def generate_seats(db: Session, showing: Showing) -> int:
             number=numero,
             kind=(
                 SeatKind.ACCESSIBLE
-                if ascii_uppercase[linha] == ultima_fileira and numero <= 2
+                if linha == 0 and numero <= 2
                 else SeatKind.STANDARD
             ),
         )

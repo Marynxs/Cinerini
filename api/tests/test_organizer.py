@@ -174,13 +174,14 @@ class TestPublishing:
         assentos = client.get(f"/showings/{showing.id}/seats").json()
         assert {a["row_label"] for a in assentos} == {"A", "B", "C"}
 
-    def test_last_row_has_two_accessible_seats(
+    def test_first_row_has_two_accessible_seats(
         self, client: TestClient, showing: Showing
     ) -> None:
+        """Fileira A: piso plano, sem os degraus da arquibancada."""
         assentos = client.get(f"/showings/{showing.id}/seats").json()
         acessiveis = [a for a in assentos if a["kind"] == "accessible"]
         assert len(acessiveis) == 2
-        assert all(a["row_label"] == "C" for a in acessiveis)
+        assert all(a["row_label"] == "A" for a in acessiveis)
 
     def test_publishing_twice_does_not_duplicate_seats(
         self, client: TestClient, auth, room: Room
