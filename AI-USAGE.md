@@ -64,6 +64,9 @@ Reservei poltronas, fui ao pagamento e voltei ao mapa: as minhas estavam marcada
 **Retorno explícito em todas as telas.**
 Cobrei que não dava para voltar do mapa ao catálogo, nem do pagamento ao mapa. O botão do navegador existe, mas não é visível dentro da página — e num fluxo de compra a pessoa precisa ver que dá para recuar sem perder o que escolheu.
 
+**Confirmação de cancelamento com a cara do navegador.**
+O agente usou `window.confirm` e `window.prompt` para confirmar cancelamentos. Apontei que aquilo destoava de tudo: caixa cinza do sistema operacional, tipografia alheia, e um campo de texto sem rótulo pedindo o motivo que quem comprou ingresso iria ler. Virou um diálogo próprio, desenhado como a via do estabelecimento — papel, picote separando cabeçalho e ações, carmim só no botão que destrói. Construído sobre o elemento `<dialog>` nativo, que já traz prisão de foco, fechamento pelo Esc e retorno do foco ao botão de origem.
+
 **Ingresso cancelado ficava na lista para sempre.**
 Perguntei se fazia sentido o bilhete cancelado nunca sair de "Meus ingressos". Não fazia — mas a resposta óbvia, um prazo único, também não: quem cancela o próprio ingresso já sabe o motivo, enquanto quem teve a sessão cancelada precisa lê-lo perto da data em que iria. Ficaram dois prazos, e o filtro na consulta em vez de apagar a linha. Virou a decisão D16.
 

@@ -1,0 +1,106 @@
+/* Diálogo de confirmação.
+   Desenhado como a via do estabelecimento: papel estreito, etiqueta no topo,
+   picote separando cabeçalho, corpo e ações. É o mesmo objeto que o sistema
+   produz — só que pedindo autorização em vez de registrando. */
+
+.dialogo {
+  border: none;
+  padding: 0;
+  background: none;
+  max-width: 420px;
+  width: calc(100% - var(--e5) * 2);
+  color: var(--tinta);
+}
+
+.dialogo::backdrop {
+  /* Tinta com transparência, não preto: o preto puro não existe na paleta
+     e apareceria como uma cor estranha ao sistema. */
+  background: rgb(25 21 18 / 0.55);
+}
+
+.dialogo-papel {
+  background: var(--papel);
+  border: var(--linha-forte);
+  padding: var(--e4) var(--e4) var(--e3);
+  box-shadow: 6px 6px 0 rgb(25 21 18 / 0.16);
+}
+
+.dialogo-etiqueta {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
+
+.dialogo-titulo {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.dialogo-picote {
+  border-top: var(--picote-espesso);
+  margin: var(--e3) calc(var(--e4) * -1);
+}
+
+.dialogo-corpo {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.dialogo-corpo p + p {
+  margin-top: var(--e2);
+}
+
+/* O dado que a pessoa precisa reconhecer antes de confirmar — a poltrona, a
+   sessão. Destacado para que a conferência não dependa de ler a frase. */
+.dialogo-destaque {
+  font-weight: 600;
+}
+
+.dialogo-consequencia {
+  color: var(--tinta-fraca);
+}
+
+.dialogo-campo {
+  display: block;
+  margin-top: var(--e3);
+}
+
+.dialogo-campo .campo-rotulo {
+  display: block;
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  margin-bottom: var(--e1);
+}
+
+.dialogo-campo input {
+  width: 100%;
+  padding: var(--e2);
+  border: 1.5px solid var(--picote);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--tinta);
+}
+
+.dialogo-campo input:focus {
+  outline: none;
+  border-color: var(--tinta);
+}
+
+.dialogo-campo input::placeholder {
+  color: var(--picote);
+}
+
+.dialogo-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e2);
+}

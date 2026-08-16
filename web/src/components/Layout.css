@@ -67,9 +67,72 @@
   border-bottom-color: var(--carimbo);
 }
 
+.elo--perigo {
+  color: var(--carimbo);
+  border-bottom-color: var(--carimbo);
+}
+
 .elo--fraco {
   color: var(--tinta-fraca);
   border-bottom-color: var(--picote);
+}
+
+/* Ação em caixa, densidade de painel. Vive aqui e não na tela que a
+   introduziu porque o diálogo de confirmação também a usa. */
+.botao-compacto {
+  padding: var(--e2) var(--e3);
+  border: 1.5px solid var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.botao-compacto:hover:not(:disabled) {
+  background: var(--tinta-media);
+}
+
+.botao-compacto:disabled {
+  background: var(--papel-escuro);
+  border-color: var(--picote);
+  color: var(--tinta-fraca);
+  cursor: not-allowed;
+}
+
+.botao-compacto--vazado {
+  background: transparent;
+  color: var(--tinta);
+}
+
+.botao-compacto--vazado:hover:not(:disabled) {
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.botao-compacto--perigo {
+  background: transparent;
+  border-color: var(--carimbo);
+  color: var(--carimbo);
+}
+
+.botao-compacto--perigo:hover:not(:disabled) {
+  background: var(--carimbo);
+  color: var(--papel);
+}
+
+/* Preenchido em carmim: reservado à ação destrutiva já confirmada dentro
+   do diálogo, onde não compete com nada. */
+.botao-compacto--carimbo {
+  background: var(--carimbo);
+  border-color: var(--carimbo);
+  color: var(--papel);
+}
+
+.botao-compacto--carimbo:hover:not(:disabled) {
+  background: var(--tinta);
+  border-color: var(--tinta);
 }
 
 .conteudo {
