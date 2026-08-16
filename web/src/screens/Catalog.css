@@ -272,6 +272,16 @@
   white-space: nowrap;
 }
 
+/* Abaixo do nome e em tom fraco: serve para localizar o cinema, não para
+   competir com o horário, que é o que a pessoa vem clicar. */
+.cinema-endereco {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--tinta-fraca);
+  margin-bottom: var(--e2);
+}
+
 .sessoes-dia {
   display: flex;
   align-items: baseline;

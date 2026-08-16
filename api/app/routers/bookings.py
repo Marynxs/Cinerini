@@ -158,6 +158,8 @@ def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
             event_title=event.title,
             poster_url=event.poster_url,
             venue_name=venue.name,
+            venue_address=venue.address,
+            venue_city=venue.city,
             room_name=room.name,
             starts_at=showing.starts_at,
             audio=showing.audio,

@@ -58,6 +58,7 @@ export interface ShowingOut {
 
   venue_name: string;
   venue_city: string;
+  venue_address: string;
   room_name: string;
   seats_available: number;
 
@@ -133,6 +134,8 @@ export interface MyTicket {
   event_title: string;
   poster_url: string | null;
   venue_name: string;
+  venue_address: string;
+  venue_city: string;
   room_name: string;
   starts_at: string;
   audio: string;
@@ -148,6 +151,8 @@ export interface SharedTicket {
   event_title: string;
   poster_url: string | null;
   venue_name: string;
+  venue_address: string;
+  venue_city: string;
   room_name: string;
   starts_at: string;
   audio: string;

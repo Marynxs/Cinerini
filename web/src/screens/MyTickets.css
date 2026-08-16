@@ -85,6 +85,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Alinhado à direita como os valores das linhas acima, e em tom fraco: é
+   referência para chegar, não dado de conferência. */
+.bilhete-endereco {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--tinta-fraca);
+  text-align: right;
+  margin-top: -1px;
+  padding-bottom: 2px;
+}
+
 .bilhete-poltrona {
   font-size: 21px;
   font-weight: 600;

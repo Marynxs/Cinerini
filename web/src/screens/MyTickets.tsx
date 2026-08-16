@@ -157,6 +157,12 @@ function Bilhete({ ingresso, aoMudar }: {
               <dt>Cinema</dt>
               <dd>{ingresso.venue_name}</dd>
             </div>
+            {/* O endereço é o que o bilhete existe para carregar no dia.
+                Em bloco próprio e não na linha do cinema: rua com número
+                não cabe ao lado do rótulo sem quebrar o alinhamento. */}
+            <div className="bilhete-endereco">
+              {ingresso.venue_address} · {ingresso.venue_city}
+            </div>
             <div className="bilhete-linha">
               <dt>Sala</dt>
               <dd>{ingresso.room_name} · {ingresso.audio}</dd>

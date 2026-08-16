@@ -138,6 +138,8 @@ def open_shared(token: str, db: DbSession) -> SharedTicketOut:
         event_title=evento.title,
         poster_url=evento.poster_url,
         venue_name=cinema.name,
+        venue_address=cinema.address,
+        venue_city=cinema.city,
         room_name=sala.name,
         starts_at=sessao.starts_at,
         audio=sessao.audio,

@@ -92,6 +92,9 @@ export function SharedTicket() {
                   <dt>Cinema</dt>
                   <dd>{ingresso.venue_name}</dd>
                 </div>
+                <div className="bilhete-endereco">
+                  {ingresso.venue_address} · {ingresso.venue_city}
+                </div>
                 <div className="bilhete-linha">
                   <dt>Sala</dt>
                   <dd>{ingresso.room_name} · {ingresso.audio}</dd>

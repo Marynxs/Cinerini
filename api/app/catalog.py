@@ -67,6 +67,7 @@ def montar_sessao(
         price_cents=showing.price_cents,
         venue_name=venue.name,
         venue_city=venue.city,
+        venue_address=venue.address,
         room_name=room.name,
         seats_available=disponiveis,
         seats_total=total,

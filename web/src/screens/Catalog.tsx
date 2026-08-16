@@ -52,6 +52,7 @@ const hora = (iso: string) =>
 interface PorCinema {
   venue: string;
   city: string;
+  address: string;
   dias: [string, ShowingOut[]][];
 }
 
@@ -75,6 +76,9 @@ function agruparPorCinema(sessoes: ShowingOut[]): PorCinema[] {
     return {
       venue,
       city,
+      // Todas as sessões do grupo são do mesmo cinema, então qualquer uma
+      // serve: o endereço pertence ao cabeçalho, não à linha da sessão.
+      address: lista[0].venue_address,
       dias: [...dias.entries()].sort(([a], [b]) => a.localeCompare(b)),
     };
   }).sort((a, b) => a.venue.localeCompare(b.venue));
@@ -271,6 +275,10 @@ function Filme({ filme }: { filme: CatalogEvent }) {
                 {cinema.venue}
                 <span className="cinema-cidade">{cinema.city}</span>
               </h3>
+
+              {/* Com o mesmo filme em dois cinemas, o nome sozinho não
+                  distingue qual fica perto de quem está escolhendo. */}
+              <p className="cinema-endereco">{cinema.address}</p>
 
               {cinema.dias.map(([dia, sessoes]) => (
                 <div className="sessoes-dia" key={dia}>

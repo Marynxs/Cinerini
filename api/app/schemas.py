@@ -170,6 +170,7 @@ class ShowingOut(BaseModel):
 
     venue_name: str
     venue_city: str
+    venue_address: str
     room_name: str
     seats_available: int
     seats_total: int
@@ -274,6 +275,10 @@ class MyTicketOut(BaseModel):
     event_title: str
     poster_url: str | None
     venue_name: str
+    # O endereço é o dado que o bilhete existe para carregar no dia: sem ele
+    # a pessoa sai de casa com o nome do cinema e nada mais.
+    venue_address: str
+    venue_city: str
     room_name: str
     starts_at: datetime
     audio: str
@@ -308,6 +313,8 @@ class SharedTicketOut(BaseModel):
     event_title: str
     poster_url: str | None
     venue_name: str
+    venue_address: str
+    venue_city: str
     room_name: str
     starts_at: datetime
     audio: str
