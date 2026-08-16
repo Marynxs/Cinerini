@@ -1,0 +1,128 @@
+/* Tokens do sistema. Nenhuma tela inventa cor, tamanho ou espaçamento —
+   tudo sai daqui. Direção "recibo térmico", travada na decisão D2. */
+
+/* Hospedadas no projeto, e não pelo CDN do Google: evita requisição a
+   terceiro e o piscar de fonte no primeiro carregamento. Só o subconjunto
+   latino, que é o que o português usa — 52 KB no total. */
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-400.woff2') format('woff2');
+}
+
+:root {
+  /* --- cor: seis valores, e só --- */
+  --papel: #f2ede2;
+  --papel-fundo: #e4dccb;
+  --tinta: #191512;
+  --tinta-fraca: #7a6c58;
+  --picote: #a99b84;
+  --carimbo: #a32b1c;
+
+  /* Derivados, para estados que precisam de contraste intermediário.
+     Não são cores novas: são o mesmo pigmento em outra saturação. */
+  --papel-escuro: #d8cebb;
+  --tinta-media: #4a3f33;
+  --carimbo-fraco: #c96b5d;
+
+  /* --- tipografia --- */
+  --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --sans: 'IBM Plex Sans', ui-sans-serif, 'Segoe UI', system-ui, sans-serif;
+
+  --display: 600 26px/1.05 var(--mono);
+  --titulo: 600 15px/1.2 var(--mono);
+  --corpo: 400 12.5px/1.5 var(--mono);
+  --etiqueta: 400 9px/1.4 var(--mono);
+
+  --tracking-display: -0.02em;
+  --tracking-etiqueta: 0.16em;
+
+  /* --- espaço: escala de 4, para o alinhamento de cupom funcionar --- */
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e5: 24px;
+  --e6: 32px;
+  --e7: 48px;
+  --e8: 64px;
+
+  /* --- traço --- */
+  --linha: 1px solid var(--picote);
+  --linha-forte: 2px solid var(--tinta);
+  --linha-tracejada: 1px dashed var(--picote);
+  --picote-espesso: 2px dashed var(--picote);
+
+  --largura-maxima: 1520px;
+  --largura-recibo: 420px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--papel-fundo);
+  color: var(--tinta);
+  font: var(--corpo);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível e no idioma do sistema: contorno de tinta, sem halo azul
+   do navegador, que destoaria de tudo. */
+:focus-visible {
+  outline: 2px solid var(--carimbo);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+h1, h2, h3, p, figure {
+  margin: 0;
+}
+
+/* Quem prefere menos movimento não recebe nenhum. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

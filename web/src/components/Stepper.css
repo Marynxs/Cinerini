@@ -1,0 +1,98 @@
+/* Trilha da compra.
+
+   Só a etapa atual mostra rótulo, e ele fica embaixo do disco. Os nomes das
+   outras etapas não ajudam quem está decidindo agora, e três textos lado a
+   lado consumiam largura que o mapa usa melhor.
+
+   O rótulo é posicionado fora do fluxo: se empurrasse a altura da etapa
+   atual, os discos ficariam desalinhados entre si.
+
+   A etapa atual é a única em carmim; o resto fica em picote para não
+   competir com o mapa. */
+
+.trilha {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--e4);
+  width: 100%;
+  /* Espaço para o rótulo, que flutua abaixo do disco. */
+  padding-bottom: var(--e5);
+}
+
+.trilha-etapa {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.trilha-disco {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--picote);
+  background: var(--papel);
+  color: var(--tinta-fraca);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.trilha-disco svg {
+  width: 20px;
+  height: 20px;
+}
+
+.trilha-etapa--atual .trilha-disco {
+  background: var(--carimbo);
+  border-color: var(--carimbo);
+  color: var(--papel);
+}
+
+/* Concluída: tinta cheia. Distinta da atual pela cor, e do que ainda vem
+   pelo preenchimento — três estados legíveis sem depender só de matiz. */
+.trilha-etapa--feita .trilha-disco {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+/* Rótulo só da etapa atual, e fora do fluxo para não deslocar o disco. */
+.trilha-rotulo {
+  display: none;
+}
+
+.trilha-etapa--atual .trilha-rotulo {
+  display: block;
+  position: absolute;
+  top: calc(100% + var(--e2));
+  left: 50%;
+  transform: translateX(-50%);
+  font: var(--etiqueta);
+  font-size: 10.5px;
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--carimbo);
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.trilha-filete {
+  flex: 1 1 auto;
+  height: 2px;
+  background: var(--picote);
+  max-width: 140px;
+  min-width: var(--e3);
+  /* Centro do disco: metade de 38px, menos a espessura do filete. */
+  margin-top: 18px;
+}
+
+.trilha-filete--feito {
+  background: var(--tinta);
+}
+
+@media (max-width: 620px) {
+  .trilha-etapa--atual .trilha-rotulo {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+}

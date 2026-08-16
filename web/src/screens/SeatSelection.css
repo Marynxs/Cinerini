@@ -1,0 +1,339 @@
+/* Tela de escolha de poltrona.
+
+   Ocupa exatamente a altura da janela, sem rolagem: o cliente decide a
+   compra vendo mapa, resumo e total ao mesmo tempo. Se a janela for baixa
+   demais, quem rola é o mapa por dentro — nunca a página, e nada é cortado.
+
+   Composição de recibo: cabeçalho com filete forte e o bloco de total
+   alinhado como cupom fiscal. */
+
+.tela {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- cabeçalho --- */
+
+.cabecalho {
+  border-bottom: var(--linha-forte);
+  background: var(--papel);
+  flex: none;
+}
+
+.cabecalho-conteudo {
+  max-width: var(--largura-maxima);
+  margin: 0 auto;
+  padding: var(--e3) var(--e5);
+}
+
+.marca {
+  font-family: var(--mono);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* --- corpo --- */
+
+.corpo {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--largura-maxima);
+  margin: 0 auto;
+  padding: var(--e4) var(--e5);
+  display: grid;
+  /* Colunas afastadas para a página encostar nas laterais sem inflar os
+     elementos: o vazio some pela distribuição, não pelo tamanho. */
+  grid-template-columns: 1fr minmax(320px, 360px);
+  gap: var(--e8);
+  align-items: start;
+}
+
+.coluna-mapa {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.coluna-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+
+/* --- ficha do filme --- */
+
+.ficha {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: var(--e5);
+  align-items: start;
+  flex: none;
+  /* Deslocada para a direita: o mapa fica centralizado na coluna, e a ficha
+     colada na borda esquerda parecia solta em relação a ele. */
+  padding-left: var(--e7);
+}
+
+.ficha-poster {
+  width: 104px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--papel-escuro);
+  border: var(--linha);
+  display: block;
+}
+
+.ficha-titulo {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* Bloco de dados da sessão: é o que o cliente confere antes de comprar, e
+   por isso não fica em corpo de etiqueta. */
+.ficha-dados {
+  margin-top: var(--e3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2) var(--e5);
+}
+
+.dado {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dado-rotulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+.dado-valor {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dado-valor--secundario {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* --- trilha, entre a ficha e o mapa --- */
+
+.trilha-area {
+  flex: none;
+  margin: var(--e5) 0;
+}
+
+/* --- mapa: é ele que cede altura quando a janela é baixa --- */
+
+.mapa-area {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: var(--e2) 0 var(--e4);
+}
+
+/* --- resumo, o canhoto --- */
+
+.resumo {
+  background: var(--papel);
+  border: var(--linha);
+}
+
+.resumo-cabeca {
+  padding: var(--e3) var(--e4);
+  border-bottom: var(--picote-espesso);
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+.resumo-corpo {
+  padding: var(--e4);
+}
+
+/* Lista rola por dentro quando a seleção é longa: o total e o botão não
+   podem ser empurrados para fora da janela. */
+.resumo-itens {
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.resumo-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e3);
+  padding: var(--e1) 0;
+  font: var(--corpo);
+  font-size: 13.5px;
+}
+
+.resumo-linha--vazio {
+  color: var(--tinta-fraca);
+  font-size: 12.5px;
+  padding: var(--e2) 0 var(--e3);
+}
+
+/* Pontilhado ligando descrição e valor, como conta de restaurante. */
+.resumo-pontos {
+  flex: 1;
+  border-bottom: 1px dotted var(--picote);
+  transform: translateY(-3px);
+}
+
+.resumo-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.resumo-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: var(--e3);
+  padding-top: var(--e3);
+  border-top: var(--linha-forte);
+  font: var(--titulo);
+  text-transform: uppercase;
+}
+
+.resumo-total-valor {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- ação --- */
+
+.acao {
+  display: block;
+  width: 100%;
+  margin-top: var(--e4);
+  padding: var(--e3);
+  border: none;
+  background: var(--tinta);
+  color: var(--papel);
+  font: var(--titulo);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 90ms linear;
+}
+
+.acao:hover:not(:disabled) {
+  background: var(--tinta-media);
+}
+
+.acao:disabled {
+  background: var(--papel-escuro);
+  color: var(--tinta-fraca);
+  cursor: not-allowed;
+}
+
+.acao-aviso {
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  text-align: center;
+  margin-top: var(--e2);
+}
+
+/* --- aviso de limite: fora do recibo, logo abaixo dele --- */
+
+.aviso-limite {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  padding: var(--e3) var(--e4);
+  border: 2px solid var(--carimbo);
+  color: var(--carimbo);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  flex: none;
+}
+
+.aviso-limite-marca {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+  flex: none;
+}
+
+/* --- telas estreitas: aqui a rolagem volta, porque não cabe --- */
+
+@media (max-width: 940px) {
+  .tela {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .corpo {
+    grid-template-columns: 1fr;
+    gap: var(--e5);
+    padding: var(--e4);
+  }
+
+  .coluna-mapa {
+    height: auto;
+  }
+
+  .mapa-area {
+    overflow: visible;
+  }
+
+  .resumo-itens {
+    max-height: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .cabecalho-conteudo,
+  .corpo {
+    padding-left: var(--e4);
+    padding-right: var(--e4);
+  }
+
+  .marca {
+    font-size: 17px;
+    letter-spacing: 0.18em;
+  }
+
+  .ficha {
+    grid-template-columns: 84px 1fr;
+    gap: var(--e4);
+    padding-left: 0;
+  }
+
+  .ficha-poster {
+    width: 84px;
+  }
+
+  .ficha-titulo {
+    font-size: 20px;
+  }
+
+  .dado-valor {
+    font-size: 15px;
+  }
+}

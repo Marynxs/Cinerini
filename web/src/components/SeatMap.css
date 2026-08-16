@@ -1,0 +1,230 @@
+/* Mapa de assentos.
+
+   Os estados se distinguem por forma e textura além de cor (D4): o par
+   carmim/bege é indistinguível para quem tem deficiência de visão de cores,
+   e cor sozinha deixaria o mapa inutilizável para essas pessoas.
+
+   A tela do cinema fica embaixo, e as fileiras são desenhadas de trás para
+   frente — a fileira A, mais próxima da tela, encosta nela. Ordem invertida
+   colocaria a primeira fila no fundo da sala. */
+
+.mapa {
+  /* Declarado aqui e nao em .assento: a regua de numeros no topo precisa da
+     mesma largura para alinhar com as colunas.
+
+     Amarrado a altura da janela para o mapa crescer ate o limite do que cabe
+     sem rolagem. O piso de 26px e o menor alvo que um dedo acerta com
+     confianca; o teto de 52px e onde a poltrona para de parecer poltrona. */
+  --assento-lado: clamp(26px, 4.2vh, 50px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e4);
+}
+
+.mapa-grade {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+
+/* --- régua de números, no topo --- */
+
+.mapa-numeros {
+  display: flex;
+  align-items: center;
+  gap: var(--e1);
+  margin-bottom: var(--e1);
+}
+
+.mapa-numero {
+  width: var(--assento-lado);
+  flex: none;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tinta-fraca);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- fileiras --- */
+
+.mapa-fileira {
+  display: flex;
+  align-items: center;
+  gap: var(--e1);
+}
+
+.mapa-fileira-letra {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--tinta-fraca);
+  width: 22px;
+  flex: none;
+  text-align: center;
+}
+
+.mapa-corredor {
+  width: var(--e5);
+  flex: none;
+}
+
+/* --- a poltrona --- */
+
+.assento {
+  width: var(--assento-lado);
+  height: var(--assento-lado);
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 1.5px solid var(--tinta);
+  color: var(--tinta);
+  display: grid;
+  place-items: center;
+  position: relative;
+  transition: background-color 90ms linear, transform 90ms linear;
+}
+
+.assento:hover:not(:disabled) {
+  background: var(--papel-escuro);
+}
+
+.assento:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Ocupada: preenchimento cheio no tom do picote. Recua sem sumir — em bege
+   claro demais a poltrona vendida passava despercebida. */
+.assento--ocupado {
+  background: var(--picote);
+  border-color: var(--tinta-fraca);
+  color: var(--papel);
+  cursor: not-allowed;
+}
+
+/* Selecionada: carmim com marca de conferido. A marca é o que separa de
+   "ocupada" para quem não distingue as duas cores. */
+.assento--escolhido {
+  background: var(--carimbo);
+  border-color: var(--carimbo);
+  color: var(--papel);
+}
+
+.assento--escolhido .assento-marca {
+  display: block;
+}
+
+.assento-marca {
+  display: none;
+  width: 8px;
+  height: 14px;
+  border: solid currentColor;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+/* Acessível: círculo em vez de quadrado, mais o símbolo internacional.
+   Duas marcações redundantes de propósito — a forma funciona em miniatura,
+   o símbolo comunica o motivo. */
+.assento--acessivel {
+  border-radius: 50%;
+}
+
+.assento-simbolo {
+  width: 60%;
+  height: 60%;
+}
+
+/* Em espera: hachura diagonal — outra pessoa está pagando por ela agora. */
+.assento--espera {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--tinta-fraca);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    var(--picote) 3px 6px
+  );
+}
+
+.assento:disabled {
+  pointer-events: none;
+}
+
+/* --- a tela do cinema, embaixo --- */
+
+.mapa-tela {
+  width: min(100%, 560px);
+  text-align: center;
+  margin-top: var(--e3);
+}
+
+.mapa-tela-faixa {
+  height: 10px;
+  background: var(--tinta);
+  /* Arqueada para baixo: a superfície côncava aponta para a plateia. */
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+}
+
+.mapa-tela-rotulo {
+  font: var(--etiqueta);
+  font-size: 11px;
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  margin-top: var(--e2);
+  text-transform: uppercase;
+}
+
+/* --- legenda --- */
+
+.mapa-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--e5);
+  margin-top: var(--e3);
+  padding-top: var(--e4);
+  border-top: var(--linha-tracejada);
+  width: min(100%, 560px);
+}
+
+.mapa-legenda-item {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  font: var(--etiqueta);
+  font-size: 12px;
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+.mapa-legenda {
+  --assento-lado: 22px;
+}
+
+.mapa-legenda .assento {
+  cursor: default;
+}
+
+/* --- telas estreitas --- */
+
+@media (max-width: 620px) {
+  .mapa {
+    --assento-lado: 30px;
+  }
+
+  .mapa-grade {
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: var(--e2);
+  }
+
+  .mapa-corredor {
+    width: var(--e3);
+  }
+}
