@@ -178,6 +178,16 @@
   color: var(--carimbo);
 }
 
+.aviso-cancelamento {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--carimbo);
+  border-left: 2px solid var(--carimbo);
+  padding-left: var(--e2);
+  margin-top: var(--e3);
+}
+
 /* --- ações do canhoto --- */
 
 .bilhete-acoes {

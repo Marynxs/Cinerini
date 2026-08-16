@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { compartilhamento, compra } from '../api/endpoints';
 import type { MyTicket } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import { Confirmar } from '../components/Confirmar';
 import { Carregando, Layout, Vazio, Voltar } from '../components/Layout';
 import './MyTickets.css';
 
@@ -74,7 +75,8 @@ export function MyTickets() {
       ) : (
         <div className="ingressos">
           {ingressos.map((ingresso) => (
-            <Bilhete key={ingresso.id} ingresso={ingresso} />
+            <Bilhete key={ingresso.id} ingresso={ingresso}
+                     aoMudar={setIngressos} />
           ))}
         </div>
       )}
@@ -82,10 +84,15 @@ export function MyTickets() {
   );
 }
 
-function Bilhete({ ingresso }: { ingresso: MyTicket }) {
+function Bilhete({ ingresso, aoMudar }: {
+  ingresso: MyTicket; aoMudar: (lista: MyTicket[]) => void;
+}) {
   const [link, setLink] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const usado = ingresso.status === 'used';
   const cancelado = ingresso.status === 'cancelled';
@@ -98,6 +105,18 @@ function Bilhete({ ingresso }: { ingresso: MyTicket }) {
       setLink(`${window.location.origin}/ingresso/${criado.token}`);
     } finally {
       setGerando(false);
+    }
+  }
+
+  async function cancelar() {
+    setCancelando(true);
+    setErro(null);
+    try {
+      aoMudar(await compra.cancelarIngresso(ingresso.id));
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setCancelando(false);
     }
   }
 
@@ -150,6 +169,16 @@ function Bilhete({ ingresso }: { ingresso: MyTicket }) {
 
           {usado && <span className="selo selo--usado">Já utilizado</span>}
           {cancelado && <span className="selo selo--cancelado">Cancelado</span>}
+
+          {/* A explicação fica onde a pessoa procuraria o ingresso, e não
+              some junto com ele (D10). */}
+          {ingresso.showing_cancelled && (
+            <p className="aviso-cancelamento">
+              Sessão cancelada pelo cinema
+              {ingresso.cancellation_reason && `: ${ingresso.cancellation_reason}`}
+              . O valor foi estornado.
+            </p>
+          )}
         </div>
       </div>
 
@@ -179,8 +208,41 @@ function Bilhete({ ingresso }: { ingresso: MyTicket }) {
           >
             {gerando ? 'Gerando…' : 'Compartilhar'}
           </button>
+
+          <button
+            type="button"
+            className="elo elo--perigo"
+            onClick={() => setConfirmando(true)}
+            disabled={cancelando}
+          >
+            {cancelando ? 'Cancelando…' : 'Cancelar ingresso'}
+          </button>
         </div>
       )}
+
+      {confirmando && (
+        <Confirmar
+          titulo="Cancelar ingresso"
+          rotuloConfirmar="Cancelar ingresso"
+          aoFechar={() => setConfirmando(false)}
+          aoConfirmar={() => { setConfirmando(false); cancelar(); }}
+        >
+          <p>
+            <span className="dialogo-destaque">
+              Poltrona {ingresso.seat_label}
+            </span>
+            {' · '}{ingresso.event_title}
+            {' · '}{quando(ingresso.starts_at)}
+          </p>
+          <p className="dialogo-consequencia">
+            A poltrona volta para o mapa e o valor de{' '}
+            {dinheiro(ingresso.price_cents)} será estornado. Esta ação é
+            irreversível.
+          </p>
+        </Confirmar>
+      )}
+
+      {erro && <p className="aviso-cancelamento">{erro}</p>}
 
       {link && (
         <div className="compartilhado">
