@@ -167,3 +167,31 @@ Onde há estado, a classe está lá: `TTLCache` e `SlidingWindow` guardam dados 
 A convenção adotada é a usual: coleção sob o pai, item na raiz.
 
 **Momento da mudança:** feita antes de o front existir. Depois do dia 4 custaria alterar os dois lados ao mesmo tempo.
+
+---
+
+## D14 · Recusa de pagamento não devolve a poltrona
+
+**Decidido:** cartão recusado mantém as poltronas reservadas até o prazo de dez minutos vencer. O pedido fica em estado recusado, mas continua pagável.
+
+**Descartado:** cancelar os ingressos e liberar as poltronas no instante da recusa, que era o comportamento anterior.
+
+**Por quê:** a justificativa original — "segurar a poltrona puniria outros clientes por uma compra que não vai acontecer" — não se sustenta. A reserva já tem prazo, então as poltronas nunca ficariam presas indefinidamente; e cartão negado quase sempre significa que a pessoa vai tentar outro, não que desistiu.
+
+Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava encerrado: qualquer nova tentativa falhava, e a escolha de poltronas se perdia por causa de um dígito errado. Nenhum checkout real se comporta assim.
+
+**O prazo continua valendo:** recusa não estende a reserva. Pagar depois do vencimento é recusado, e os assentos voltam ao estoque pela liberação sob demanda.
+
+---
+
+## D15 · Uma reserva aberta por cliente e sessão
+
+**Decidido:** criar uma reserva cancela a reserva aberta que o mesmo cliente já tivesse naquela sessão, devolvendo as poltronas anteriores ao estoque na hora.
+
+**Descartado:** deixar as duas reservas coexistirem até a mais antiga vencer.
+
+**Por quê:** o cliente que volta ao mapa para trocar de poltrona não está iniciando uma segunda compra — está corrigindo a primeira. Sem a substituição, as poltronas abandonadas ficariam retidas por dez minutos sem que ninguém as quisesse, e o cliente apareceria com dois pedidos abertos da mesma sessão, sem saber qual pagar.
+
+**A regra é por sessão, não por cliente:** quem está comprando ingressos de dois filmes ao mesmo tempo mantém as duas reservas.
+
+**Consequência na interface:** as poltronas da reserva aberta voltam ao mapa já selecionadas e editáveis, em vez de bloqueadas. Marcá-las como ocupadas faria o cliente pensar que perdeu a própria escolha.

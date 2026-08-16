@@ -97,6 +97,69 @@ class TestReservation:
                          papel).status_code == 403
 
 
+class TestReplacingAReservation:
+    """Voltar ao mapa e escolher de novo substitui a reserva anterior."""
+
+    def test_new_reservation_frees_the_previous_seats(
+        self, client: TestClient, auth, showing: Showing, seats: list[Seat]
+    ) -> None:
+        _reservar(client, auth, showing, [seats[0].id])
+        _reservar(client, auth, showing, [seats[1].id])
+
+        mapa = client.get(f"/showings/{showing.id}/seats").json()
+        primeira = next(a for a in mapa if a["id"] == seats[0].id)
+        segunda = next(a for a in mapa if a["id"] == seats[1].id)
+
+        assert primeira["taken"] is False
+        assert segunda["taken"] is True
+
+    def test_only_one_open_order_per_showing(
+        self, client: TestClient, auth, showing: Showing, seats: list[Seat]
+    ) -> None:
+        _reservar(client, auth, showing, [seats[0].id])
+        _reservar(client, auth, showing, [seats[1].id])
+
+        pedidos = client.get("/me/orders", headers=auth("customer")).json()
+        abertos = [p for p in pedidos
+                   if p["showing_id"] == showing.id
+                   and p["status"] in ("pending", "refused")]
+        assert len(abertos) == 1
+
+    def test_previous_seats_can_be_taken_by_someone_else(
+        self, client: TestClient, auth, showing: Showing, seats: list[Seat]
+    ) -> None:
+        """Liberar de verdade, e não só marcar: a poltrona volta ao estoque."""
+        _reservar(client, auth, showing, [seats[0].id])
+        _reservar(client, auth, showing, [seats[1].id])
+
+        outro = _reservar(client, auth, showing, [seats[0].id], "customer2")
+        assert outro.status_code == 201
+
+    def test_reservation_of_another_showing_is_untouched(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        seats: list[Seat],
+    ) -> None:
+        outra = Showing(event_id=showing.event_id, room_id=showing.room_id,
+                        price_cents=2000,
+                        starts_at=datetime.now(timezone.utc) + timedelta(days=3))
+        db.add(outra)
+        db.flush()
+        from app.seating import generate_seats
+        generate_seats(db, outra)
+        db.commit()
+
+        assentos_outra = db.scalars(
+            select(Seat).where(Seat.showing_id == outra.id).limit(1)
+        ).all()
+
+        _reservar(client, auth, outra, [assentos_outra[0].id])
+        _reservar(client, auth, showing, [seats[0].id])
+
+        pedidos = client.get("/me/orders", headers=auth("customer")).json()
+        abertos = [p for p in pedidos if p["status"] == "pending"]
+        assert len(abertos) == 2
+
+
 class TestContention:
     """A garantia central, exercitada por dois clientes de verdade."""
 
@@ -217,21 +280,52 @@ class TestPayment:
         assert r.json()["reason"]
         assert r.json()["order"]["status"] == "refused"
 
-    def test_refusal_returns_the_seat_to_stock(
+    def test_refusal_keeps_the_seat_held(
         self, client: TestClient, auth, showing: Showing, seats: list[Seat],
         pedido: dict,
     ) -> None:
-        """Segurar a poltrona puniria outros por uma compra que não vai
-        acontecer."""
+        """Cartão negado não custa a escolha: a poltrona segue reservada até
+        o prazo vencer, para o cliente tentar outro cartão."""
         client.post(f"/orders/{pedido['id']}/payment",
                     json={**PAGAMENTO, "card_number": RECUSADO},
                     headers=auth("customer"))
 
         mapa = client.get(f"/showings/{showing.id}/seats").json()
-        assert not any(a["taken"] for a in mapa)
+        ocupada = next(a for a in mapa if a["id"] == seats[0].id)
+        assert ocupada["taken"] is True
 
         outra = _reservar(client, auth, showing, [seats[0].id], "customer2")
-        assert outra.status_code == 201
+        assert outra.status_code == 409
+
+    def test_another_card_works_after_a_refusal(
+        self, client: TestClient, auth, pedido: dict
+    ) -> None:
+        client.post(f"/orders/{pedido['id']}/payment",
+                    json={**PAGAMENTO, "card_number": RECUSADO},
+                    headers=auth("customer"))
+
+        segunda = client.post(f"/orders/{pedido['id']}/payment",
+                              json=PAGAMENTO, headers=auth("customer"))
+
+        assert segunda.status_code == 200
+        assert segunda.json()["approved"] is True
+        assert segunda.json()["order"]["status"] == "paid"
+
+    def test_expired_hold_after_refusal_is_refused(
+        self, client: TestClient, auth, db: Session, pedido: dict
+    ) -> None:
+        """O prazo continua valendo: recusa não estende a reserva."""
+        client.post(f"/orders/{pedido['id']}/payment",
+                    json={**PAGAMENTO, "card_number": RECUSADO},
+                    headers=auth("customer"))
+
+        for t in db.scalars(select(Ticket).where(Ticket.order_id == pedido["id"])):
+            t.held_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+        db.commit()
+
+        r = client.post(f"/orders/{pedido['id']}/payment", json=PAGAMENTO,
+                        headers=auth("customer"))
+        assert r.status_code == 409
 
     def test_paying_twice_is_refused(
         self, client: TestClient, auth, pedido: dict

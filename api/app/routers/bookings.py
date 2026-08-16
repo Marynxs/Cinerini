@@ -32,7 +32,7 @@ def _as_order_out(db: Session, order: Order) -> OrderOut:
         tickets=[
             TicketOut(
                 id=t.id, jti=t.jti, status=t.status,
-                seat_label=t.seat.label,
+                seat_id=t.seat_id, seat_label=t.seat.label,
                 row_label=t.seat.row_label, number=t.seat.number,
             )
             for t in ingressos

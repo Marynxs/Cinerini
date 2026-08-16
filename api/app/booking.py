@@ -71,6 +71,36 @@ def release_expired_holds(db: Session, showing_id: int) -> int:
     return resultado.rowcount
 
 
+def _descartar_reserva_anterior(
+    db: Session, showing_id: int, customer_id: int
+) -> None:
+    """Cancela a reserva aberta que o cliente já tinha nesta sessão.
+
+    Um cliente não pode estar no meio de duas compras da mesma sessão: se
+    ele voltou ao mapa e escolheu outras poltronas, as anteriores devem
+    voltar ao estoque na hora, e não ficar presas até o prazo vencer.
+    """
+    abertos = db.scalars(
+        select(Order).where(
+            Order.showing_id == showing_id,
+            Order.customer_id == customer_id,
+            Order.status.in_([OrderStatus.PENDING, OrderStatus.REFUSED]),
+        )
+    ).all()
+
+    for pedido in abertos:
+        for ingresso in db.scalars(
+            select(Ticket).where(
+                Ticket.order_id == pedido.id,
+                Ticket.status == TicketStatus.HELD,
+            )
+        ):
+            ingresso.status = TicketStatus.CANCELLED
+        pedido.status = OrderStatus.CANCELLED
+
+    db.flush()
+
+
 def hold_seats(
     db: Session, showing: Showing, customer: User, seat_ids: list[int]
 ) -> Order:
@@ -87,6 +117,7 @@ def hold_seats(
         raise BookingError("Há poltronas repetidas na seleção.")
 
     release_expired_holds(db, showing.id)
+    _descartar_reserva_anterior(db, showing.id, customer.id)
 
     assentos = db.scalars(
         select(Seat).where(Seat.id.in_(seat_ids), Seat.showing_id == showing.id)
@@ -146,8 +177,14 @@ def _quais_ocupados(db: Session, showing_id: int, seat_ids: list[int]) -> list[s
 
 
 def pay(db: Session, order: Order, card_number: str) -> PaymentOutcome:
-    """Cobra e resolve o pedido, aprovado ou recusado."""
-    if order.status != OrderStatus.PENDING:
+    """Cobra o pedido.
+
+    Pedido recusado continua pagável enquanto a reserva não vencer: cartão
+    negado quase sempre significa que a pessoa vai tentar outro, e não que
+    desistiu. Bloquear aqui obrigaria a refazer a escolha de poltronas por
+    causa de um dígito errado.
+    """
+    if order.status not in (OrderStatus.PENDING, OrderStatus.REFUSED):
         raise BookingError("Este pedido já foi finalizado.")
 
     ingressos = list(db.scalars(
@@ -167,9 +204,12 @@ def pay(db: Session, order: Order, card_number: str) -> PaymentOutcome:
     resultado = charge(card_number, order.total_cents)
 
     if not resultado.approved:
-        # Recusa devolve as poltronas na hora: segurá-las puniria outros
-        # clientes por uma compra que não vai acontecer.
-        _cancelar(db, ingressos, order, OrderStatus.REFUSED)
+        # As poltronas continuam reservadas até o prazo vencer. Liberá-las
+        # aqui custaria a escolha inteira do cliente por um dígito errado,
+        # enquanto o prazo já limita por quanto tempo elas ficam presas.
+        order.status = OrderStatus.REFUSED
+        db.commit()
+        db.refresh(order)
         return PaymentOutcome(order, False, resultado.reason)
 
     for ingresso in vivos:
