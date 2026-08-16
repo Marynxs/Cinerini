@@ -63,15 +63,21 @@ Um organizador, dois clientes, um usuário de portaria e ao menos uma sessão pu
 
 ## Critérios de aceite
 
-- [ ] Cliente conclui compra e recebe ingresso com QR
-- [ ] Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara
-- [ ] Pagamento recusado libera o assento
-- [ ] Portaria retorna os quatro estados corretamente
-- [ ] Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda
-- [ ] Ingresso de outro evento retorna "outro evento", não "inválido"
-- [ ] QR com assinatura adulterada retorna "inválido"
-- [ ] Link compartilhado exibe o ingresso; revogado deixa de exibir
-- [ ] Banco reproduzível do zero por migration e seed
+Duas colunas porque o comportamento pode estar correto na API antes de existir tela para ele. Um critério só está cumprido quando as duas marcam.
+
+| Critério | API | Tela |
+|---|:-:|:-:|
+| Cliente conclui compra e recebe ingresso com QR | ✅ | ☐ |
+| Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara | ✅ | ☐ |
+| Pagamento recusado libera o assento | ✅ | ☐ |
+| Link compartilhado exibe o ingresso; revogado deixa de exibir | ✅ | ☐ |
+| Portaria retorna os quatro estados corretamente | ☐ | ☐ |
+| Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ☐ | ☐ |
+| Ingresso de outro evento retorna "outro evento", não "inválido" | ☐ | ☐ |
+| QR com assinatura adulterada retorna "inválido" | ☐ | ☐ |
+| Banco reproduzível do zero por migration e seed | ✅ | — |
+
+O update condicional que sustenta a validação única já está verificado contra o banco, mas o critério só marca quando existir a rota da portaria que o expõe.
 
 ## Fora de escopo
 
