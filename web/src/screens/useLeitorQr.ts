@@ -4,7 +4,7 @@
    de iPhone implementa a API — todos usam o WebKit, e a Apple a mantém
    desligada. Numa portaria, o aparelho mais provável na mão de quem valida é
    justamente um celular, e um caminho que falha em metade deles não é
-   caminho (D21).
+   caminho (D20).
 
    A decodificação roda no thread principal, a cada 150 ms, sobre um quadro
    reduzido. Cabe folgado no orçamento: o trabalho é uma imagem pequena a

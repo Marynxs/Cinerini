@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { portaria } from '../api/endpoints';
-import type { GateBinding, GateResult, Validation } from '../api/types';
+import type { Gate as Portaria, GateResult, ShowingBrief, Validation } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Carregando, Layout, Vazio } from '../components/Layout';
 import { useLeitorQr } from './useLeitorQr';
@@ -16,22 +16,28 @@ import './Gate.css';
 
 const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    weekday: 'short', day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
   }).replace(',', '');
 
 /* Cada veredito tem palavra, explicação e uma marca própria. O par
    fundo/borda vive no CSS, e a distinção não depende de cor: cheio escuro,
-   contorno espesso, tracejado e hachurado se separam no preto e branco
-   também — o par carmim/bege é indistinguível para parte das pessoas. */
+   cheio carmim, contorno espesso, tracejado, duplo e hachurado se separam no
+   preto e branco também — o par carmim/bege é indistinguível para parte das
+   pessoas. */
 const VEREDITOS: Record<GateResult, { palavra: string; explica: string }> = {
   valid: { palavra: 'Válido', explica: 'Pode entrar.' },
   already_used: {
     palavra: 'Já utilizado',
     explica: 'Este ingresso já passou pela entrada.',
   },
+  wrong_showing: {
+    palavra: 'Outra sessão',
+    explica: 'Filme certo, sessão errada. Encaminhe para a sessão abaixo.',
+  },
   wrong_event: {
     palavra: 'Outro evento',
-    explica: 'O ingresso é legítimo, mas não é desta sessão.',
+    explica: 'O ingresso é legítimo, mas é de outro filme.',
   },
   cancelled: {
     palavra: 'Cancelado',
@@ -48,40 +54,66 @@ function Marca({ resultado }: { resultado: GateResult }) {
     viewBox: '0 0 48 48', fill: 'none', stroke: 'currentColor',
     strokeWidth: 3.5, strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const, 'aria-hidden': true,
+    className: 'veredito-marca',
   };
 
-  if (resultado === 'valid') {
-    return <svg className="veredito-marca" {...comum}><path d="M10 25l10 10 18-22" /></svg>;
-  }
+  switch (resultado) {
+    case 'valid':
+      return <svg {...comum}><path d="M10 25l10 10 18-22" /></svg>;
 
-  if (resultado === 'invalid') {
-    return <svg className="veredito-marca" {...comum}><path d="M13 13l22 22M35 13L13 35" /></svg>;
-  }
+    case 'invalid':
+      return <svg {...comum}><path d="M13 13l22 22M35 13L13 35" /></svg>;
 
-  if (resultado === 'already_used') {
-    // Relógio: o que distingue este caso é o tempo, não a legitimidade.
-    return (
-      <svg className="veredito-marca" {...comum}>
-        <circle cx="24" cy="24" r="16" />
-        <path d="M24 14v10l7 5" />
-      </svg>
-    );
-  }
+    case 'already_used':
+      // Relógio parado: o que distingue este caso é o tempo já gasto.
+      return (
+        <svg {...comum}>
+          <circle cx="24" cy="24" r="16" />
+          <path d="M24 14v10l7 5" />
+        </svg>
+      );
 
-  if (resultado === 'wrong_event') {
-    // Seta: a pessoa não é barrada, é redirecionada.
-    return (
-      <svg className="veredito-marca" {...comum}>
-        <path d="M8 24h30M26 12l12 12-12 12" />
-      </svg>
-    );
-  }
+    case 'wrong_showing':
+      // Seta circular: mesmo lugar, outro horário.
+      return (
+        <svg {...comum}>
+          <path d="M38 24a14 14 0 1 1-4.5-10.3" />
+          <path d="M38 8v7h-7" />
+          <path d="M24 16v8l5 4" />
+        </svg>
+      );
 
+    case 'wrong_event':
+      // Seta reta: não é barrado, é mandado para outro lugar.
+      return <svg {...comum}><path d="M8 24h30M26 12l12 12-12 12" /></svg>;
+
+    default:
+      return (
+        <svg {...comum}>
+          <circle cx="24" cy="24" r="16" />
+          <path d="M13 13l22 22" />
+        </svg>
+      );
+  }
+}
+
+/** A sessão a que o ingresso pertence, em ficha de conferência. */
+function Sessao({ sessao }: { sessao: ShowingBrief }) {
   return (
-    <svg className="veredito-marca" {...comum}>
-      <circle cx="24" cy="24" r="16" />
-      <path d="M13 13l22 22" />
-    </svg>
+    <>
+      <div>
+        <dt>Sessão</dt>
+        <dd>{sessao.event_title}</dd>
+      </div>
+      <div>
+        <dt>Quando</dt>
+        <dd>{quando(sessao.starts_at)}</dd>
+      </div>
+      <div>
+        <dt>Onde</dt>
+        <dd>{sessao.venue_name} · {sessao.room_name}</dd>
+      </div>
+    </>
   );
 }
 
@@ -101,28 +133,25 @@ function Veredito(
       <p className="veredito-palavra">{palavra}</p>
       <p className="veredito-explica">{explica}</p>
 
-      {validacao.seat_label && (
+      {(validacao.seat_label || validacao.showing) && (
         <dl className="veredito-ficha">
-          <div>
-            <dt>Poltrona</dt>
-            <dd className="veredito-poltrona">{validacao.seat_label}</dd>
-          </div>
+          {validacao.seat_label && (
+            <div>
+              <dt>Poltrona</dt>
+              <dd className="veredito-poltrona">{validacao.seat_label}</dd>
+            </div>
+          )}
           {validacao.customer_name && (
             <div>
               <dt>Cliente</dt>
               <dd>{validacao.customer_name}</dd>
             </div>
           )}
-          {validacao.result === 'already_used' && validacao.used_at && (
+          {validacao.showing && <Sessao sessao={validacao.showing} />}
+          {validacao.used_at && (
             <div>
               <dt>Entrou em</dt>
               <dd>{quando(validacao.used_at)}</dd>
-            </div>
-          )}
-          {validacao.result === 'wrong_event' && validacao.ticket_event_title && (
-            <div>
-              <dt>Vale para</dt>
-              <dd>{validacao.ticket_event_title}</dd>
             </div>
           )}
         </dl>
@@ -139,7 +168,7 @@ function Veredito(
 export function Gate() {
   const { user, carregando } = useAuth();
 
-  const [vinculo, setVinculo] = useState<GateBinding | null>(null);
+  const [vinculo, setVinculo] = useState<Portaria | null>(null);
   const [validacao, setValidacao] = useState<Validation | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [digitado, setDigitado] = useState('');
@@ -182,8 +211,7 @@ export function Gate() {
   }, []);
 
   // A câmera desliga enquanto há veredito na tela e enquanto uma validação
-  // está no ar. Sem isso, o mesmo QR seria lido seis vezes por segundo e
-  // dispararia uma rajada de requisições do mesmo ingresso.
+  // está no ar. Sem isso, o mesmo QR seria lido seis vezes por segundo.
   const lendo = Boolean(ehPortaria) && validacao === null && !enviando;
   const { video, estado, reiniciar } = useLeitorQr(lendo, validar);
 
@@ -212,20 +240,41 @@ export function Gate() {
     );
   }
 
+  const sessao = vinculo?.showing;
+
   return (
     <Layout>
+      {/* Qual sessão esta portaria atende, dito antes da primeira leitura:
+          sem isso o operador só descobre a que porta atende ao recusar
+          alguém. */}
       <div className="portaria-cabeca">
-        <h1 className="catalogo-titulo">Portaria</h1>
-        {/* Qual evento esta portaria atende, dito antes da primeira leitura:
-            sem isso o operador só descobre a que porta atende ao recusar
-            alguém por "outro evento". */}
-        {vinculo?.event_title
-          ? <p className="portaria-evento">{vinculo.event_title}</p>
-          : vinculo && (
-            <p className="portaria-evento portaria-evento--solta">
-              Não vinculada a nenhum evento
-            </p>
-          )}
+        <div>
+          <p className="portaria-etiqueta">Portaria</p>
+          <h1 className="portaria-sessao">
+            {sessao ? sessao.event_title : 'Sem sessão vinculada'}
+          </h1>
+        </div>
+
+        {sessao ? (
+          <dl className="portaria-ficha">
+            <div>
+              <dt>Quando</dt>
+              <dd>{quando(sessao.starts_at)}</dd>
+            </div>
+            <div>
+              <dt>Onde</dt>
+              <dd>{sessao.venue_name} · {sessao.venue_city}</dd>
+            </div>
+            <div>
+              <dt>Sala</dt>
+              <dd>{sessao.room_name}</dd>
+            </div>
+          </dl>
+        ) : vinculo && (
+          <p className="portaria-solta">
+            Peça ao organizador para vincular esta portaria a uma sessão.
+          </p>
+        )}
       </div>
 
       <div className="camera">
@@ -268,7 +317,7 @@ export function Gate() {
             className="campo-entrada"
             value={digitado}
             onChange={(e) => setDigitado(e.target.value)}
-            placeholder="0000000-0000-0000-0000-000000000000"
+            placeholder="00000000-0000-0000-0000-000000000000"
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}

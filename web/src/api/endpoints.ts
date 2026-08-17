@@ -5,7 +5,7 @@
 
 import { request } from './client';
 import type {
-  CatalogEvent, EventOut, GateBinding, MyTicket, OrderOut, PaymentOut, Room,
+  CatalogEvent, EventOut, Gate, MyTicket, OrderOut, PaymentOut, Room,
   SeatOut, SharedTicket, ShowingOut, TmdbSearchResult, TokenOut, User,
   Validation, Venue,
 } from './types';
@@ -128,8 +128,22 @@ export const compartilhamento = {
 };
 
 export const portaria = {
-  vinculo: () => request<GateBinding>('/gate/me'),
+  vinculo: () => request<Gate>('/gate/me'),
 
   validar: (code: string) =>
     request<Validation>('/gate/validations', { method: 'POST', body: { code } }),
+
+  // Cadastro e vínculo são do organizador, nunca da própria portaria.
+  listar: () => request<Gate[]>('/gates'),
+
+  criar: (showingId: number, dados: {
+    name: string; email: string; password: string;
+  }) => request<Gate>(`/showings/${showingId}/gates`, {
+    method: 'POST', body: dados,
+  }),
+
+  revincular: (gateId: number, showingId: number | null) =>
+    request<Gate>(`/gates/${gateId}`, {
+      method: 'PATCH', body: { showing_id: showingId },
+    }),
 };

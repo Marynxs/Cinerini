@@ -11,7 +11,7 @@ export interface User {
   name: string;
   email: string;
   role: Role;
-  gate_event_id: number | null;
+  gate_showing_id: number | null;
 }
 
 export interface TokenOut {
@@ -159,20 +159,31 @@ export interface SharedTicket {
 }
 
 export type GateResult =
-  | 'valid' | 'invalid' | 'already_used' | 'wrong_event' | 'cancelled';
+  | 'valid' | 'invalid' | 'already_used'
+  | 'wrong_event' | 'wrong_showing' | 'cancelled';
 
-export interface GateBinding {
-  gate_name: string;
-  event_id: number | null;
-  event_title: string | null;
+/** Uma exibição em uma linha: o que a portaria mostra e confere. */
+export interface ShowingBrief {
+  event_id: number;
+  event_title: string;
+  starts_at: string;
+  venue_name: string;
+  venue_city: string;
+  room_name: string;
+}
+
+export interface Gate {
+  id: number;
+  name: string;
+  email: string;
+  showing_id: number | null;
+  showing: ShowingBrief | null;
 }
 
 export interface Validation {
   result: GateResult;
   seat_label: string | null;
   customer_name: string | null;
-  room_name: string | null;
-  starts_at: string | null;
+  showing: ShowingBrief | null;
   used_at: string | null;
-  ticket_event_title: string | null;
 }

@@ -7,29 +7,74 @@
 
 .portaria-cabeca {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: var(--e4);
+  gap: var(--e5);
   flex-wrap: wrap;
   padding-bottom: var(--e3);
   border-bottom: var(--linha-forte);
 }
 
-.portaria-evento {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 600;
+.portaria-etiqueta {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  margin-bottom: var(--e1);
 }
 
-/* Portaria sem evento vinculado não valida nada. É erro de cadastro, e o
-   carmim aqui indica exatamente isso. */
-.portaria-evento--solta {
+.portaria-sessao {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+/* Horário, cinema e sala em cupom: são o que o operador confere contra a
+   pessoa na frente, e por isso alinham à direita como valores. */
+.portaria-ficha {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 240px;
+}
+
+.portaria-ficha > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+
+.portaria-ficha dt {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+.portaria-ficha dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Portaria sem sessão não valida nada. É erro de cadastro, e o carmim aqui
+   indica exatamente isso. */
+.portaria-solta {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--carimbo);
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
+  border-left: 2px solid var(--carimbo);
+  padding-left: var(--e2);
+  max-width: 34ch;
 }
 
 /* --- câmera --- */
@@ -235,6 +280,18 @@
   background: var(--papel);
   color: var(--tinta);
   border: 6px dashed var(--tinta);
+}
+
+/* Outra sessão: contorno duplo sobre papel escurecido. Vizinho do "outro
+   evento" porque a natureza é a mesma — encaminhamento, não recusa —, e
+   distinto dele porque o operador manda a pessoa para outro *horário*, não
+   para outra sala. Duas linhas em vez de tracejado separam os dois de longe
+   e sem depender de cor. */
+.veredito--wrong_showing {
+  --cor-superficie: var(--papel-escuro);
+  background: var(--papel-escuro);
+  color: var(--tinta);
+  border: 8px double var(--tinta);
 }
 
 /* Cancelado: hachura diagonal, a textura de documento anulado. */
