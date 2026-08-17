@@ -51,9 +51,16 @@ export function Login() {
         ? await entrar(email, senha)
         : await cadastrar(nome, email, senha);
 
-      // Portaria e organizador não têm tela ainda; por ora todos voltam ao
-      // ponto de origem.
-      navegar(usuario.role === 'customer' ? destino : '/', { replace: true });
+      // Cada papel cai onde tem trabalho a fazer. O cliente é o único que
+      // volta ao ponto de origem, porque é o único que estava no meio de
+      // alguma coisa quando o login foi exigido.
+      const inicio = {
+        customer: destino,
+        organizer: '/painel',
+        gate: '/portaria',
+      }[usuario.role] ?? '/';
+
+      navegar(inicio, { replace: true });
     } catch (e) {
       setErro((e as Error).message);
     } finally {

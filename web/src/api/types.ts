@@ -157,3 +157,22 @@ export interface SharedTicket {
   starts_at: string;
   audio: string;
 }
+
+export type GateResult =
+  | 'valid' | 'invalid' | 'already_used' | 'wrong_event' | 'cancelled';
+
+export interface GateBinding {
+  gate_name: string;
+  event_id: number | null;
+  event_title: string | null;
+}
+
+export interface Validation {
+  result: GateResult;
+  seat_label: string | null;
+  customer_name: string | null;
+  room_name: string | null;
+  starts_at: string | null;
+  used_at: string | null;
+  ticket_event_title: string | null;
+}

@@ -5,8 +5,9 @@
 
 import { request } from './client';
 import type {
-  CatalogEvent, EventOut, MyTicket, OrderOut, PaymentOut, Room, SeatOut,
-  SharedTicket, ShowingOut, TmdbSearchResult, TokenOut, User, Venue,
+  CatalogEvent, EventOut, GateBinding, MyTicket, OrderOut, PaymentOut, Room,
+  SeatOut, SharedTicket, ShowingOut, TmdbSearchResult, TokenOut, User,
+  Validation, Venue,
 } from './types';
 
 export const auth = {
@@ -124,4 +125,11 @@ export const compartilhamento = {
 
   abrir: (token: string) =>
     request<SharedTicket>(`/share/${token}`, { publica: true }),
+};
+
+export const portaria = {
+  vinculo: () => request<GateBinding>('/gate/me'),
+
+  validar: (code: string) =>
+    request<Validation>('/gate/validations', { method: 'POST', body: { code } }),
 };

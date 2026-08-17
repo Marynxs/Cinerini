@@ -32,6 +32,9 @@ export function Layout({ children, semPadding }: Props) {
                 {user.role === 'organizer' && (
                   <Link to="/painel" className="elo">Painel</Link>
                 )}
+                {user.role === 'gate' && (
+                  <Link to="/portaria" className="elo">Portaria</Link>
+                )}
                 <button type="button" className="elo elo--fraco" onClick={sair}>
                   Sair
                 </button>
