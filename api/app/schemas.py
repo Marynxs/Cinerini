@@ -11,6 +11,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models import EventStatus, OrderStatus, Role, SeatKind, TicketStatus
+from app.validation import GateResult
 
 
 class RegisterIn(BaseModel):
@@ -288,6 +289,27 @@ class MyTicketOut(BaseModel):
     # procuraria o ingresso.
     showing_cancelled: bool = False
     cancellation_reason: str | None = None
+
+
+# ---------------------------------------------------- portaria
+
+
+class ValidationIn(BaseModel):
+    # Um campo só para o QR lido e para o código digitado: quem valida não
+    # deveria ter de declarar por qual caminho o código chegou.
+    code: str = Field(min_length=1, max_length=2000)
+
+
+class ValidationOut(BaseModel):
+    result: GateResult
+
+    seat_label: str | None = None
+    customer_name: str | None = None
+    room_name: str | None = None
+    starts_at: datetime | None = None
+
+    used_at: datetime | None = None
+    ticket_event_title: str | None = None
 
 
 # ---------------------------------------------------- compartilhamento

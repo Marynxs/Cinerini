@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers import (
-    auth, bookings, catalog, events, sharing, showings, venues,
+    auth, bookings, catalog, events, gate, sharing, showings, venues,
 )
 
 settings = get_settings()
@@ -30,6 +30,7 @@ app.include_router(events.router)
 app.include_router(showings.router)
 app.include_router(bookings.router)
 app.include_router(sharing.router)
+app.include_router(gate.router)
 
 
 @app.get("/health", tags=["infra"])
