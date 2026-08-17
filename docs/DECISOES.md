@@ -271,3 +271,19 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Por quê não apagar a tela:** o `setFilmes(null)` anterior era o que fazia o catálogo piscar em branco a cada volta. Não era falta de cache; era a tela se apagando antes de ter o que colocar no lugar. Com a API hibernando no plano gratuito, isso vira meio minuto de tela vazia sobre conteúdo que já estava pronto.
 
 **Consequência no erro:** uma atualização que falha com catálogo na tela não troca o conteúdo por um aviso. O aviso só aparece quando não há nada a mostrar — trocar dado útil por mensagem de erro puniria quem já tinha o que precisava.
+
+---
+
+## D21 · Leitura do QR por biblioteca, não pela API do navegador
+
+**Decidido:** a portaria decodifica o QR com o `jsQR`, sobre quadros que ela mesma tira do vídeo.
+
+**Descartado:** o `BarcodeDetector`, API nativa que faria o mesmo sem dependência alguma.
+
+**Por quê:** nenhum navegador de iPhone implementa o `BarcodeDetector` — todos usam o WebKit, e a Apple mantém a API desligada. Numa portaria, o aparelho mais provável na mão de quem valida é um celular, e um caminho que falha em boa parte deles não é caminho. Detectar a API e cair para a biblioteca quando ela falta resolveria, mas ao custo de dois caminhos de código para o mesmo resultado — e o que não é exercitado no aparelho de quem desenvolve é o que quebra em produção.
+
+**Custo aceito:** 50 KB comprimidos, mais que todo o resto do sistema junto. Pagos só por quem abre a portaria: a tela é carregada sob demanda, e quem está comprando ingresso nunca baixa o decodificador.
+
+**A corrida que isto cria:** a câmera tenta decodificar seis vezes por segundo, e desligá-la depende de um novo render do React. Nesse intervalo o mesmo QR é lido de novo, e a segunda resposta voltaria `already_used` — trocando na tela o "válido" da primeira e mandando embora quem tinha ingresso bom. A trava é uma referência, não um estado, porque estado só vale no render seguinte e a corrida acontece antes dele. É a mesma classe de problema da garantia 3, um andar acima: lá o banco arbitra, aqui a tela precisa não se contradizer.
+
+**Digitação manual não é plano B decorativo:** é o caminho quando a permissão é negada, quando não há câmera e quando a lente não coopera com a tela riscada de um celular. Fica sempre visível, nunca escondida atrás de "problemas?".

@@ -72,10 +72,10 @@ Duas colunas porque o comportamento pode estar correto na API antes de existir t
 | Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara | ✅ | ✅ |
 | Pagamento recusado libera o assento | ✅ | ✅ |
 | Link compartilhado exibe o ingresso; revogado deixa de exibir | ✅ | ✅ |
-| Portaria retorna os quatro estados corretamente | ✅ | ☐ |
-| Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ✅ | ☐ |
-| Ingresso de outro evento retorna "outro evento", não "inválido" | ✅ | ☐ |
-| QR com assinatura adulterada retorna "inválido" | ✅ | ☐ |
+| Portaria retorna os quatro estados corretamente | ✅ | ✅ |
+| Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ✅ | ✅ |
+| Ingresso de outro evento retorna "outro evento", não "inválido" | ✅ | ✅ |
+| QR com assinatura adulterada retorna "inválido" | ✅ | ✅ |
 | Banco reproduzível do zero por migration e seed | ✅ | — |
 
 A portaria devolve um quinto estado além dos quatro exigidos: o ingresso cancelado se distingue do inválido pela mesma razão que "outro evento" se distingue (D17).

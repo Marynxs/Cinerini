@@ -151,6 +151,8 @@ O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 11 sess
 
 A portaria é vinculada ao primeiro filme de propósito: é o que permite demonstrar o retorno "evento errado" usando um ingresso de outro filme.
 
+**Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D21).
+
 O seed é idempotente — rodar duas vezes não duplica nada. Para refazer do zero: `python -m app.seed --reset`.
 
 ---
