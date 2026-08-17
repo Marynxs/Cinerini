@@ -5,8 +5,17 @@ import { useAuth } from '../auth/AuthContext';
 import { Layout, Voltar } from '../components/Layout';
 import './Login.css';
 
-/* Contas do seed, para quem avalia não precisar digitar. Só aparecem contra
-   a API local — em produção seriam um convite a testar credenciais. */
+/* Contas do seed, para quem avalia não precisar digitar.
+
+   Aparecem também em produção. Escondê-las lá seria teatro: as mesmas
+   credenciais estão publicadas no README de um repositório público, então a
+   omissão na tela não protegeria nada e cobraria de quem avalia uma ida ao
+   GitHub no primeiro minuto de uso.
+
+   O que a decisão aceita é vandalismo — entrar como organizador e cancelar
+   sessões. Fica aceito porque o estrago se desfaz com `python -m app.seed
+   --reset`, e porque o rótulo declara que este é um ambiente de
+   demonstração em vez de fingir que é produção. */
 const CONTAS_SEMEADAS = [
   { papel: 'Organizador', email: 'organizador@cinerini.com.br' },
   { papel: 'Cliente', email: 'cliente1@cinerini.com.br' },
@@ -15,8 +24,6 @@ const CONTAS_SEMEADAS = [
 ];
 
 const SENHA_SEMEADA = 'cinerini123';
-
-const ehLocal = (import.meta.env.VITE_API_URL ?? '').includes('localhost');
 
 export function Login() {
   const { entrar, cadastrar } = useAuth();
@@ -145,22 +152,25 @@ export function Login() {
             </button>
           </form>
 
-          {ehLocal && (
-            <div className="contas">
-              <p className="contas-titulo">Contas de teste</p>
-              {CONTAS_SEMEADAS.map((conta) => (
-                <button
-                  key={conta.email}
-                  type="button"
-                  className="conta"
-                  onClick={() => preencher(conta.email)}
-                >
-                  <span>{conta.email}</span>
-                  <span className="conta-papel">{conta.papel}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="contas">
+            <p className="contas-titulo">Ambiente de demonstração</p>
+            <p className="contas-nota">
+              Clique numa conta para preencher. Senha de todas:{' '}
+              <strong>{SENHA_SEMEADA}</strong>
+            </p>
+
+            {CONTAS_SEMEADAS.map((conta) => (
+              <button
+                key={conta.email}
+                type="button"
+                className="conta"
+                onClick={() => preencher(conta.email)}
+              >
+                <span>{conta.email}</span>
+                <span className="conta-papel">{conta.papel}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </Layout>

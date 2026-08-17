@@ -117,6 +117,21 @@
   margin-bottom: var(--e2);
 }
 
+/* A senha vem escrita junto das contas: quem clica não precisa saber que
+   existe um README com ela. */
+.contas-nota {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--tinta-fraca);
+  margin-bottom: var(--e3);
+}
+
+.contas-nota strong {
+  font-weight: 600;
+  color: var(--tinta);
+}
+
 .conta {
   display: flex;
   align-items: baseline;
