@@ -1,13 +1,13 @@
 """Validação do ingresso na portaria.
 
-Nenhum dos desfechos é erro de requisição: os quatro têm o mesmo posto, e
-quem os lê é um operador com uma pessoa parada na frente esperando entrar.
-Traduzir "inválido" em 404 faria a tela tratar metade dos casos como falha de
-rede — e um ingresso recusado é resposta, não falha.
+Nenhum dos desfechos é erro de requisição: todos têm o mesmo posto, e quem os
+lê é um operador com uma pessoa parada na frente esperando entrar. Traduzir
+"inválido" em 404 faria a tela tratar metade dos casos como falha de rede — e
+um ingresso recusado é resposta, não falha.
 
-A ordem das perguntas é deliberada. Primeiro *qual evento*, depois *qual
-estado*: descobrir tarde demais que o ingresso é da sala ao lado já teria
-queimado um ingresso legítimo de outra portaria.
+A ordem das perguntas é deliberada. Primeiro *onde este ingresso vale*, depois
+*se ainda vale*: descobrir tarde demais que o ingresso é da sessão seguinte já
+teria queimado um ingresso legítimo de outra portaria.
 """
 
 import enum
@@ -19,7 +19,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Event, Order, Room, Seat, Showing, Ticket, TicketStatus, User,
+    Event, Order, Room, Seat, Showing, Ticket, TicketStatus, User, Venue,
 )
 from app.security import TOKEN_TYPE_TICKET, decode_token
 
@@ -34,13 +34,36 @@ class GateResult(str, enum.Enum):
     VALID = "valid"
     INVALID = "invalid"
     ALREADY_USED = "already_used"
+
+    # Filme diferente do que esta porta atende.
     WRONG_EVENT = "wrong_event"
 
-    # Quinto estado, além dos quatro exigidos. Um ingresso reembolsado
-    # apresentado na porta é situação real, e chamá-lo de "inválido" faria o
-    # operador tratar como fraudador quem apenas cancelou e esqueceu. Mesma
-    # razão que separa "outro evento" de "inválido".
+    # Filme certo, exibição errada: outro horário, outra sala ou outro
+    # cinema. Separado de WRONG_EVENT porque a reação de quem opera é
+    # diferente — um manda para outra sala, o outro para outro horário, e às
+    # vezes para outro dia (D21).
+    WRONG_SHOWING = "wrong_showing"
+
+    # Ingresso reembolsado apresentado na porta é situação real, e chamá-lo
+    # de "inválido" faria o operador tratar como fraudador quem apenas
+    # cancelou e esqueceu.
     CANCELLED = "cancelled"
+
+
+@dataclass(frozen=True)
+class Sessao:
+    """Uma exibição, do jeito que a portaria precisa ler."""
+
+    # Carregado para comparar filmes por identidade, e não por título: dois
+    # eventos podem se chamar igual, e aí a portaria diria "outra sessão"
+    # sobre um ingresso de outro filme.
+    event_id: int
+
+    event_title: str
+    starts_at: datetime
+    venue_name: str
+    venue_city: str
+    room_name: str
 
 
 @dataclass(frozen=True)
@@ -51,32 +74,32 @@ class Validation:
 
     seat_label: str | None = None
     customer_name: str | None = None
-    room_name: str | None = None
-    starts_at: datetime | None = None
+
+    # A exibição a que o ingresso pertence. Vem preenchida sempre que houve
+    # ingresso de verdade — no desfecho válido para conferir, nos recusados
+    # para dizer a quem foi barrado onde o ingresso vale.
+    showing: Sessao | None = None
 
     # Só em ALREADY_USED: sem o horário anterior o operador não tem como
     # saber se a entrada foi há um minuto ou na semana passada.
     used_at: datetime | None = None
 
-    # Só em WRONG_EVENT: para qual evento o ingresso realmente vale.
-    ticket_event_title: str | None = None
-
 
 def _extrair_jti(codigo: str) -> tuple[str | None, int | None]:
     """Aceita o QR assinado ou o código impresso, e diz de onde veio.
 
-    O segundo elemento é o evento que a assinatura afirma — `None` quando o
-    código foi digitado, porque aí não há assinatura de onde tirá-lo.
+    O segundo elemento é a exibição que a assinatura afirma — `None` quando o
+    código foi digitado, porque aí não há assinatura de onde tirá-la.
     """
     codigo = codigo.strip()
 
     payload = decode_token(codigo, expected_type=TOKEN_TYPE_TICKET)
     if payload is not None:
-        return payload.get("jti"), payload.get("evt")
+        return payload.get("jti"), payload.get("shw")
 
     # Digitação manual, para quando a câmera não coopera. O que sustenta este
     # caminho não é assinatura, e sim o `jti` ser um uuid4 — 122 bits que não
-    # se adivinham — somado ao papel de portaria exigido na rota (D17).
+    # se adivinham — somado ao papel de portaria exigido na rota (D16).
     try:
         return str(uuid.UUID(codigo)), None
     except ValueError:
@@ -86,25 +109,50 @@ def _extrair_jti(codigo: str) -> tuple[str | None, int | None]:
 def _carregar(db: Session, jti: str):
     """Ingresso e tudo que a tela mostra, numa consulta só."""
     return db.execute(
-        select(Ticket, Seat, Showing, Event, Room, User)
+        select(Ticket, Seat, Showing, Event, Room, Venue, User)
         .join(Seat, Ticket.seat_id == Seat.id)
         .join(Showing, Seat.showing_id == Showing.id)
         .join(Event, Showing.event_id == Event.id)
         .join(Room, Showing.room_id == Room.id)
+        .join(Venue, Room.venue_id == Venue.id)
         .join(Order, Ticket.order_id == Order.id)
         .join(User, Order.customer_id == User.id)
         .where(Ticket.jti == jti)
     ).first()
 
 
+def describe(db: Session, showing_id: int) -> Sessao | None:
+    """A exibição em uma linha, para a tela dizer a que porta atende."""
+    linha = db.execute(
+        select(Showing, Event, Room, Venue)
+        .join(Event, Showing.event_id == Event.id)
+        .join(Room, Showing.room_id == Room.id)
+        .join(Venue, Room.venue_id == Venue.id)
+        .where(Showing.id == showing_id)
+    ).first()
+
+    if linha is None:
+        return None
+
+    showing, event, room, venue = linha
+    return Sessao(
+        event_id=event.id,
+        event_title=event.title,
+        starts_at=showing.starts_at,
+        venue_name=venue.name,
+        venue_city=venue.city,
+        room_name=room.name,
+    )
+
+
 def validate(db: Session, gate: User, codigo: str) -> Validation:
-    if gate.gate_event_id is None:
+    if gate.gate_showing_id is None:
         raise GateError(
-            "Esta portaria não está vinculada a nenhum evento. "
+            "Esta portaria não está vinculada a nenhuma sessão. "
             "Peça ao organizador para vinculá-la antes de validar."
         )
 
-    jti, evento_do_token = _extrair_jti(codigo)
+    jti, sessao_do_token = _extrair_jti(codigo)
     if jti is None:
         return Validation(GateResult.INVALID)
 
@@ -112,24 +160,35 @@ def validate(db: Session, gate: User, codigo: str) -> Validation:
     if linha is None:
         return Validation(GateResult.INVALID)
 
-    ticket, seat, showing, event, room, customer = linha
+    ticket, seat, showing, event, room, venue, customer = linha
 
-    # A assinatura afirma um evento. Se ela discorda do banco, o token foi
+    # A assinatura afirma uma exibição. Se ela discorda do banco, o token foi
     # montado para apontar um ingresso que não é o dele.
-    if evento_do_token is not None and evento_do_token != event.id:
+    if sessao_do_token is not None and sessao_do_token != showing.id:
         return Validation(GateResult.INVALID)
 
-    if event.id != gate.gate_event_id:
-        # Estado próprio, nunca "inválido": o ingresso é legítimo e quem está
-        # na porta errada é a pessoa. Colapsar os dois mandaria embora alguém
-        # que só precisa da sala ao lado.
+    sessao = Sessao(
+        event_id=event.id,
+        event_title=event.title,
+        starts_at=showing.starts_at,
+        venue_name=venue.name,
+        venue_city=venue.city,
+        room_name=room.name,
+    )
+
+    if showing.id != gate.gate_showing_id:
+        # Duas recusas e não uma: quem errou o filme precisa saber que veio
+        # ao lugar errado, quem errou o horário precisa saber que veio na
+        # hora errada. Colapsar as duas num "inválido" mandaria embora, como
+        # fraudador, quem tem ingresso legítimo na mão (garantia 4).
+        atendida = describe(db, gate.gate_showing_id)
+        mesmo_filme = atendida is not None and atendida.event_id == event.id
+
         return Validation(
-            GateResult.WRONG_EVENT,
+            GateResult.WRONG_SHOWING if mesmo_filme else GateResult.WRONG_EVENT,
             seat_label=seat.label,
             customer_name=customer.name,
-            room_name=room.name,
-            starts_at=showing.starts_at,
-            ticket_event_title=event.title,
+            showing=sessao,
         )
 
     agora = datetime.now(timezone.utc)
@@ -150,8 +209,7 @@ def validate(db: Session, gate: User, codigo: str) -> Validation:
     comuns = dict(
         seat_label=seat.label,
         customer_name=customer.name,
-        room_name=room.name,
-        starts_at=showing.starts_at,
+        showing=sessao,
     )
 
     if marcado is not None:

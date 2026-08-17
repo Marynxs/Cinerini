@@ -22,9 +22,9 @@ router = APIRouter(prefix="/auth", tags=["autenticação"])
 def register(data: RegisterIn, db: DbSession) -> TokenOut:
     """Cadastro público. Cria sempre CUSTOMER.
 
-    Organizador e portaria não se auto-cadastram: são criados pelo seed ou
-    pelo organizador. Aceitar o papel vindo do corpo da requisição deixaria
-    qualquer visitante virar organizador.
+    Portaria é criada pelo organizador em `POST /showings/{id}/gates`, e
+    organizador vem do seed. Aceitar o papel vindo do corpo da requisição
+    deixaria qualquer visitante decidir quem entra na sala.
 
     A resposta de e-mail duplicado revela que a conta existe. Ver decisão D8:
     esconder isso exigiria confirmação por e-mail, fora do escopo. O limite

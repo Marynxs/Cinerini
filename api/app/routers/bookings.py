@@ -154,7 +154,7 @@ def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
             jti=t.jti,
             status=t.status,
             seat_label=seat.label,
-            qr_token=create_ticket_token(t.jti, event.id),
+            qr_token=create_ticket_token(t.jti, showing.id),
             event_title=event.title,
             poster_url=event.poster_url,
             venue_name=venue.name,

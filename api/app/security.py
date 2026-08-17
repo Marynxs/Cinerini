@@ -48,18 +48,19 @@ def create_access_token(user_id: int, role: str) -> str:
     return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
-def create_ticket_token(jti: str, event_id: int) -> str:
+def create_ticket_token(jti: str, showing_id: int) -> str:
     """O conteúdo do QR.
 
     Sem prazo de validade de propósito: quem decide se o ingresso vale é a
     portaria consultando o banco. Expiração aqui criaria uma segunda fonte de
     verdade sobre validade, e duas fontes divergem.
 
-    O event_id vai dentro para que a portaria distinga "evento errado" de
-    "inválido" sem precisar de consulta extra antes de decidir.
+    A exibição vai dentro, e não o evento: é ela que a portaria confere
+    (D21), e carregar o evento junto criaria dois campos que podem divergir
+    para dizer a mesma coisa — a exibição já sabe de que evento é.
     """
     return jwt.encode(
-        {"jti": jti, "evt": event_id, "type": TOKEN_TYPE_TICKET},
+        {"jti": jti, "shw": showing_id, "type": TOKEN_TYPE_TICKET},
         get_settings().secret_key,
         algorithm=ALGORITHM,
     )

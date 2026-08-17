@@ -32,7 +32,7 @@ class UserOut(BaseModel):
     name: str
     email: EmailStr
     role: Role
-    gate_event_id: int | None
+    gate_showing_id: int | None
 
 
 class TokenOut(BaseModel):
@@ -294,6 +294,19 @@ class MyTicketOut(BaseModel):
 # ---------------------------------------------------- portaria
 
 
+class ShowingBriefOut(BaseModel):
+    """Uma exibição em uma linha, para a portaria."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    event_id: int
+    event_title: str
+    starts_at: datetime
+    venue_name: str
+    venue_city: str
+    room_name: str
+
+
 class ValidationIn(BaseModel):
     # Um campo só para o QR lido e para o código digitado: quem valida não
     # deveria ter de declarar por qual caminho o código chegou.
@@ -305,11 +318,34 @@ class ValidationOut(BaseModel):
 
     seat_label: str | None = None
     customer_name: str | None = None
-    room_name: str | None = None
-    starts_at: datetime | None = None
+
+    # A exibição a que o ingresso pertence. Nos desfechos recusados é ela que
+    # diz a quem foi barrado onde o ingresso vale.
+    showing: ShowingBriefOut | None = None
 
     used_at: datetime | None = None
-    ticket_event_title: str | None = None
+
+
+class GateOut(BaseModel):
+    """Uma portaria e a sessão que ela atende."""
+
+    id: int
+    name: str
+    email: EmailStr
+    showing_id: int | None
+    showing: ShowingBriefOut | None
+
+
+class GateIn(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)
+
+
+class GateRebindIn(BaseModel):
+    # Nulo desvincula: a portaria continua existindo e para de validar, que é
+    # o que se quer entre uma sessão e a seguinte.
+    showing_id: int | None
 
 
 # ---------------------------------------------------- compartilhamento

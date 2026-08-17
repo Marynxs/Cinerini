@@ -117,7 +117,7 @@ def _horarios(dias: int) -> list[datetime]:
 
 
 # Ordem inversa das dependências: filho antes do pai. users vai por último
-# porque gate_event_id referencia events.
+# porque gate_showing_id referencia showings.
 TABELAS = ("tickets", "orders", "seats", "showings",
            "events", "rooms", "venues", "users")
 
@@ -189,6 +189,8 @@ def semear(db: Session) -> None:
                         if cidade_da_sala[s.id] != cidade_da_sala[sala.id])
             agenda += [(fora, h) for h in horarios[1:3]]
 
+        primeira = None
+
         for sala_da_vez, h in agenda:
             s = Showing(
                 event_id=evento.id,
@@ -201,11 +203,14 @@ def semear(db: Session) -> None:
             db.flush()
             generate_seats(db, s)
             total_sessoes += 1
+            primeira = primeira or s
 
-        # A portaria é vinculada ao primeiro evento: é o que permite
-        # demonstrar o retorno "evento errado" com um ingresso do segundo.
-        if i == 0:
-            usuarios[Role.GATE][0].gate_event_id = evento.id
+        # A portaria fica na primeira sessão do primeiro filme. É o que dá os
+        # dois recusados de uma vez: as outras sessões deste filme demonstram
+        # "outra sessão", e qualquer ingresso dos demais filmes demonstra
+        # "outro evento".
+        if i == 0 and primeira is not None:
+            usuarios[Role.GATE][0].gate_showing_id = primeira.id
 
     db.commit()
 

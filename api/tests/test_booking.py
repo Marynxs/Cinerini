@@ -400,7 +400,7 @@ class TestTicketToken:
 
         assert conteudo is not None
         assert conteudo["jti"] == ingresso["jti"]
-        assert conteudo["evt"]
+        assert conteudo["shw"]
 
     def test_qr_does_not_expose_the_sequential_id(self, ingresso: dict) -> None:
         """O id revelaria volume de vendas e permitiria adivinhar vizinhos."""
@@ -411,7 +411,7 @@ class TestTicketToken:
         self, ingresso: dict
     ) -> None:
         forjado = jwt.encode(
-            {"jti": ingresso["jti"], "evt": 1, "type": TOKEN_TYPE_TICKET},
+            {"jti": ingresso["jti"], "shw": 1, "type": TOKEN_TYPE_TICKET},
             "chave-errada", algorithm="HS256",
         )
         assert decode_token(forjado, TOKEN_TYPE_TICKET) is None

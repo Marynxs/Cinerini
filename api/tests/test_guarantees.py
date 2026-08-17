@@ -131,14 +131,14 @@ class TestTicketValidatedOnlyOnce:
 
 
 class TestReferentialIntegrity:
-    def test_gate_cannot_point_to_missing_event(self, db: Session) -> None:
-        """Sem esta chave, todo ingresso legítimo viraria 'evento errado'."""
+    def test_gate_cannot_point_to_missing_showing(self, db: Session) -> None:
+        """Sem esta chave, todo ingresso legítimo viraria 'outra sessão'."""
         from app.models import Role
         from app.security import hash_password
 
         db.add(User(name="Portaria Fantasma", email="fantasma@cinerini.com.br",
                     password_hash=hash_password("x"), role=Role.GATE,
-                    gate_event_id=999_999_999))
+                    gate_showing_id=999_999_999))
         with pytest.raises(IntegrityError):
             db.commit()
         db.rollback()

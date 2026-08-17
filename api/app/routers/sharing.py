@@ -134,7 +134,7 @@ def open_shared(token: str, db: DbSession) -> SharedTicketOut:
     return SharedTicketOut(
         status=ingresso.status,
         seat_label=assento.label,
-        qr_token=create_ticket_token(ingresso.jti, evento.id),
+        qr_token=create_ticket_token(ingresso.jti, sessao.id),
         event_title=evento.title,
         poster_url=evento.poster_url,
         venue_name=cinema.name,

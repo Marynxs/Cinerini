@@ -57,13 +57,16 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[Role] = mapped_column(String(20))
 
-    # Só para papel GATE: o evento que este usuário está autorizado a validar.
-    # É o que permite distinguir "ingresso de outro evento" de "inválido".
-    # use_alter porque users e events se referenciam mutuamente: o Postgres
-    # precisa criar as duas tabelas antes de amarrar esta chave.
-    gate_event_id: Mapped[int | None] = mapped_column(
-        ForeignKey("events.id", ondelete="SET NULL", use_alter=True,
-                   name="fk_users_gate_event")
+    # Só para papel GATE: a exibição que este usuário está autorizado a
+    # validar. Aponta para a sessão e não para o evento (D21) — uma porta
+    # física atende um horário numa sala, e o vínculo por filme aceitaria o
+    # ingresso de amanhã na sessão de hoje.
+    #
+    # use_alter porque o ciclo users → showings → events → users existe: o
+    # Postgres precisa criar as tabelas antes de amarrar esta chave.
+    gate_showing_id: Mapped[int | None] = mapped_column(
+        ForeignKey("showings.id", ondelete="SET NULL", use_alter=True,
+                   name="fk_users_gate_showing")
     )
 
     created_at: Mapped[datetime] = mapped_column(
