@@ -112,11 +112,9 @@ Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DE
 
 **API.** No Render, *New → Blueprint*, apontando para o repositório. O `render.yaml` declara build, start, health check e as variáveis; as marcadas `sync: false` são preenchidas no painel — `DATABASE_URL` (a string do Neon, com o driver `postgresql+psycopg`), `TMDB_API_KEY` e `CORS_ORIGINS`. O `SECRET_KEY` é gerado uma vez na criação: **trocá-lo invalida todo QR já emitido**, porque é ele que assina os códigos de ingresso.
 
-A migration roda no build. Depois do primeiro deploy, o seed é executado uma vez pelo shell do serviço:
+A migration roda no build. O seed **não** roda no Render: o plano gratuito não dá acesso ao shell do serviço, e não precisa — o banco é o mesmo Neon usado no desenvolvimento, então `python -m app.seed` executado da máquina local popula a instância que a produção lê.
 
-```bash
-python -m app.seed
-```
+Um banco só para os dois ambientes é escolha de escopo, não descuido: são dois dias de avaliação e nenhum dado real. Num sistema em uso seriam dois bancos, e o seed teria de rodar por um job de deploy em vez de por uma máquina de desenvolvimento.
 
 **Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com a URL do serviço no Render. O `vercel.json` existe por um motivo só — o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
 
