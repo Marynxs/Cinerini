@@ -4,6 +4,10 @@ Plataforma de eventos e ingressos de cinema. O organizador publica sessões a pa
 
 *Cinerini* — cinema + Marini.
 
+**No ar:** [cinerini.vercel.app](https://cinerini.vercel.app) · API em [cinerini-api.onrender.com](https://cinerini-api.onrender.com) ([`/docs`](https://cinerini-api.onrender.com/docs))
+
+As contas de teste e o cartão que reprova o pagamento estão logo abaixo. A primeira visita pode levar até um minuto: o plano gratuito hiberna, e a própria tela explica isso enquanto religa.
+
 ---
 
 ## O problema que o sistema resolve
@@ -108,7 +112,9 @@ Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DE
 |---|---|---|
 | Neon | PostgreSQL | Fora do Render de propósito: o Postgres gratuito de lá expira em 30 dias |
 | Render | API | `render.yaml`, na raiz |
-| Vercel | Front | `web/vercel.json` |
+| Vercel | Front | `web/vercel.json`, com *Root Directory* em `web/` |
+
+**Uma instância de banco serve os dois ambientes.** É escolha de escopo: são dois dias de avaliação e nenhum dado real. Num sistema em uso seriam dois bancos separados.
 
 **API.** No Render, *New → Blueprint*, apontando para o repositório. O `render.yaml` declara build, start, health check e as variáveis; as marcadas `sync: false` são preenchidas no painel — `DATABASE_URL` (a string do Neon, com o driver `postgresql+psycopg`), `TMDB_API_KEY` e `CORS_ORIGINS`. O `SECRET_KEY` é gerado uma vez na criação: **trocá-lo invalida todo QR já emitido**, porque é ele que assina os códigos de ingresso.
 
