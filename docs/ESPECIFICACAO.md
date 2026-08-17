@@ -37,6 +37,7 @@ Portaria aponta a câmera para o QR, ou digita o código. O sistema responde com
 | **Inválido** | Assinatura não confere ou código inexistente | — |
 | **Já utilizado** | Ingresso legítimo, já validado antes | Horário da validação anterior |
 | **Outro evento** | Ingresso legítimo, de evento diferente | Qual é o evento correto |
+| **Cancelado** | Ingresso legítimo, reembolsado antes da sessão | Poltrona e nome do cliente |
 
 O ingresso é marcado como usado no mesmo passo em que é validado.
 
@@ -67,17 +68,17 @@ Duas colunas porque o comportamento pode estar correto na API antes de existir t
 
 | Critério | API | Tela |
 |---|:-:|:-:|
-| Cliente conclui compra e recebe ingresso com QR | ✅ | ☐ |
-| Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara | ✅ | ☐ |
-| Pagamento recusado libera o assento | ✅ | ☐ |
-| Link compartilhado exibe o ingresso; revogado deixa de exibir | ✅ | ☐ |
-| Portaria retorna os quatro estados corretamente | ☐ | ☐ |
-| Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ☐ | ☐ |
-| Ingresso de outro evento retorna "outro evento", não "inválido" | ☐ | ☐ |
-| QR com assinatura adulterada retorna "inválido" | ☐ | ☐ |
+| Cliente conclui compra e recebe ingresso com QR | ✅ | ✅ |
+| Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara | ✅ | ✅ |
+| Pagamento recusado libera o assento | ✅ | ✅ |
+| Link compartilhado exibe o ingresso; revogado deixa de exibir | ✅ | ✅ |
+| Portaria retorna os quatro estados corretamente | ✅ | ☐ |
+| Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ✅ | ☐ |
+| Ingresso de outro evento retorna "outro evento", não "inválido" | ✅ | ☐ |
+| QR com assinatura adulterada retorna "inválido" | ✅ | ☐ |
 | Banco reproduzível do zero por migration e seed | ✅ | — |
 
-O update condicional que sustenta a validação única já está verificado contra o banco, mas o critério só marca quando existir a rota da portaria que o expõe.
+A portaria devolve um quinto estado além dos quatro exigidos: o ingresso cancelado se distingue do inválido pela mesma razão que "outro evento" se distingue (D17).
 
 ## Fora de escopo
 

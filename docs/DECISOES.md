@@ -209,3 +209,19 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Filtro na consulta, nunca `DELETE`:** o ingresso é registro de uma compra que existiu, e o índice parcial de D1 depende do status da linha. Apagá-la trocaria uma lista limpa por um histórico falsificado.
 
 **Custo:** a coluna `tickets.cancelled_at` passou a existir para que haja de onde contar o prazo — `status` sozinho não diz quando mudou. É o par de `used_at`, que existe pela mesma razão.
+
+---
+
+## D17 · Portaria: cinco estados, e o evento conferido antes do estado
+
+**Decidido:** `POST /gate/validations` responde sempre 200 com um estado no corpo — `valid`, `invalid`, `already_used`, `wrong_event` ou `cancelled`. O evento é conferido antes do estado do ingresso, e a marcação de uso é a própria escrita condicional.
+
+**Descartado:** traduzir os desfechos em códigos HTTP — 404 para inexistente, 409 para já utilizado. E resolver o estado com um `SELECT` antes do `UPDATE`.
+
+**Por quê o corpo e não o status:** os desfechos têm o mesmo posto. Quem lê é um operador com uma pessoa parada na frente, e um ingresso recusado é resposta, não falha de requisição. Espalhá-los por códigos faria a tela tratar metade dos casos no caminho de erro do cliente HTTP, onde não há corpo padronizado para carregar a poltrona, o nome ou o horário da entrada anterior.
+
+**Por quê o evento antes do estado:** descobrir tarde que o ingresso é da sala ao lado já teria consumido um ingresso legítimo de outra portaria. Verificado: o ingresso recusado por `wrong_event` continua `valid` no banco.
+
+**Quinto estado:** um ingresso reembolsado apresentado na porta é situação real, e chamá-lo de "inválido" faria o operador tratar como fraudador quem apenas cancelou e esqueceu. É a mesma razão que separa `wrong_event` de `invalid` — a diferença entre "não deixe entrar" e "não deixe entrar aqui".
+
+**Digitação manual:** o operador digita o `jti` quando a câmera falha, e aí não há assinatura para conferir. O que sustenta esse caminho é o `jti` ser um uuid4 — 122 bits que não se adivinham — somado ao papel de portaria exigido na rota. É um controle diferente do da garantia 2, não uma brecha nela: sem credencial de portaria o código digitado não vale nada.

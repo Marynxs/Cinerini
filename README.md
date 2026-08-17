@@ -42,6 +42,8 @@ Zero linhas afetadas significa que já foi usado. Nunca um `SELECT` seguido de `
 
 O usuário de portaria é vinculado a um evento. Ingresso legítimo de outro evento retorna um estado distinto de "inválido" — são situações diferentes e exigem reações diferentes de quem está na entrada.
 
+O evento é conferido **antes** do estado do ingresso. Na ordem inversa, recusar alguém na porta errada já teria consumido um ingresso que a portaria certa ainda precisa aceitar.
+
 ---
 
 ## Stack
