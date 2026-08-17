@@ -4,7 +4,7 @@
 # cliques não é reproduzível nem revisável — e a primeira pergunta de quem
 # recebe o projeto é como subir outra instância.
 #
-# O banco não está aqui: é o Neon, provisionado fora do Render (D18). O
+# O banco não está aqui: é o Neon, provisionado fora do Render (D17). O
 # Postgres gratuito do Render expira em 30 dias, o que faria o sistema morrer
 # sozinho depois da avaliação.
 

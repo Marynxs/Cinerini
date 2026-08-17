@@ -2,7 +2,7 @@
 
 ## Problema
 
-Um organizador precisa publicar sessões de cinema e vender lugares numerados. Um cliente precisa escolher a poltrona, pagar e receber um comprovante que a portaria consiga validar na entrada — uma vez só, no evento certo.
+Um organizador precisa publicar sessões de cinema e vender lugares numerados. Um cliente precisa escolher a poltrona, pagar e receber um comprovante que a portaria consiga validar na entrada — uma vez só, na sessão certa.
 
 O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não pode ser vendido duas vezes** e **o mesmo ingresso não pode entrar duas vezes**, mesmo com pessoas agindo no mesmo instante.
 
@@ -12,9 +12,9 @@ O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não
 |---|---|
 | **Organizador** | Buscar filmes no TMDb, criar eventos e sessões, definir sala, horário, preço e capacidade, publicar, acompanhar vendas |
 | **Cliente** | Navegar e buscar sessões publicadas por cidade, cinema, data e título, escolher poltrona, pagar, ver seus ingressos, compartilhar um ingresso por link |
-| **Portaria** | Validar ingressos de **um evento específico**, por câmera ou digitação |
+| **Portaria** | Validar ingressos de **uma exibição específica**, por câmera ou digitação |
 
-Portaria é vinculada a um evento. É essa vinculação que permite responder "evento errado" em vez de "inválido".
+Portaria é vinculada a uma exibição, e criada pelo organizador. É essa vinculação que permite responder "outra sessão" ou "outro evento" em vez de "inválido".
 
 ## Fluxos
 
@@ -26,20 +26,25 @@ Cinemas e salas são cadastrados uma vez e reaproveitados por qualquer exibiçã
 ### Compra
 Cliente abre a sessão → vê o mapa com assentos livres, ocupados e em espera → escolhe → o assento entra em espera por 10 minutos → paga → o ingresso é emitido com código assinado.
 
-Se o pagamento for recusado, o assento volta ao estoque imediatamente. Se o cliente abandonar, a espera expira e o assento volta sozinho.
+Se o pagamento for recusado, o pedido fica recusado mas continua pagável, e as poltronas seguem reservadas até a espera vencer — quem errou um dígito tenta outro cartão sem perder a escolha (D13). Se o cliente abandonar, a espera expira e o assento volta sozinho.
 
 ### Validação
-Portaria aponta a câmera para o QR, ou digita o código. O sistema responde com um de quatro estados:
+Cada portaria atende **uma exibição** — aquele filme, naquele horário, naquela sala (D21). Aponta a câmera para o QR, ou digita o código, e o sistema responde com um de seis estados:
 
 | Estado | Quando | Mostra também |
 |---|---|---|
-| **Válido** | Assinatura confere, evento confere, ainda não usado | Poltrona e nome do cliente |
+| **Válido** | Assinatura confere, exibição confere, ainda não usado | Poltrona, cliente e a sessão |
 | **Inválido** | Assinatura não confere ou código inexistente | — |
 | **Já utilizado** | Ingresso legítimo, já validado antes | Horário da validação anterior |
-| **Outro evento** | Ingresso legítimo, de evento diferente | Qual é o evento correto |
+| **Outra sessão** | Mesmo filme, exibição diferente | Para qual sessão o ingresso vale |
+| **Outro evento** | Ingresso legítimo, de outro filme | Qual é o filme correto |
 | **Cancelado** | Ingresso legítimo, reembolsado antes da sessão | Poltrona e nome do cliente |
 
+Os dois recusados por encaminhamento são separados porque a reação de quem opera é diferente: um manda a pessoa para outra sala, o outro para outro horário. Nenhum dos dois consome o ingresso — a portaria certa ainda precisa aceitá-lo.
+
 O ingresso é marcado como usado no mesmo passo em que é validado.
+
+A portaria é criada pelo organizador, já vinculada a uma sessão, e pode ser reapontada para outra. O cadastro público nunca concede o papel: ele decide quem entra na sala.
 
 ### Compartilhamento
 Cliente gera um link para um ingresso. Quem abre vê o ingresso e o QR. O link é revogável, e revogá-lo não invalida o ingresso.
@@ -48,7 +53,7 @@ Cliente gera um link para um ingresso. Quem abre vê o ingresso e o QR. O link �
 
 1. Um assento pertence a uma sessão e não pode ter dois ingressos não cancelados.
 2. Ingresso em espera ocupa o assento. Espera dura 10 minutos.
-3. Pagamento recusado cancela o pedido e libera os assentos.
+3. Pagamento recusado não libera os assentos: a reserva vale até a espera vencer, e o pedido continua pagável (D13).
 4. Cancelamento devolve o assento ao estoque.
 5. Ingresso usado não volta a ser válido.
 6. Só sessões publicadas aparecem para o cliente.
@@ -70,15 +75,15 @@ Duas colunas porque o comportamento pode estar correto na API antes de existir t
 |---|:-:|:-:|
 | Cliente conclui compra e recebe ingresso com QR | ✅ | ✅ |
 | Dois clientes disputando o mesmo assento: um conclui, o outro recebe recusa clara | ✅ | ✅ |
-| Pagamento recusado libera o assento | ✅ | ✅ |
+| Pagamento recusado permite nova tentativa, e a espera libera o assento no vencimento | ✅ | ✅ |
 | Link compartilhado exibe o ingresso; revogado deixa de exibir | ✅ | ✅ |
-| Portaria retorna os quatro estados corretamente | ✅ | ✅ |
+| Portaria retorna os quatro estados exigidos corretamente | ✅ | ✅ |
 | Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ✅ | ✅ |
 | Ingresso de outro evento retorna "outro evento", não "inválido" | ✅ | ✅ |
 | QR com assinatura adulterada retorna "inválido" | ✅ | ✅ |
 | Banco reproduzível do zero por migration e seed | ✅ | — |
 
-A portaria devolve um quinto estado além dos quatro exigidos: o ingresso cancelado se distingue do inválido pela mesma razão que "outro evento" se distingue (D17).
+A portaria devolve seis estados, dois a mais que os quatro exigidos. O ingresso cancelado se distingue do inválido, e "outra sessão" se distingue de "outro evento", pela mesma razão: ingresso legítimo recusado não é ingresso falso, e a reação de quem opera muda em cada caso (D16, D21).
 
 ## Fora de escopo
 

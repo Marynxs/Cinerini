@@ -22,7 +22,7 @@ Quatro invariantes. Nenhuma alteração pode enfraquecê-las.
 1. **Assento nunca vendido duas vezes.** Índice único parcial `tickets(seat_id) WHERE status <> 'cancelled'`. A garantia vive no banco, não na aplicação — nunca substituir por verificação em Python.
 2. **QR não forjável.** O código é um JWT assinado com `SECRET_KEY`. Nunca expor identificador previsível no lugar dele.
 3. **Ingresso não validado duas vezes.** `UPDATE ... WHERE status='valid'` conferindo linhas afetadas. Nunca `SELECT` seguido de `UPDATE`.
-4. **Evento errado é estado próprio.** Portaria vinculada a `gate_event_id`; divergência não pode colapsar em "inválido".
+4. **Ingresso do lugar errado é estado próprio.** Portaria vinculada a `gate_showing_id` — a exibição, não o filme (D21). Divergência não pode colapsar em "inválido", e separa dois casos: outro filme e outra sessão do mesmo filme.
 
 ## Identidade visual
 

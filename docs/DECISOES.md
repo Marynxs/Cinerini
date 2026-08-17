@@ -2,8 +2,6 @@
 
 Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descartado e por quê.
 
-Não há D13: foi um erro de contagem ao numerar o D14, não uma decisão removida. O número fica vago de propósito. Renumerar as seguintes faria quatro mensagens de commit já publicadas apontarem para a decisão errada — e o histórico do Git não se reescreve para consertar uma sequência.
-
 ---
 
 ## D1 · Catálogo externo: TMDb em vez de Ticketmaster
@@ -172,7 +170,7 @@ A convenção adotada é a usual: coleção sob o pai, item na raiz.
 
 ---
 
-## D14 · Recusa de pagamento não devolve a poltrona
+## D13 · Recusa de pagamento não devolve a poltrona
 
 **Decidido:** cartão recusado mantém as poltronas reservadas até o prazo de dez minutos vencer. O pedido fica em estado recusado, mas continua pagável.
 
@@ -186,7 +184,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D15 · Uma reserva aberta por cliente e sessão
+## D14 · Uma reserva aberta por cliente e sessão
 
 **Decidido:** criar uma reserva cancela a reserva aberta que o mesmo cliente já tivesse naquela sessão, devolvendo as poltronas anteriores ao estoque na hora.
 
@@ -200,7 +198,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D16 · Ingresso cancelado sai da lista em dois prazos diferentes
+## D15 · Ingresso cancelado sai da lista em dois prazos diferentes
 
 **Decidido:** o ingresso cancelado deixa de aparecer em "Meus ingressos" depois de um prazo que depende de quem cancelou — trinta minutos quando foi o próprio cliente, até o horário da sessão quando foi o cinema. A linha nunca é apagada do banco.
 
@@ -214,23 +212,25 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D17 · Portaria: cinco estados, e o evento conferido antes do estado
+## D16 · Portaria: desfechos no corpo, e o lugar conferido antes do estado
 
-**Decidido:** `POST /gate/validations` responde sempre 200 com um estado no corpo — `valid`, `invalid`, `already_used`, `wrong_event` ou `cancelled`. O evento é conferido antes do estado do ingresso, e a marcação de uso é a própria escrita condicional.
+**Decidido:** `POST /gate/validations` responde sempre 200 com um estado no corpo, nunca em código HTTP. O lugar a que o ingresso pertence é conferido antes do estado dele, e a marcação de uso é a própria escrita condicional.
+
+**Revisto em D21:** eram cinco estados e a conferência era pelo evento. A lista subiu para seis e o vínculo passou a ser pela exibição. O que esta decisão fixa e continua valendo é a *forma* da resposta e a *ordem* das perguntas.
 
 **Descartado:** traduzir os desfechos em códigos HTTP — 404 para inexistente, 409 para já utilizado. E resolver o estado com um `SELECT` antes do `UPDATE`.
 
 **Por quê o corpo e não o status:** os desfechos têm o mesmo posto. Quem lê é um operador com uma pessoa parada na frente, e um ingresso recusado é resposta, não falha de requisição. Espalhá-los por códigos faria a tela tratar metade dos casos no caminho de erro do cliente HTTP, onde não há corpo padronizado para carregar a poltrona, o nome ou o horário da entrada anterior.
 
-**Por quê o evento antes do estado:** descobrir tarde que o ingresso é da sala ao lado já teria consumido um ingresso legítimo de outra portaria. Verificado: o ingresso recusado por `wrong_event` continua `valid` no banco.
+**Por quê o lugar antes do estado:** descobrir tarde que o ingresso é da sala ao lado já teria consumido um ingresso legítimo de outra portaria. Verificado: o ingresso recusado por `wrong_event` continua `valid` no banco.
 
-**Quinto estado:** um ingresso reembolsado apresentado na porta é situação real, e chamá-lo de "inválido" faria o operador tratar como fraudador quem apenas cancelou e esqueceu. É a mesma razão que separa `wrong_event` de `invalid` — a diferença entre "não deixe entrar" e "não deixe entrar aqui".
+**O estado de cancelado:** um ingresso reembolsado apresentado na porta é situação real, e chamá-lo de "inválido" faria o operador tratar como fraudador quem apenas cancelou e esqueceu. É a mesma razão que separa `wrong_event` de `invalid` — a diferença entre "não deixe entrar" e "não deixe entrar aqui".
 
 **Digitação manual:** o operador digita o `jti` quando a câmera falha, e aí não há assinatura para conferir. O que sustenta esse caminho é o `jti` ser um uuid4 — 122 bits que não se adivinham — somado ao papel de portaria exigido na rota. É um controle diferente do da garantia 2, não uma brecha nela: sem credencial de portaria o código digitado não vale nada.
 
 ---
 
-## D18 · Deploy em três serviços, com o banco fora do Render
+## D17 · Deploy em três serviços, com o banco fora do Render
 
 **Decidido:** API no Render, front na Vercel, banco no Neon. A infraestrutura da API fica em `render.yaml`, versionada.
 
@@ -246,7 +246,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D19 · Credenciais de teste visíveis no ambiente publicado
+## D18 · Credenciais de teste visíveis no ambiente publicado
 
 **Decidido:** o painel de contas semeadas aparece também em produção, sob o rótulo "ambiente de demonstração", com a senha escrita ao lado.
 
@@ -260,7 +260,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D20 · Catálogo mantém a tela anterior enquanto atualiza
+## D19 · Catálogo mantém a tela anterior enquanto atualiza
 
 **Decidido:** ao voltar ao catálogo, a última resposta daquela cidade continua na tela enquanto a nova requisição acontece. A busca ocorre sempre.
 
@@ -274,7 +274,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 ---
 
-## D21 · Leitura do QR por biblioteca, não pela API do navegador
+## D20 · Leitura do QR por biblioteca, não pela API do navegador
 
 **Decidido:** a portaria decodifica o QR com o `jsQR`, sobre quadros que ela mesma tira do vídeo.
 
@@ -287,3 +287,23 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **A corrida que isto cria:** a câmera tenta decodificar seis vezes por segundo, e desligá-la depende de um novo render do React. Nesse intervalo o mesmo QR é lido de novo, e a segunda resposta voltaria `already_used` — trocando na tela o "válido" da primeira e mandando embora quem tinha ingresso bom. A trava é uma referência, não um estado, porque estado só vale no render seguinte e a corrida acontece antes dele. É a mesma classe de problema da garantia 3, um andar acima: lá o banco arbitra, aqui a tela precisa não se contradizer.
 
 **Digitação manual não é plano B decorativo:** é o caminho quando a permissão é negada, quando não há câmera e quando a lente não coopera com a tela riscada de um celular. Fica sempre visível, nunca escondida atrás de "problemas?".
+
+---
+
+## D21 · Portaria vinculada à exibição, não ao filme
+
+**Decidido:** `users.gate_showing_id` aponta para uma exibição. A validação separa dois recusados legítimos — `wrong_event` para outro filme, `wrong_showing` para outra sessão do mesmo filme. O QR passa a carregar `shw` em vez de `evt`, e o organizador cadastra e reaponta portarias pelo painel.
+
+**Descartado:** manter o vínculo por evento e conferir uma janela de horário na validação. E manter o vínculo por evento apenas documentando o limite.
+
+**O que estava errado:** com a portaria amarrada ao filme, nada impedia o ingresso da sessão das 22h de ser aceito na porta das 19h. Três consequências, nesta ordem de gravidade: a pessoa senta numa poltrona que pertence a outro comprador daquela sessão; entra num cinema onde não comprou nada, porque o mesmo filme passa em dois locais; e perde a sessão que pagou, já que o ingresso queima na entrada errada e volta como "já utilizado" no horário certo.
+
+**Por que não a janela de horário:** ela fecharia o caso do horário e deixaria o do local aberto. A verificação contra o servidor mostrou o caso exato — o seed tem o mesmo filme começando à mesma hora em dois cinemas, e uma janela de tempo aceitaria o ingresso do cinema vizinho. Amarrar na exibição fecha horário, sala e cinema de uma vez, porque os três são propriedades dela.
+
+**Por que dois recusados e não um:** a reação de quem opera é diferente. "Outro evento" manda a pessoa para outra sala; "outra sessão" manda para outro horário, às vezes outro dia. Um único estado obrigaria o operador a ler a ficha para descobrir o que dizer — e o ponto de o veredito ser lido de um metro é não precisar ler mais nada.
+
+**O que isto destravou:** a tela da portaria passa a nomear a sessão que atende, com horário, cinema e sala, antes da primeira leitura. Com o vínculo por filme isso era impossível: o filme tem várias sessões, em locais diferentes, e não havia uma resposta única para "que porta é esta".
+
+**O cadastro veio junto por necessidade:** uma portaria por exibição só se sustenta se criar e reapontar for barato. O `PATCH /gates/{id}` existe para que a mesma conta atenda as sessões do dia sem distribuir senha nova a cada uma, e desvincular é aceito de propósito — entre uma sessão e a seguinte, a porta não deve aceitar nada.
+
+**Migração com conversão de dado:** a portaria que atendia um filme passou a atender a primeira exibição dele. Sem isso, quem já tinha portaria montada acordaria com ela desvinculada, e a única pista seria a recusa de todo ingresso.

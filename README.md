@@ -29,7 +29,7 @@ O índice é **parcial** para que o cancelamento devolva o assento ao estoque se
 
 ### 2. QR não forjável
 
-O código dentro do QR é um JWT assinado com a chave do servidor, contendo o identificador público do ingresso e o evento. Sem a chave não há como produzir um código aceito.
+O código dentro do QR é um JWT assinado com a chave do servidor, contendo o identificador público do ingresso e a exibição a que ele pertence. Sem a chave não há como produzir um código aceito.
 
 O token **não expira**: quem decide se o ingresso vale é a portaria consultando o banco. Prazo no token criaria uma segunda fonte de verdade sobre validade, e duas fontes divergem.
 
@@ -42,11 +42,13 @@ WHERE id = :id AND status='valid'
 
 Zero linhas afetadas significa que já foi usado. Nunca um `SELECT` seguido de `UPDATE`, que teria a mesma janela de corrida do item 1.
 
-### 4. "Evento errado" é estado próprio
+### 4. Ingresso do lugar errado é estado próprio
 
-O usuário de portaria é vinculado a um evento. Ingresso legítimo de outro evento retorna um estado distinto de "inválido" — são situações diferentes e exigem reações diferentes de quem está na entrada.
+O usuário de portaria é vinculado a **uma exibição** — aquele filme, naquele horário, naquela sala. Ingresso legítimo que não pertence a ela retorna um estado distinto de "inválido", e são dois: `wrong_event` para outro filme, `wrong_showing` para outra sessão do mesmo filme. Situações diferentes exigem reações diferentes de quem está na entrada — uma manda a pessoa para outra sala, a outra para outro horário.
 
-O evento é conferido **antes** do estado do ingresso. Na ordem inversa, recusar alguém na porta errada já teria consumido um ingresso que a portaria certa ainda precisa aceitar.
+O vínculo é pela exibição e não pelo filme porque o filme passa em vários horários e cinemas: amarrado nele, a portaria das 19h aceitaria o ingresso das 22h, e a pessoa sentaria numa poltrona vendida a outro comprador. Decisão registrada como D21, junto com a alternativa descartada.
+
+A exibição é conferida **antes** do estado do ingresso. Na ordem inversa, recusar alguém na porta errada já teria consumido um ingresso que a portaria certa ainda precisa aceitar.
 
 ---
 
@@ -106,7 +108,7 @@ npm run dev                   # sobe em http://localhost:5173
 
 ## Deploy
 
-Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DECISOES.md` como D18.
+Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DECISOES.md` como D17.
 
 | Serviço | O quê | Configuração |
 |---|---|---|
@@ -114,13 +116,11 @@ Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DE
 | Render | API | `render.yaml`, na raiz |
 | Vercel | Front | `web/vercel.json`, com *Root Directory* em `web/` |
 
-**Uma instância de banco serve os dois ambientes.** É escolha de escopo: são dois dias de avaliação e nenhum dado real. Num sistema em uso seriam dois bancos separados.
-
 **API.** No Render, *New → Blueprint*, apontando para o repositório. O `render.yaml` declara build, start, health check e as variáveis; as marcadas `sync: false` são preenchidas no painel — `DATABASE_URL` (a string do Neon, com o driver `postgresql+psycopg`), `TMDB_API_KEY` e `CORS_ORIGINS`. O `SECRET_KEY` é gerado uma vez na criação: **trocá-lo invalida todo QR já emitido**, porque é ele que assina os códigos de ingresso.
 
 A migration roda no build. O seed **não** roda no Render: o plano gratuito não dá acesso ao shell do serviço, e não precisa — o banco é o mesmo Neon usado no desenvolvimento, então `python -m app.seed` executado da máquina local popula a instância que a produção lê.
 
-Um banco só para os dois ambientes é escolha de escopo, não descuido: são dois dias de avaliação e nenhum dado real. Num sistema em uso seriam dois bancos, e o seed teria de rodar por um job de deploy em vez de por uma máquina de desenvolvimento.
+Um banco só para os dois ambientes é escolha de escopo, não descuido: o sistema não guarda dado real e existe para ser percorrido. Num sistema em uso seriam dois bancos, e o seed teria de rodar por um job de deploy em vez de por uma máquina de desenvolvimento.
 
 **Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com a URL do serviço no Render. O `vercel.json` existe por um motivo só — o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
 
@@ -138,20 +138,22 @@ Um banco só para os dois ambientes é escolha de escopo, não descuido: são do
 
 Criadas pelo seed. Senha de todas: **`cinerini123`**
 
-A tela de login lista as quatro e preenche o formulário num clique — inclusive no ambiente publicado. Escondê-las lá seria teatro, já que esta seção as publica de qualquer forma (D19).
+A tela de login lista as quatro e preenche o formulário num clique — inclusive no ambiente publicado. Escondê-las lá seria teatro, já que esta seção as publica de qualquer forma (D18).
 
 | Papel | E-mail | O que faz |
 |---|---|---|
 | Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica e cancela |
 | Cliente | `cliente1@cinerini.com.br` | Compra, vê ingressos, compartilha e cancela |
 | Cliente | `cliente2@cinerini.com.br` | Serve para demonstrar a disputa por poltrona |
-| Portaria | `portaria@cinerini.com.br` | Valida ingressos de **um** evento específico |
+| Portaria | `portaria@cinerini.com.br` | Valida ingressos de **uma** sessão específica |
 
 O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 11 sessões. Um dos filmes passa **nos dois cinemas**, para que o agrupamento por cinema e o filtro por cidade sejam perceptíveis.
 
-A portaria é vinculada ao primeiro filme de propósito: é o que permite demonstrar o retorno "evento errado" usando um ingresso de outro filme.
+A portaria é vinculada à primeira sessão do primeiro filme de propósito: é o que dá os dois recusados de uma vez. As demais sessões daquele filme demonstram **outra sessão**, e um ingresso de qualquer outro filme demonstra **outro evento**.
 
-**Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D21).
+Portarias novas são criadas pelo organizador, na seção *Portarias* do painel, escolhendo a sessão. A mesma conta pode ser reapontada para outra sessão a qualquer momento — é o gesto normal entre uma exibição e a seguinte, não a exceção (D21).
+
+**Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D20).
 
 O seed é idempotente — rodar duas vezes não duplica nada. Para refazer do zero: `python -m app.seed --reset`.
 
@@ -178,7 +180,7 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 157 casos, sem rede e sem chave do TMDb
+pytest                  # 198 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
@@ -210,6 +212,8 @@ Declaradas porque existem, não porque passaram despercebidas.
 
 **Não há recuperação de senha**, nem envio de e-mail, nem nota fiscal, nem revenda entre usuários — todos fora de escopo pelo enunciado.
 
+**Um banco serve desenvolvimento e produção.** A consequência é concreta e já aconteceu: aplicar uma migration na máquina de desenvolvimento altera o schema que a produção lê, e a API publicada continua rodando o código anterior até o próximo deploy. Nessa janela toda consulta à tabela alterada falha. A ordem segura é publicar o código antes de migrar, ou aceitar a janela sabendo que ela existe. Dois bancos resolveriam, ao custo de manter dois seeds e duas cadeias de migration por dois dados que não são reais.
+
 **Só há mapa de assentos.** O desafio pede um dos dois modos, e a escolha foi assento numerado por ser onde a garantia de unicidade aparece de verdade.
 
 ---
@@ -219,7 +223,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 16 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 21 decisões |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
 | `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |
@@ -234,6 +238,6 @@ A escolha não é estética por si só — o objeto que o sistema produz **é um
 
 Uma regra sustenta a paleta: o carmim `#A32B1C` é **reservado** a ação e atenção — poltrona selecionada, erro, recusa. Se aparecer como decoração, está errado.
 
-Os estados de assento se distinguem por **forma e textura além de cor**: livre é contorno, ocupada é preenchida, selecionada tem marca de conferido, acessível é círculo com o símbolo internacional. Tirando a cor da tela, o mapa continua utilizável — o par carmim/bege é indistinguível para parte das pessoas.
+Os cinco estados de assento se distinguem por **forma e textura além de cor**: livre é contorno, ocupada é preenchida, em espera é hachurada, a sua tem marca de conferido, e acessível é círculo com o símbolo internacional. Tirando a cor da tela, o mapa continua utilizável — o par carmim/bege é indistinguível para parte das pessoas.
 
 A única exceção ao monoespaçado é a sinopse vinda do TMDb, em fonte proporcional. Mono alinha dado tabular sozinho e perde em prosa corrida; a sinopse é o único texto longo do sistema.
