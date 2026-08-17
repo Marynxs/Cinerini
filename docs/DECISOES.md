@@ -243,3 +243,31 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Hibernação tratada em três camadas**, porque nenhuma resolve sozinha: o front chama `/health` ao montar e gasta o religamento enquanto a pessoa lê a tela; um agendamento do GitHub Actions mantém o serviço acordado das 8h às 23h, cobrindo o primeiro visitante do dia; e a tela de carregamento explica a espera depois de quatro segundos. As duas primeiras encurtam a espera, a terceira trata a que sobrar — dizer o motivo é o que separa "está lento" de "está quebrado".
 
 **Migration no build e não no pre-deploy:** comando de pré-deploy exige instância paga. Com uma instância só e sem exigência de janela sem downtime, aplicar no build basta e mantém `alembic upgrade head` como o único caminho de mudança de schema.
+
+---
+
+## D19 · Credenciais de teste visíveis no ambiente publicado
+
+**Decidido:** o painel de contas semeadas aparece também em produção, sob o rótulo "ambiente de demonstração", com a senha escrita ao lado.
+
+**Descartado:** prendê-lo ao ambiente local, que era o comportamento anterior.
+
+**Por quê:** as mesmas credenciais estão no README de um repositório público. Escondê-las na tela não removia a informação de lugar nenhum — era teatro de segurança, a aparência do cuidado sem o efeito. E cobrava caro justamente onde não se deve: os primeiros trinta segundos de quem abre o link são o momento mais valioso do projeto, e gastá-los procurando credenciais em outra aba é atrito no único caminho que importa.
+
+**O que a decisão aceita:** vandalismo. Quem entrar como organizador pode cancelar sessões e deixar a demonstração quebrada. O risco já existia — o README entrega as credenciais de qualquer forma — e o estrago se desfaz com `python -m app.seed --reset`. O que muda é a facilidade, e ela é aceita porque o custo do dano é um minuto e o custo do atrito é a primeira impressão.
+
+**O rótulo é parte da decisão:** dizer "ambiente de demonstração" na interface declara a natureza do que está no ar. Esconder as contas fingindo que aquilo é produção seria a postura menos honesta das duas.
+
+---
+
+## D20 · Catálogo mantém a tela anterior enquanto atualiza
+
+**Decidido:** ao voltar ao catálogo, a última resposta daquela cidade continua na tela enquanto a nova requisição acontece. A busca ocorre sempre.
+
+**Descartado:** cache com prazo de validade, e o comportamento anterior de apagar a tela antes de buscar.
+
+**Por quê não o cache:** a resposta do catálogo carrega `seats_available`, que é o que marca a sessão como esgotada. Guardá-la por alguns minutos faria o cliente clicar numa sessão que já lotou. Não seria catastrófico — o mapa é a fonte de verdade e a reserva perdida devolve a recusa clara de D1 — mas trocaria um incômodo visual por informação errada, e informação errada é pior que espera.
+
+**Por quê não apagar a tela:** o `setFilmes(null)` anterior era o que fazia o catálogo piscar em branco a cada volta. Não era falta de cache; era a tela se apagando antes de ter o que colocar no lugar. Com a API hibernando no plano gratuito, isso vira meio minuto de tela vazia sobre conteúdo que já estava pronto.
+
+**Consequência no erro:** uma atualização que falha com catálogo na tela não troca o conteúdo por um aviso. O aviso só aparece quando não há nada a mostrar — trocar dado útil por mensagem de erro puniria quem já tinha o que precisava.

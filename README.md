@@ -138,6 +138,8 @@ Um banco só para os dois ambientes é escolha de escopo, não descuido: são do
 
 Criadas pelo seed. Senha de todas: **`cinerini123`**
 
+A tela de login lista as quatro e preenche o formulário num clique — inclusive no ambiente publicado. Escondê-las lá seria teatro, já que esta seção as publica de qualquer forma (D19).
+
 | Papel | E-mail | O que faz |
 |---|---|---|
 | Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica e cancela |

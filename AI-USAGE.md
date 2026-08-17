@@ -70,6 +70,12 @@ O agente usou `window.confirm` e `window.prompt` para confirmar cancelamentos. A
 **Ingresso cancelado ficava na lista para sempre.**
 Perguntei se fazia sentido o bilhete cancelado nunca sair de "Meus ingressos". Não fazia — mas a resposta óbvia, um prazo único, também não: quem cancela o próprio ingresso já sabe o motivo, enquanto quem teve a sessão cancelada precisa lê-lo perto da data em que iria. Ficaram dois prazos, e o filtro na consulta em vez de apagar a linha. Virou a decisão D16.
 
+**Contas de teste escondidas em produção sem motivo real.**
+O agente prendeu o painel de contas semeadas ao ambiente local, argumentando que expô-las em produção convidaria a testar credenciais. Perguntei se esconder era mesmo a melhor ideia. Não era: as mesmas credenciais estão publicadas no README de um repositório público, então a omissão na tela não protegia nada e cobrava de quem avalia uma ida ao GitHub. Passou a aparecer, rotulado como ambiente de demonstração. Virou a decisão D19.
+
+**Catálogo piscando a cada volta.**
+Notei que voltar ao catálogo recarregava tudo, e perguntei se não faltava cache. Faltava menos do que parecia: a tela se apagava de propósito antes de buscar. Cache com prazo seria a solução errada, porque a resposta carrega a lotação das sessões e serví-la velha marcaria como disponível uma sessão esgotada. Ficou a última resposta mantida na tela enquanto a nova chega. Virou a decisão D20.
+
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
