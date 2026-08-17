@@ -111,12 +111,27 @@ function filtrar(filmes: CatalogEvent[], termo: string): CatalogEvent[] {
   return resultado;
 }
 
+/** Última resposta por cidade, mantida enquanto a aba viver.
+
+    Não é cache com prazo: a busca acontece igual, toda vez. O que isto evita
+    é a tela se apagar antes de ter o que colocar no lugar — voltar ao
+    catálogo mostrava "Buscando sessões" sobre um vazio, e com a API
+    hibernando isso vira meio minuto de tela em branco.
+
+    Prazo de validade seria a solução errada aqui: a resposta carrega
+    `seats_available`, e servir isso velho marcaria como disponível uma
+    sessão já esgotada. Trocaria uma piscada por informação errada. */
+const ultimaResposta = new Map<string, CatalogEvent[]>();
+
 export function Catalog() {
   const [params, setParams] = useSearchParams();
   const cidadeAtual = params.get('cidade');
+  const chave = cidadeAtual ?? '';
 
   const [cidades, setCidades] = useState<string[]>([]);
-  const [filmes, setFilmes] = useState<CatalogEvent[] | null>(null);
+  const [filmes, setFilmes] = useState<CatalogEvent[] | null>(
+    () => ultimaResposta.get(chave) ?? null,
+  );
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
 
@@ -125,13 +140,28 @@ export function Catalog() {
   }, []);
 
   useEffect(() => {
-    setFilmes(null);
+    // Sem `setFilmes(null)`: o que já está na tela continua lá até chegar
+    // coisa melhor. Trocar de cidade cai no `?? null` e mostra o
+    // carregamento, porque aí não há resposta anterior daquela cidade.
+    setFilmes(ultimaResposta.get(chave) ?? null);
     setErro(null);
 
+    let cancelado = false;
+
     catalogo.eventos(cidadeAtual ?? undefined)
-      .then(setFilmes)
-      .catch((e: Error) => setErro(e.message));
-  }, [cidadeAtual]);
+      .then((lista) => {
+        ultimaResposta.set(chave, lista);
+        // A resposta de uma cidade abandonada não pode sobrescrever a tela
+        // de outra: sem isto, alternar rápido entre filtros deixa o
+        // resultado da requisição mais lenta, não o da última escolhida.
+        if (!cancelado) setFilmes(lista);
+      })
+      .catch((e: Error) => {
+        if (!cancelado) setErro(e.message);
+      });
+
+    return () => { cancelado = true; };
+  }, [cidadeAtual, chave]);
 
   const visiveis = useMemo(
     () => (filmes ? filtrar(filmes, busca) : null),
@@ -214,7 +244,10 @@ export function Catalog() {
         )}
       </div>
 
-      {erro && (
+      {/* Só quando não há o que mostrar. Com o catálogo anterior na tela, uma
+          atualização que falhou não justifica trocar conteúdo útil por um
+          aviso — a próxima navegação tenta de novo. */}
+      {erro && filmes === null && (
         <Vazio titulo="Não deu para carregar o catálogo">
           <p>{erro}</p>
         </Vazio>
