@@ -6,9 +6,9 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
-import { catalogo, organizador } from '../api/endpoints';
+import { catalogo, organizador, portaria } from '../api/endpoints';
 import type {
-  EventOut, Room, ShowingOut, TmdbSearchResult, Venue,
+  EventOut, Gate, Room, ShowingOut, TmdbSearchResult, Venue,
 } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Confirmar } from '../components/Confirmar';
@@ -122,8 +122,162 @@ export function Organizer() {
         ))}
       </section>
 
+      <Portarias
+        sessoes={eventos?.flatMap((e) => sessoes[e.id] ?? []) ?? []}
+      />
+
       <Cinemas venues={venues} salas={salas} aoMudar={recarregar} />
     </Layout>
+  );
+}
+
+/* -------------------------------------------------------- portarias */
+
+/** Rótulo de uma sessão numa linha, para escolher numa lista.
+
+    Filme, dia, hora e sala juntos porque um organizador com o mesmo filme em
+    dois cinemas não distingue as sessões por nenhum desses campos sozinho. */
+const rotuloSessao = (s: ShowingOut) =>
+  `${s.event_title} · ${new Date(s.starts_at).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).replace(',', '')} · ${s.venue_name} · ${s.room_name}`;
+
+/** Contas de portaria e a sessão que cada uma atende.
+
+    Fica no painel do organizador porque portaria não se auto-cadastra: o
+    papel decide quem entra na sala, e concedê-lo pelo formulário público
+    deixaria qualquer visitante abrir a porta (D21). */
+function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
+  const [gates, setGates] = useState<Gate[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [sessaoId, setSessaoId] = useState('');
+
+  const recarregar = useCallback(() => {
+    portaria.listar().then(setGates).catch((e: Error) => setErro(e.message));
+  }, []);
+
+  useEffect(recarregar, [recarregar]);
+
+  async function criar(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await portaria.criar(Number(sessaoId), {
+        name: nome, email, password: senha,
+      });
+      setNome(''); setEmail(''); setSenha(''); setSessaoId('');
+      recarregar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function revincular(gateId: number, valor: string) {
+    setErro(null);
+    try {
+      await portaria.revincular(gateId, valor ? Number(valor) : null);
+      recarregar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  return (
+    <section className="painel-secao">
+      <h2 className="painel-titulo">Portarias</h2>
+
+      {erro && <p className="motivo">{erro}</p>}
+
+      {gates === null && <Carregando />}
+
+      {gates?.length === 0 && (
+        <p className="vazio-linha">
+          Nenhuma portaria cadastrada. Crie uma abaixo para validar ingressos
+          na entrada.
+        </p>
+      )}
+
+      {gates && gates.length > 0 && (
+        <table className="tabela">
+          <thead>
+            <tr>
+              <th>Portaria</th>
+              <th>Acesso</th>
+              <th>Sessão que valida</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gates.map((g) => (
+              <tr key={g.id}>
+                <td>{g.name}</td>
+                <td className="portaria-email">{g.email}</td>
+                <td>
+                  {/* Trocar a sessão é o gesto normal, não a exceção: a
+                      mesma porta atende exibições diferentes ao longo do
+                      dia, e recadastrar a cada uma encheria o sistema de
+                      contas mortas. */}
+                  <select
+                    className="portaria-vinculo"
+                    value={g.showing_id ?? ''}
+                    onChange={(e) => revincular(g.id, e.target.value)}
+                  >
+                    <option value="">Sem sessão — não valida nada</option>
+                    {sessoes.map((s) => (
+                      <option key={s.id} value={s.id}>{rotuloSessao(s)}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <form className="forma-inline" onSubmit={criar}>
+        <div className="campo-curto">
+          <span className="campo-rotulo">Nova portaria</span>
+          <input value={nome} onChange={(e) => setNome(e.target.value)}
+                 placeholder="Entrada Sala 1" minLength={2} required />
+        </div>
+
+        <div className="campo-curto">
+          <span className="campo-rotulo">E-mail de acesso</span>
+          <input type="email" value={email} autoComplete="off" required
+                 onChange={(e) => setEmail(e.target.value)} />
+        </div>
+
+        <div className="campo-curto">
+          <span className="campo-rotulo">Senha (mín. 8)</span>
+          <input type="password" value={senha} minLength={8} required
+                 autoComplete="new-password"
+                 onChange={(e) => setSenha(e.target.value)} />
+        </div>
+
+        <div className="campo-curto portaria-escolha">
+          <span className="campo-rotulo">Sessão</span>
+          <select value={sessaoId} required
+                  onChange={(e) => setSessaoId(e.target.value)}>
+            <option value="" disabled>Escolha a sessão</option>
+            {sessoes.map((s) => (
+              <option key={s.id} value={s.id}>{rotuloSessao(s)}</option>
+            ))}
+          </select>
+        </div>
+
+        <button type="submit" className="botao-compacto"
+                disabled={salvando || !sessaoId}>
+          {salvando ? 'Criando…' : 'Criar portaria'}
+        </button>
+      </form>
+    </section>
   );
 }
 

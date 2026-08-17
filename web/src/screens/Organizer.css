@@ -239,3 +239,36 @@
     white-space: nowrap;
   }
 }
+
+/* --- portarias --- */
+
+.portaria-email {
+  color: var(--tinta-fraca);
+  font-size: 11px;
+}
+
+/* O rótulo da sessão junta filme, data, cinema e sala — não cabe curto, e
+   truncar tiraria justamente o que distingue duas sessões do mesmo filme. */
+.portaria-vinculo {
+  width: 100%;
+  min-width: 240px;
+  padding: var(--e1) var(--e2);
+  border: 1.5px solid var(--picote);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta);
+}
+
+.portaria-vinculo:focus-visible {
+  border-color: var(--tinta);
+}
+
+.portaria-escolha {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.portaria-escolha select {
+  width: 100%;
+}
