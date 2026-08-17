@@ -100,6 +100,36 @@ npm run dev                   # sobe em http://localhost:5173
 
 ---
 
+## Deploy
+
+Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DECISOES.md` como D18.
+
+| Serviço | O quê | Configuração |
+|---|---|---|
+| Neon | PostgreSQL | Fora do Render de propósito: o Postgres gratuito de lá expira em 30 dias |
+| Render | API | `render.yaml`, na raiz |
+| Vercel | Front | `web/vercel.json` |
+
+**API.** No Render, *New → Blueprint*, apontando para o repositório. O `render.yaml` declara build, start, health check e as variáveis; as marcadas `sync: false` são preenchidas no painel — `DATABASE_URL` (a string do Neon, com o driver `postgresql+psycopg`), `TMDB_API_KEY` e `CORS_ORIGINS`. O `SECRET_KEY` é gerado uma vez na criação: **trocá-lo invalida todo QR já emitido**, porque é ele que assina os códigos de ingresso.
+
+A migration roda no build. Depois do primeiro deploy, o seed é executado uma vez pelo shell do serviço:
+
+```bash
+python -m app.seed
+```
+
+**Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com a URL do serviço no Render. O `vercel.json` existe por um motivo só — o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
+
+**Ordem.** O front precisa da URL da API, e o `CORS_ORIGINS` da API precisa do domínio do front. Sobe a API primeiro com um valor provisório, publica o front, e volta para corrigir o `CORS_ORIGINS` com o domínio definitivo.
+
+**Hibernação.** O plano gratuito do Render dorme após 15 minutos parado, e religar leva dezenas de segundos. Três camadas tratam isso, e nenhuma resolve sozinha:
+
+1. O front chama `/health` assim que a página monta, gastando o religamento enquanto a pessoa ainda lê a tela.
+2. Um agendamento do GitHub Actions (`.github/workflows/manter-api-acordada.yml`) mantém o serviço acordado das 8h às 23h — é o que cobre o primeiro visitante do dia, que a camada anterior não alcança. Exige a variável de repositório `API_URL`, em *Settings → Secrets and variables → Actions → Variables*.
+3. Passados quatro segundos, a tela de carregamento explica o motivo da espera. Dizer o porquê é o que separa "está lento" de "está quebrado".
+
+---
+
 ## Contas de teste
 
 Criadas pelo seed. Senha de todas: **`cinerini123`**

@@ -2,6 +2,8 @@
 
 Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descartado e por quê.
 
+Não há D13: foi um erro de contagem ao numerar o D14, não uma decisão removida. O número fica vago de propósito. Renumerar as seguintes faria quatro mensagens de commit já publicadas apontarem para a decisão errada — e o histórico do Git não se reescreve para consertar uma sequência.
+
 ---
 
 ## D1 · Catálogo externo: TMDb em vez de Ticketmaster
@@ -225,3 +227,19 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Quinto estado:** um ingresso reembolsado apresentado na porta é situação real, e chamá-lo de "inválido" faria o operador tratar como fraudador quem apenas cancelou e esqueceu. É a mesma razão que separa `wrong_event` de `invalid` — a diferença entre "não deixe entrar" e "não deixe entrar aqui".
 
 **Digitação manual:** o operador digita o `jti` quando a câmera falha, e aí não há assinatura para conferir. O que sustenta esse caminho é o `jti` ser um uuid4 — 122 bits que não se adivinham — somado ao papel de portaria exigido na rota. É um controle diferente do da garantia 2, não uma brecha nela: sem credencial de portaria o código digitado não vale nada.
+
+---
+
+## D18 · Deploy em três serviços, com o banco fora do Render
+
+**Decidido:** API no Render, front na Vercel, banco no Neon. A infraestrutura da API fica em `render.yaml`, versionada.
+
+**Descartado:** o Postgres gratuito do próprio Render, que reuniria banco e API num painel só. E função serverless para a API.
+
+**Por quê o banco fora:** o Postgres gratuito do Render expira em 30 dias. O sistema morreria sozinho depois da avaliação, e a primeira coisa que quem abrisse o link veria seria um erro de conexão. O Neon não expira.
+
+**Por quê não serverless:** o limitador de tentativas e o cache do TMDb vivem em memória. Numa função que sobe e morre a cada requisição, os dois perderiam o efeito — o limitador zeraria a contagem a cada tentativa, que é exatamente o que ele existe para impedir. Um processo de vida longa é requisito, não preferência.
+
+**Hibernação tratada em três camadas**, porque nenhuma resolve sozinha: o front chama `/health` ao montar e gasta o religamento enquanto a pessoa lê a tela; um agendamento do GitHub Actions mantém o serviço acordado das 8h às 23h, cobrindo o primeiro visitante do dia; e a tela de carregamento explica a espera depois de quatro segundos. As duas primeiras encurtam a espera, a terceira trata a que sobrar — dizer o motivo é o que separa "está lento" de "está quebrado".
+
+**Migration no build e não no pre-deploy:** comando de pré-deploy exige instância paga. Com uma instância só e sem exigência de janela sem downtime, aplicar no build basta e mantém `alembic upgrade head` como o único caminho de mudança de schema.

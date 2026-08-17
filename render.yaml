@@ -1,0 +1,61 @@
+# Blueprint do Render: a infraestrutura da API versionada junto do código.
+#
+# Existe em vez de configuração pelo painel porque um serviço montado a
+# cliques não é reproduzível nem revisável — e a primeira pergunta de quem
+# recebe o projeto é como subir outra instância.
+#
+# O banco não está aqui: é o Neon, provisionado fora do Render (D18). O
+# Postgres gratuito do Render expira em 30 dias, o que faria o sistema morrer
+# sozinho depois da avaliação.
+
+services:
+  - type: web
+    name: cinerini-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: api
+
+    # A migration roda no build, e não num pre-deploy: comando de pré-deploy
+    # exige instância paga. Com uma instância só e sem exigência de janela
+    # sem downtime, aplicar aqui é suficiente e mantém `alembic upgrade head`
+    # como o único caminho de mudança de schema.
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+
+    # --host 0.0.0.0 porque o padrão do uvicorn só escuta em localhost, e o
+    # roteador do Render fala com o contêiner de fora.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # Barato e sem banco: serve para o Render saber que subiu, e é o mesmo
+    # caminho que o front chama para acordar o serviço hibernado.
+    healthCheckPath: /health
+
+    envVars:
+      # Fixado pela variável e não por `.python-version`: com `rootDir`, qual
+      # diretório o arquivo teria de ocupar é ambíguo, e a variável tem
+      # precedência sobre as duas leituras. Acompanha a versão local — o
+      # padrão do Render muda com o tempo, e produção não pode divergir do
+      # ambiente onde os testes rodam.
+      - key: PYTHON_VERSION
+        value: "3.14.3"
+
+      - key: DATABASE_URL
+        sync: false
+
+      # Gerado uma vez, na criação do serviço. Assina as sessões e os códigos
+      # de ingresso: trocar este valor invalida todo QR já emitido.
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: TMDB_API_KEY
+        sync: false
+
+      # Domínio do front na Vercel. Sem ele o navegador bloqueia as chamadas.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Só aqui: o Render reescreve X-Forwarded-For num proxy confiável, e é
+      # o que permite ao limitador de tentativas ver o IP real. Ligado sem
+      # proxy à frente, qualquer cliente forjaria o próprio IP.
+      - key: TRUST_PROXY
+        value: "true"
