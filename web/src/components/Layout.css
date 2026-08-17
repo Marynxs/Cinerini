@@ -206,6 +206,16 @@
   margin: 0 auto;
 }
 
+/* Explicação da espera longa. Sem carmim: é informação, não atenção — o
+   carmim aqui faria parecer erro justamente onde se diz que não há erro. */
+.aviso-demora {
+  margin-top: var(--e4);
+  padding-top: var(--e3);
+  border-top: var(--linha-tracejada);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
 /* Traço piscando enquanto carrega: sem spinner girando, que é de outro
    vocabulário visual. */
 .carregando::after {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
@@ -65,10 +66,33 @@ export function Voltar({ para, texto }: { para: string; texto: string }) {
   );
 }
 
+/* Depois de quantos segundos a espera deixa de parecer normal e passa a
+   parecer defeito. Abaixo disso o aviso só assustaria quem ia ser atendido
+   em seguida. */
+const ESPERA_LONGA_MS = 4000;
+
 export function Carregando({ texto = 'Carregando' }: { texto?: string }) {
+  const [demorando, setDemorando] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDemorando(true), ESPERA_LONGA_MS);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="aviso-tela">
       <span className="carregando">{texto}</span>
+
+      {/* Terceira camada contra a hibernação do plano gratuito, depois do
+          aquecimento no front e do ping agendado. As duas primeiras encurtam
+          a espera; esta trata a que sobrar — dizer o motivo é o que separa
+          "está lento" de "está quebrado". */}
+      {demorando && (
+        <p className="aviso-demora">
+          O servidor gratuito hiberna quando fica sem uso. Religar leva até
+          um minuto, e só na primeira visita.
+        </p>
+      )}
     </div>
   );
 }
