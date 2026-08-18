@@ -21,12 +21,14 @@
   position: relative;
 }
 
-/* `static` de propósito: o rótulo é posicionado contra a trilha inteira, e
-   não contra o disco. Ancorado no disco e centralizado nele, o rótulo da
-   primeira etapa saía pela esquerda da tela num celular — que é exatamente
-   a etapa em que se começa. */
+/* Ancorado no próprio disco: o rótulo fica embaixo do ícone da etapa, que é
+   onde ele pertence — o nome descreve aquela etapa, não a trilha.
+
+   No celular isso quebra, e a regra é invertida mais abaixo: com a tela
+   estreita, o disco da primeira etapa fica junto da borda e o rótulo
+   centralizado nele sai pela esquerda. */
 .trilha-etapa {
-  position: static;
+  position: relative;
   flex: 0 0 auto;
 }
 
@@ -69,9 +71,10 @@
 .trilha-etapa--atual .trilha-rotulo {
   display: block;
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  top: calc(100% + var(--e2));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   text-align: center;
   font: var(--etiqueta);
   font-size: 10.5px;
@@ -96,7 +99,24 @@
 }
 
 @media (max-width: 620px) {
+  /* Na tela estreita o rótulo passa a ser posicionado contra a trilha
+     inteira. Ancorado no disco, o da primeira etapa saía pela esquerda —
+     e é justamente a etapa em que a compra começa. */
+  .trilha {
+    position: relative;
+  }
+
+  .trilha-etapa {
+    position: static;
+  }
+
   .trilha-etapa--atual .trilha-rotulo {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    white-space: normal;
     font-size: 9px;
     letter-spacing: 0.1em;
   }
