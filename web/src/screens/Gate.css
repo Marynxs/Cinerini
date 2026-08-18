@@ -378,3 +378,21 @@
     margin-top: var(--e4);
   }
 }
+
+/* Sessão que está sendo atendida. Borda cheia e escura, não só cor de
+   fundo: quem abre a lista para trocar precisa ver de onde está saindo, e a
+   espessura sobrevive ao preto e branco. */
+.turno--atual {
+  border: 3px solid var(--tinta);
+  background: var(--papel-escuro);
+}
+
+.turno--atual .turno-sala {
+  color: var(--carimbo);
+  font-weight: 600;
+}
+
+.turnos-sair {
+  margin-top: var(--e4);
+  text-align: center;
+}

@@ -305,17 +305,42 @@ export function Gate() {
 
         {turnos && turnos.length > 0 && (
           <ul className="turnos">
-            {turnos.map((s) => (
-              <li key={s.showing_id}>
-                <button type="button" className="turno"
-                        onClick={() => escolher(s.showing_id)}>
-                  <span className="turno-hora">{quando(s.starts_at)}</span>
-                  <span className="turno-filme">{s.event_title}</span>
-                  <span className="turno-sala">{s.room_name}</span>
-                </button>
-              </li>
-            ))}
+            {turnos.map((s) => {
+              // A sessão atual fica marcada com borda cheia: sem isso, quem
+              // abriu a lista para trocar não sabe de onde está saindo.
+              const atual = s.showing_id === vinculo?.showing_id;
+
+              return (
+                <li key={s.showing_id}>
+                  <button
+                    type="button"
+                    className={`turno${atual ? ' turno--atual' : ''}`}
+                    aria-current={atual ? 'true' : undefined}
+                    onClick={() => escolher(atual ? null : s.showing_id)}
+                  >
+                    <span className="turno-hora">{quando(s.starts_at)}</span>
+                    <span className="turno-filme">{s.event_title}</span>
+                    <span className="turno-sala">
+                      {atual ? 'Atendendo · toque para sair' : s.room_name}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
+        )}
+
+        {/* Ficar sem turno é estado legítimo, não falha de cadastro: entre
+            uma sessão e a seguinte a porta não deve aceitar nada. Precisa
+            de caminho próprio, senão só se sai de um turno entrando em
+            outro. */}
+        {turnos && turnos.length > 0 && vinculo?.showing_id != null && (
+          <p className="turnos-sair">
+            <button type="button" className="elo elo--perigo"
+                    onClick={() => escolher(null)}>
+              Encerrar turno e não validar nada
+            </button>
+          </p>
         )}
 
         {trocando && (

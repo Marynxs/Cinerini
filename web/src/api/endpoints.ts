@@ -59,7 +59,9 @@ export const catalogo = {
 };
 
 export const organizador = {
-  meusEventos: () => request<EventOut[]>('/events/mine'),
+  // Tudo que o painel administra, publicado ou não — e de toda a
+  // equipe, não só de quem está logado (D29).
+  eventos: () => request<EventOut[]>('/events/managed'),
 
   buscarFilme: (termo: string) =>
     request<TmdbSearchResult[]>(
@@ -67,6 +69,11 @@ export const organizador = {
 
   criarEvento: (tmdbId: number) =>
     request<EventOut>('/events', { method: 'POST', body: { tmdb_id: tmdbId } }),
+
+  // Só rascunho sem sessões: publicado pode ter ingresso vendido, e apagar
+  // levaria junto o comprovante de quem comprou (D30).
+  removerEvento: (eventId: number) =>
+    request<void>(`/events/${eventId}`, { method: 'DELETE' }),
 
   publicar: (eventId: number) =>
     request<EventOut>(`/events/${eventId}/publish`, { method: 'POST' }),
@@ -88,6 +95,8 @@ export const organizador = {
 
   criarCinema: (dados: {
     name: string; state: string; city_ibge_id: number; address: string;
+    // Só é olhado quando o IBGE não responde (D28).
+    city_fallback?: string;
   }) => request<Venue>('/venues', { method: 'POST', body: dados }),
 
   editarCinema: (venueId: number, dados: Partial<{
@@ -110,6 +119,15 @@ export const organizador = {
 
   promover: (email: string) =>
     request<User>('/auth/organizers', { method: 'POST', body: { email } }),
+
+  editarOrganizador: (userId: number, name: string) =>
+    request<User>(`/auth/organizers/${userId}`, {
+      method: 'PATCH', body: { name },
+    }),
+
+  // Revoga o papel; não apaga a conta nem o que ela publicou (D27).
+  revogarOrganizador: (userId: number) =>
+    request<User>(`/auth/organizers/${userId}`, { method: 'DELETE' }),
 
   criarSala: (venueId: number, dados: {
     name: string; rows: number; seats_per_row: number;
@@ -179,10 +197,14 @@ export const portaria = {
     method: 'POST', body: dados,
   }),
 
-  // Nome e cinema, nunca a senha: trocá-la pelo painel obrigaria a entregar
-  // a nova por algum canal (D22).
+  /* Nome, cinema e escala. Nunca a senha: trocá-la pelo painel obrigaria a
+     entregar a nova por algum canal (D22).
+
+     `showing_id` aqui não substitui a escolha do próprio funcionário (D24) —
+     é a correção de quem coordena a noite, para remanejar alguém sem
+     depender de ele estar com o aparelho na mão. */
   editar: (gateId: number, dados: Partial<{
-    name: string; venue_id: number | null;
+    name: string; venue_id: number | null; showing_id: number | null;
   }>) => request<Gate>(`/gates/${gateId}`, { method: 'PATCH', body: dados }),
 
   remover: (gateId: number) =>

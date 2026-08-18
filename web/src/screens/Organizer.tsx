@@ -8,8 +8,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { catalogo, organizador, portaria } from '../api/endpoints';
 import type {
-  Coverage, EventOut, Gate, Municipio, Room, ShowingOut, TmdbSearchResult,
-  Uf, User, Venue,
+  Coverage, EventOut, Gate, Municipio, Room, ShowingBrief, ShowingOut,
+  TmdbSearchResult, Uf, User, Venue,
 } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Confirmar } from '../components/Confirmar';
@@ -63,7 +63,7 @@ export function Organizer() {
     try {
       const [cinemas, meus] = await Promise.all([
         catalogo.cinemas(),
-        organizador.meusEventos(),
+        organizador.eventos(),
       ]);
       setVenues(cinemas);
       setEventos(meus);
@@ -140,7 +140,7 @@ export function Organizer() {
             <NovoEvento aoCriar={recarregar} />
 
             <section className="painel-secao">
-              <h2 className="painel-titulo">Meus eventos</h2>
+              <h2 className="painel-titulo">Eventos</h2>
 
               {eventos === null && <Carregando />}
 
@@ -216,9 +216,38 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
   const [editando, setEditando] = useState<number | null>(null);
   const [removendo, setRemovendo] = useState<Gate | null>(null);
 
+  /* Sessões que cada cinema pode oferecer, para o seletor de escala.
+
+     Vem da cobertura, que já traz as sessões da janela em que alguém pode
+     assumir — buscar de novo por outro caminho daria duas listas com
+     prazos possivelmente diferentes (D26). */
+  const [turnosPorCinema, setTurnosPorCinema] =
+    useState<Record<number, ShowingBrief[]>>({});
+
   const recarregar = useCallback(() => {
     portaria.listar().then(setGates).catch((e: Error) => setErro(e.message));
-  }, []);
+
+    portaria.cobertura().then((cob) => {
+      const porCinema: Record<number, ShowingBrief[]> = {};
+      for (const c of cob) {
+        const cinema = venues.find((v) => v.name === c.showing.venue_name);
+        if (!cinema) continue;
+        porCinema[cinema.id] = [...(porCinema[cinema.id] ?? []), c.showing];
+      }
+      setTurnosPorCinema(porCinema);
+    }).catch(() => setTurnosPorCinema({}));
+  }, [venues]);
+
+  async function escalar(alvo: Gate, valor: string) {
+    setErro(null);
+    try {
+      await portaria.editar(alvo.id,
+                            { showing_id: valor ? Number(valor) : null });
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
 
   async function remover(alvo: Gate) {
     setErro(null);
@@ -285,12 +314,24 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
                 <td className="portaria-email">{g.email}</td>
                 <td>{g.venue_name ?? <span className="motivo">sem cinema</span>}</td>
                 <td>
-                  {/* Só leitura: quem escolhe o turno é quem trabalha, e
-                      mostrar aqui serve para o organizador saber quem está
-                      em qual porta agora. */}
-                  {g.showing
-                    ? `${g.showing.event_title} · ${quando(g.showing.starts_at)}`
-                    : <span className="vazio-linha">fora de turno</span>}
+                  {/* Editável, e não só informativo. O caminho normal
+                      continua sendo o funcionário escolher na própria tela
+                      (D24); isto é o remanejamento de quem coordena a
+                      noite, sem depender de ele estar com o aparelho na
+                      mão. */}
+                  <select
+                    className="portaria-vinculo"
+                    value={g.showing_id ?? ''}
+                    disabled={g.venue_id === null}
+                    onChange={(e) => escalar(g, e.target.value)}
+                  >
+                    <option value="">Fora de turno</option>
+                    {(turnosPorCinema[g.venue_id ?? 0] ?? []).map((s) => (
+                      <option key={s.showing_id} value={s.showing_id ?? ''}>
+                        {s.event_title} · {quando(s.starts_at)} · {s.room_name}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="tabela-acoes">
                   <button type="button" className="elo"
@@ -378,6 +419,52 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
   );
 }
 
+/** Edição de um organizador: só o nome.
+
+    E-mail e senha são identidade da pessoa, não cadastro — trocar o e-mail
+    pelo painel mudaria a credencial de alguém sem que ele soubesse (D27). */
+function EditarOrganizador(
+  { alvo, aoSalvar }: { alvo: User; aoSalvar: () => void },
+) {
+  const [nome, setNome] = useState(alvo.name);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await organizador.editarOrganizador(alvo.id, nome);
+      aoSalvar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className="forma-inline" onSubmit={salvar}>
+      {erro && <p className="motivo">{erro}</p>}
+
+      <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+        <span className="campo-rotulo">Nome</span>
+        <input value={nome} onChange={(e) => setNome(e.target.value)}
+               minLength={2} required />
+      </div>
+
+      <button type="submit" className="botao-compacto" disabled={salvando}>
+        {salvando ? 'Salvando…' : 'Salvar'}
+      </button>
+
+      <span className="campo-ajuda">
+        E-mail e senha pertencem à pessoa e não se editam por aqui.
+      </span>
+    </form>
+  );
+}
+
 /** Sessões que começam em breve e quem está na porta de cada uma.
 
     Existe porque a tabela abaixo responde a pergunta errada. Ela diz o que
@@ -403,7 +490,7 @@ function Cobertura({ versao }: { versao: number }) {
       <p className="cobertura-titulo">
         Próximas sessões · {descobertas.length === 0
           ? 'todas com alguém na porta'
-          : `${descobertas.length} sem ninguém`}
+          : `${descobertas.length} sem funcionário alocado`}
       </p>
 
       <ul className="cobertura-lista">
@@ -503,6 +590,18 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
   const [email, setEmail] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [editando, setEditando] = useState<number | null>(null);
+  const [revogando, setRevogando] = useState<User | null>(null);
+
+  async function revogar(alvo: User) {
+    setErro(null);
+    try {
+      await organizador.revogarOrganizador(alvo.id);
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
 
   /* Promover é escolher numa lista, não digitar o e-mail. Digitar exige
      saber de cor o endereço com que a pessoa se cadastrou, e erra calado:
@@ -544,17 +643,71 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
       {lista && (
         <table className="tabela">
           <thead>
-            <tr><th>Nome</th><th>E-mail</th></tr>
+            <tr><th>Nome</th><th>E-mail</th><th /></tr>
           </thead>
           <tbody>
-            {lista.map((o) => (
-              <tr key={o.id}>
-                <td>{o.name}</td>
-                <td className="portaria-email">{o.email}</td>
-              </tr>
-            ))}
+            {lista.map((o) => {
+              // O primeiro organizador é o de menor id: é ele que impede a
+              // instalação de ficar sem ninguém que publique (D27).
+              const primeiro = o.id === Math.min(...lista.map((x) => x.id));
+
+              return (
+                <tr key={o.id}>
+                  <td>
+                    {o.name}
+                    {primeiro && (
+                      <span className="selo-primeiro" title="Primeiro organizador">
+                        fundador
+                      </span>
+                    )}
+                  </td>
+                  <td className="portaria-email">{o.email}</td>
+                  <td className="tabela-acoes">
+                    <button type="button" className="elo"
+                            onClick={() => setEditando(
+                              editando === o.id ? null : o.id)}>
+                      {editando === o.id ? 'Cancelar' : 'Editar'}
+                    </button>
+                    {!primeiro && (
+                      <button type="button" className="elo elo--perigo"
+                              onClick={() => setRevogando(o)}>
+                        Revogar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+      )}
+
+      {editando !== null && lista?.some((o) => o.id === editando) && (
+        <EditarOrganizador
+          alvo={lista.find((o) => o.id === editando)!}
+          aoSalvar={() => { setEditando(null); aoMudar(); }}
+        />
+      )}
+
+      {revogando && (
+        <Confirmar
+          titulo="Revogar organizador"
+          rotuloConfirmar="Revogar papel"
+          aoFechar={() => setRevogando(null)}
+          aoConfirmar={() => {
+            const alvo = revogando; setRevogando(null); revogar(alvo);
+          }}
+        >
+          <p>
+            <span className="dialogo-destaque">{revogando.name}</span>
+            {' · '}{revogando.email}
+          </p>
+          <p className="dialogo-consequencia">
+            A conta continua existindo e vira cliente. Os eventos que ela
+            publicou seguem no ar — apagar levaria junto sessões e ingressos
+            vendidos. Esta ação é irreversível pelo painel dela.
+          </p>
+        </Confirmar>
       )}
 
       {candidatos.length === 0 ? (
@@ -690,6 +843,7 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aCancelar, setACancelar] = useState<ShowingOut | null>(null);
+  const [aApagar, setAApagar] = useState(false);
 
   async function agir(acao: () => Promise<unknown>) {
     setOcupado(true);
@@ -717,6 +871,16 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
           >
             {publicado ? 'Publicado' : 'Rascunho'}
           </span>
+
+          {/* Só em rascunho: publicado pode ter ingresso vendido, e o botão
+              existir para levar a um 409 seria oferecer o que não se pode
+              cumprir (D30). */}
+          {!publicado && sessoes.length === 0 && (
+            <button type="button" className="elo elo--perigo"
+                    disabled={ocupado} onClick={() => setAApagar(true)}>
+              Apagar rascunho
+            </button>
+          )}
 
           <button
             type="button"
@@ -792,6 +956,24 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
         venues={venues}
         aoCriar={aoMudar}
       />
+
+      {aApagar && (
+        <Confirmar
+          titulo="Apagar rascunho"
+          rotuloConfirmar="Apagar rascunho"
+          aoFechar={() => setAApagar(false)}
+          aoConfirmar={() => {
+            setAApagar(false);
+            agir(() => organizador.removerEvento(evento.id));
+          }}
+        >
+          <p><span className="dialogo-destaque">{evento.title}</span></p>
+          <p className="dialogo-consequencia">
+            O evento sai do sistema. Como não está publicado e não tem
+            sessões, ninguém comprou nada nele. Esta ação é irreversível.
+          </p>
+        </Confirmar>
+      )}
 
       {aCancelar && (
         <Confirmar

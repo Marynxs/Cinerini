@@ -424,3 +424,30 @@
     color: var(--tinta-media);
   }
 }
+
+/* Campo desabilitado: cinza explícito em vez do padrão apagado do
+   navegador, que em alguns temas fica indistinguível do habilitado. */
+.campo-curto select:disabled,
+.campo-curto input:disabled {
+  background: var(--papel-escuro);
+  color: var(--tinta-fraca);
+  border-color: var(--picote);
+  cursor: not-allowed;
+}
+
+.campo-ajuda--atencao {
+  color: var(--carimbo);
+}
+
+/* Marca do primeiro organizador: ele não pode ser revogado, e a linha
+   precisa dizer o porquê antes de alguém procurar o botão que falta. */
+.selo-primeiro {
+  margin-left: var(--e2);
+  padding: 1px var(--e2);
+  border: 1px solid var(--picote);
+  font: var(--etiqueta);
+  font-size: 8.5px;
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
