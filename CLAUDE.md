@@ -22,7 +22,7 @@ Quatro invariantes. Nenhuma alteração pode enfraquecê-las.
 1. **Assento nunca vendido duas vezes.** Índice único parcial `tickets(seat_id) WHERE status <> 'cancelled'`. A garantia vive no banco, não na aplicação — nunca substituir por verificação em Python.
 2. **QR não forjável.** O código é um JWT assinado com `SECRET_KEY`. Nunca expor identificador previsível no lugar dele.
 3. **Ingresso não validado duas vezes.** `UPDATE ... WHERE status='valid'` conferindo linhas afetadas. Nunca `SELECT` seguido de `UPDATE`.
-4. **Ingresso do lugar errado é estado próprio.** Portaria vinculada a `gate_showing_id` — a exibição, não o filme (D21). Divergência não pode colapsar em "inválido", e separa dois casos: outro filme e outra sessão do mesmo filme.
+4. **Ingresso do lugar errado é estado próprio.** Portaria vinculada a `gate_showing_id` — a exibição, não o filme (D21). Divergência não pode colapsar em "inválido", e separa dois casos: outro filme e outra sessão do mesmo filme. O escopo do funcionário é `gate_venue_id`, e o turno é escolha dele (D24).
 
 ## Identidade visual
 
@@ -47,6 +47,8 @@ Direção **recibo térmico**: papel, monoespaçado, alinhamentos de cupom fisca
 - Documentação, comentários e mensagens de commit em **português**. Código e identificadores em inglês.
 - Valores monetários em **centavos, como inteiro**. Nunca float.
 - `Showing` é a exibição; `Session` é reservado ao SQLAlchemy.
+- Papel nunca vem do corpo da requisição. Portaria é criada pelo organizador, organizador é promovido por outro (D22).
+- Cidade e UF nunca são texto livre: vêm de lista, e o nome é resolvido no servidor contra o IBGE (D23).
 - Comentário no código explica **por que**, nunca o que a linha faz.
 - Classe onde há estado ou identidade a proteger; função de módulo onde não há (D11). Regra de negócio em módulo próprio, fora do handler de rota. Sem camada de repositório sobre o SQLAlchemy.
 - Coleção sob o recurso pai, item na raiz: `/events/{id}/showings` para listar e criar, `/showings/{id}` para operar sobre uma (D12).

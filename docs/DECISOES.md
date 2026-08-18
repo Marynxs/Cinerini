@@ -304,6 +304,108 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **O que isto destravou:** a tela da portaria passa a nomear a sessão que atende, com horário, cinema e sala, antes da primeira leitura. Com o vínculo por filme isso era impossível: o filme tem várias sessões, em locais diferentes, e não havia uma resposta única para "que porta é esta".
 
-**O cadastro veio junto por necessidade:** uma portaria por exibição só se sustenta se criar e reapontar for barato. O `PATCH /gates/{id}` existe para que a mesma conta atenda as sessões do dia sem distribuir senha nova a cada uma, e desvincular é aceito de propósito — entre uma sessão e a seguinte, a porta não deve aceitar nada.
+**O cadastro veio junto por necessidade:** uma portaria por exibição só se sustenta se trocar de sessão for barato, e desvincular é aceito de propósito — entre uma sessão e a seguinte, a porta não deve aceitar nada.
+
+**Revisto em D24:** a troca era feita pelo organizador, num `PATCH /gates/{id}` que já não existe. Passou a ser `PUT /gate/shift`, executado pelo próprio funcionário. O que esta decisão fixa e continua valendo é *o que* a portaria confere — a exibição, não o filme.
 
 **Migração com conversão de dado:** a portaria que atendia um filme passou a atender a primeira exibição dele. Sem isso, quem já tinha portaria montada acordaria com ela desvinculada, e a única pista seria a recusa de todo ingresso.
+
+---
+
+## D22 · Primeiro cadastro vira organizador, e organizador promove organizador
+
+**Decidido:** com a tabela `users` estritamente vazia, o primeiro cadastro nasce organizador. Dali em diante, um organizador promove uma conta existente pelo painel. O papel nunca vem do corpo da requisição.
+
+**Descartado:** comando de linha no estilo `createsuperuser`, código de convite em variável de ambiente, e cadastro aberto como o da Sympla.
+
+**Por que não o comando de linha:** é o padrão consagrado, e não funciona aqui. O plano gratuito do Render **não dá acesso ao shell do serviço**, então um comando resolveria só na máquina de quem desenvolve e deixaria a instalação publicada sem caminho nenhum para o primeiro organizador. Foi o argumento que derrubou a alternativa mais óbvia.
+
+**Por que não o cadastro aberto:** é o modelo real desta categoria de produto — na Sympla qualquer pessoa cria evento, e o que se exige é CPF, para repassar dinheiro. Aqui ele está bloqueado por uma razão concreta: `venues` não tem dono. Qualquer organizador cadastra cinema e cria sala em cinema alheio, e esse cadastro alimenta o filtro público. Abrir o papel sem antes cercar o local entregaria o catálogo a quem aparecesse. O caminho existe — dar `organizer_id` ao `Venue` — e não foi percorrido por escopo.
+
+**Por que promoção e não criação:** criar a conta pelo painel obrigaria o organizador a inventar uma senha e entregá-la por algum canal, e senha que trafega por mensagem fica no histórico de alguém. Aqui a conta já existe, e o que se concede é só o papel.
+
+**Escolha em lista, não digitação:** promover exige apontar quem, e digitar o e-mail exige saber de cor o endereço com que a pessoa se cadastrou. Erra calado — um caractere trocado devolve "conta não encontrada" sem dizer qual era a certa. A lista oferecida é a dos funcionários do organizador, que é quem se espera promover.
+
+**Promover encerra o vínculo de funcionário:** os papéis são exclusivos. Acumular os dois daria a quem opera a porta o poder de publicar e cancelar sessões, e é justamente essa separação que faz o papel de portaria valer alguma coisa. Quem precisar dos dois usa duas contas — e aí fica registrado que são duas pessoas na mesma sessão.
+
+**A janela que isto abre, declarada:** o deploy aplica as migrations mas não roda o seed. Uma instalação nova sobe com `users` vazia e URL pública, e nesse intervalo quem se cadastrar primeiro vira organizador. É a mesma janela de qualquer instalador de primeira execução, e a mitigação é operacional: criar a conta imediatamente depois do primeiro deploy. A condição é a tabela **vazia**, e não "não existe organizador", para que a regra se feche no primeiro cadastro e nunca reabra — nem se um organizador for removido depois.
+
+---
+
+## D23 · Cidade e UF escolhidas em lista, com o código do IBGE guardado
+
+**Decidido:** a UF vem de uma constante de 27 valores no servidor; o município, da API de localidades do IBGE. O cadastro envia a UF e o **código** do município, e o nome é resolvido no servidor. `venues.city_ibge_id` guarda o código, e é por ele que o catálogo agrupa e filtra.
+
+**Descartado:** manter cidade e UF como texto livre, normalizando na entrada.
+
+**Por quê:** o filtro do catálogo agrupa cinemas por cidade. Com texto livre, "São Paulo" e "sao paulo" viravam **duas cidades** na lista de filtros, e nenhuma validação de formato pega isso — as duas são strings perfeitamente válidas. Normalizar acento e caixa reduziria o problema sem resolvê-lo: sobrariam "Sao Paulo", "S. Paulo" e os erros de digitação que ninguém antecipa.
+
+**Por que o código e não só o nome:** **nome de cidade não é único no Brasil.** Há dezenas de "Bom Jesus", "Santa Luzia" e "Bonito" em estados diferentes. Agrupar por texto juntaria cidades que não têm relação nenhuma, e o cliente veria sessões de outro estado sob o nome da cidade dele. O código do IBGE é a única chave que distingue.
+
+**O nome nunca vem do cliente:** ele é resolvido contra a lista do IBGE na gravação. Aceitá-lo do corpo da requisição reabriria exatamente a porta que esta decisão fecha.
+
+**A UF não vem da rede:** são 27 e não mudam desde 1988. Buscá-las seria trocar uma constante por um ponto de falha, e a lista é o primeiro campo do formulário — falhar ali travaria o cadastro inteiro.
+
+**Dependência externa assumida, com saída:** o IBGE fora do ar impede cadastrar cinema novo, e nada mais — o catálogo, a compra e a portaria não passam por lá. A resposta nesse caso é um 503 que diz o que aconteceu, e não um erro mudo. O seed traz os códigos escritos, para semear sem internet.
+
+---
+
+## D24 · Portaria é posto, funcionário é a conta — e o turno é dele
+
+**Decidido:** a conta é de um **funcionário**, não de uma portaria — portaria é a tela que ele abre para trabalhar. Dois campos com donos diferentes: `gate_venue_id` é o cinema onde a pessoa trabalha, definido pelo organizador na criação; `gate_showing_id` é a sessão do turno, escolhida pelo **próprio funcionário** em `PUT /gate/shift`, entre as sessões daquele cinema.
+
+**O vocabulário importa:** enquanto a conta se chamava "portaria", parecia natural criar uma por sessão — postos são efêmeros. Chamando de funcionário, a mesma pergunta soa absurda: ninguém contrata alguém por duas horas e demite quando o filme acaba.
+
+**Descartado:** conta criada por sessão, código de pareamento por dispositivo, e portaria como modo da conta do organizador.
+
+**O que estava errado:** a conta era criada apontando para uma exibição. Terminada a sessão, sobrava um e-mail e uma senha sem serventia. Operar uma noite exigiria criar e distribuir credenciais a cada duas horas — e senha que se multiplica é senha que se anota num papel colado no balcão.
+
+**Por que não o código de pareamento:** foi a alternativa que eu propus primeiro, e ela tem um furo. O código é segredo ao portador: quem o ouvir, vir na tela ou receber encaminhado vira portaria. O estrago não é validar o próprio ingresso, que só o queima — é **validar o dos outros**, fazendo o titular legítimo levar "já utilizado" na cara. Um código curto, feito para ser ditado por telefone, é exatamente o tipo de segredo que vaza.
+
+**Por que não o modo do organizador:** quem fica na porta seguraria um aparelho logado com a conta que publica e cancela sessões. Menor privilégio deixa de existir.
+
+**Por que o funcionário escolhe:** o organizador não está na porta às onze da noite. Reapontar cada portaria a cada duas horas não sobrevive a uma noite de operação real — e a alternativa seria o operador ligar para alguém a cada troca. A liberdade é escolher **entre as sessões do próprio cinema**, e essa lista é montada no servidor: mandar um id de fora recebe 404.
+
+**Escopo por cinema e não por organizador** porque é assim que emprego funciona: a pessoa trabalha num lugar, não para um catálogo inteiro. É o que impede alguém do Belas Artes de validar ingresso do Odeon.
+
+**Ganho colateral:** `validated_by` passa a apontar para uma pessoa, não para um posto anônimo. Se um ingresso foi validado errado, há a quem perguntar.
+
+**A janela de sessões oferecidas** vai de quatro horas atrás a dois dias adiante. O passado recente porque a sessão que começou há pouco ainda tem gente entrando; o futuro curto porque uma lista com o mês inteiro esconderia a de hoje. Sessão cancelada não aparece: ela não recebe ninguém.
+
+---
+
+## D25 · Cadastro editável, remoção só do que está vazio
+
+**Decidido:** cinema, sala e funcionário ganham edição e remoção. A remoção é recusada quando levaria algo junto: cinema com sala, sala com sessão, funcionário que já validou ingresso.
+
+**Descartado:** remoção em cascata, e cadastro imutável que se corrige recriando.
+
+**Por que não recriar:** o cinema tem salas, e as salas têm sessões vendidas. Um erro de digitação no endereço obrigaria a desmontar a estrutura inteira — e no caminho os ingressos comprados sumiriam.
+
+**Por que não a cascata:** apagar um cinema levaria salas, sessões e ingressos, e quem comprou perderia o ingresso por causa de uma limpeza de cadastro. Exigir esvaziar antes torna a consequência visível passo a passo, em vez de escondê-la atrás de uma confirmação genérica.
+
+**Funcionário que validou não sai:** `tickets.validated_by` aponta para quem estava na porta. Apagar a conta exigiria zerar esse campo, e o histórico deixaria de dizer quem deixou cada pessoa entrar — que é metade do motivo de a conta ser de gente e não de posto (D24). A saída oferecida é tirar o cinema: a conta para de validar e o histórico continua de pé.
+
+**Layout de sala continua editável com sessões marcadas.** Os assentos pertencem à exibição e são gerados na publicação (D6), então a mudança vale para as próximas e não reescreve mapa já vendido. Travar aqui obrigaria a criar uma sala nova para corrigir um número errado.
+
+**Cidade só muda em par com a UF:** mandar uma sem a outra deixaria o código do município apontando para outro estado, que é o erro que a D23 existe para fechar.
+
+**Escopo da equipe segue o do cadastro de locais.** A primeira versão recortava por "cinemas onde tenho sessão", e quebrava no caso mais comum — cinema recém-criado, funcionário cadastrado, nenhuma sessão ainda — deixando o cadastro impossível de corrigir. Como `Venue` não tem dono (D22), qualquer organizador já cadastra cinema e cria sala em cinema alheio: recortar só a equipe seria cerca isolada em volta de terreno aberto. Fechar isso de verdade é dar dono ao `Venue`, e está declarado nas limitações.
+
+---
+
+## D26 · Cobertura por sessão, não por funcionário
+
+**Decidido:** o painel mostra, acima da tabela de equipe, as sessões que começam nas próximas doze horas e quem está na porta de cada uma. Sessão sem ninguém aparece em carmim, com barra à esquerda.
+
+**Descartado:** deixar só a coluna "atendendo agora" na tabela de funcionários.
+
+**Por quê:** a tabela responde "o que o João está atendendo?". Quem opera um cinema pergunta o contrário — "a sessão das 21:30 tem alguém na porta?". A resposta saía de cruzar duas colunas na cabeça, o que funciona com três funcionários e falha numa noite cheia. E o erro dessa conta só aparece quando a fila já se formou.
+
+**Consequência de o turno ser escolhido pelo funcionário (D24):** ao tirar o organizador da virada de cada sessão, tirou-se também a visão dele sobre quem está onde. Este bloco devolve a visão sem devolver o controle — é leitura, não comando. Dois lugares comandando o mesmo campo fariam a tela de quem opera mentir sobre o que ele está atendendo.
+
+**A janela é a mesma da escolha de turno**, e não uma própria. A primeira versão usava doze horas, e a verificação mostrou o defeito: um gerente olhando de manhã não via a sessão da noite, e nem o cenário semeado aparecia. Pior que o prazo curto era serem dois prazos — o organizador veria uma sessão descoberta que ninguém consegue assumir, ou deixaria de ver uma que já pode ser coberta. Uma janela só mantém as duas telas falando da mesma realidade.
+
+**Recortado por evento e não por cinema:** eventos têm dono no modelo, cinemas não (D22). É o único recorte que se sustenta hoje.
+
+**A coluna da tabela continua**, porque as duas perguntas são legítimas: a lista serve para agir antes da sessão, a coluna para conferir quem está fora de turno.

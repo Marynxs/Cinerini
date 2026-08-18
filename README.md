@@ -44,7 +44,7 @@ Zero linhas afetadas significa que já foi usado. Nunca um `SELECT` seguido de `
 
 ### 4. Ingresso do lugar errado é estado próprio
 
-O usuário de portaria é vinculado a **uma exibição** — aquele filme, naquele horário, naquela sala. Ingresso legítimo que não pertence a ela retorna um estado distinto de "inválido", e são dois: `wrong_event` para outro filme, `wrong_showing` para outra sessão do mesmo filme. Situações diferentes exigem reações diferentes de quem está na entrada — uma manda a pessoa para outra sala, a outra para outro horário.
+A conta é de um funcionário e pertence a um cinema; ele escolhe a **exibição** do turno entre as daquele cinema — aquele filme, naquele horário, naquela sala (D24). Ingresso legítimo que não pertence a ela retorna um estado distinto de "inválido", e são dois: `wrong_event` para outro filme, `wrong_showing` para outra sessão do mesmo filme. Situações diferentes exigem reações diferentes de quem está na entrada — uma manda a pessoa para outra sala, a outra para outro horário.
 
 O vínculo é pela exibição e não pelo filme porque o filme passa em vários horários e cinemas: amarrado nele, a portaria das 19h aceitaria o ingresso das 22h, e a pessoa sentaria numa poltrona vendida a outro comprador. Decisão registrada como D21, junto com a alternativa descartada.
 
@@ -145,13 +145,15 @@ A tela de login lista as quatro e preenche o formulário num clique — inclusiv
 | Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica e cancela |
 | Cliente | `cliente1@cinerini.com.br` | Compra, vê ingressos, compartilha e cancela |
 | Cliente | `cliente2@cinerini.com.br` | Serve para demonstrar a disputa por poltrona |
-| Portaria | `portaria@cinerini.com.br` | Valida ingressos de **uma** sessão específica |
+| Funcionário | `portaria@cinerini.com.br` | Abre a portaria, escolhe a sessão do turno e valida os ingressos dela |
 
 O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 11 sessões. Um dos filmes passa **nos dois cinemas**, para que o agrupamento por cinema e o filtro por cidade sejam perceptíveis.
 
-A portaria é vinculada à primeira sessão do primeiro filme de propósito: é o que dá os dois recusados de uma vez. As demais sessões daquele filme demonstram **outra sessão**, e um ingresso de qualquer outro filme demonstra **outro evento**.
+A portaria trabalha no Cine Belas Artes e **nasce sem turno escolhido**: ao entrar, ela escolhe qual sessão está atendendo. Esse cinema dá os dois recusados de uma vez — as demais sessões do mesmo filme demonstram **outra sessão**, e um ingresso de qualquer outro filme demonstra **outro evento**.
 
-Portarias novas são criadas pelo organizador, na seção *Portarias* do painel, escolhendo a sessão. A mesma conta pode ser reapontada para outra sessão a qualquer momento — é o gesto normal entre uma exibição e a seguinte, não a exceção (D21).
+Contas de funcionário são criadas pelo organizador, na aba *Equipe* do painel, escolhendo o **cinema**. Qual sessão a pessoa atende é decisão dela, a cada turno (D24).
+
+**Para criar um organizador:** numa instalação vazia, o primeiro cadastro nasce organizador. Havendo um, ele promove um funcionário escolhido em lista, na aba *Equipe* do painel. Quem é promovido deixa de ser funcionário. Não há comando de linha para isso porque o plano gratuito do Render não dá acesso ao shell, e um comando deixaria a instalação publicada sem caminho nenhum (D22).
 
 **Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D20).
 
@@ -180,7 +182,7 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 198 casos, sem rede e sem chave do TMDb
+pytest                  # 231 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
@@ -214,6 +216,10 @@ Declaradas porque existem, não porque passaram despercebidas.
 
 **Um banco serve desenvolvimento e produção.** A consequência é concreta e já aconteceu: aplicar uma migration na máquina de desenvolvimento altera o schema que a produção lê, e a API publicada continua rodando o código anterior até o próximo deploy. Nessa janela toda consulta à tabela alterada falha. A ordem segura é publicar o código antes de migrar, ou aceitar a janela sabendo que ela existe. Dois bancos resolveriam, ao custo de manter dois seeds e duas cadeias de migration por dois dados que não são reais.
 
+**Cinemas não têm dono.** Qualquer organizador cadastra, edita e remove cinema, sala e funcionário — inclusive de outro organizador. Eventos e sessões são protegidos por dono, o cadastro de locais não. É o que impede abrir o cadastro de organizador ao público, como fazem Sympla e Eventbrite: sem cercar o local primeiro, o catálogo ficaria à mercê de quem aparecesse. O caminho é dar `organizer_id` ao `Venue`, e não foi percorrido por escopo (D22).
+
+**A lista de municípios depende do IBGE.** Se a API de localidades estiver fora, não dá para cadastrar cinema novo — e nada mais: catálogo, compra e portaria não passam por lá. A resposta nesse caso diz o que aconteceu, e o seed traz os códigos escritos para semear sem internet (D23).
+
 **Só há mapa de assentos.** O desafio pede um dos dois modos, e a escolha foi assento numerado por ser onde a garantia de unicidade aparece de verdade.
 
 ---
@@ -223,7 +229,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 21 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 26 decisões |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
 | `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |

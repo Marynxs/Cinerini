@@ -81,6 +81,30 @@ Perguntei como se cria uma portaria para outro filme, e a resposta expôs duas f
 
 O agente ofereceu três saídas e recomendou a mais barata — documentar o limite, ou conferir uma janela de horário eu escolhi trocar o modelo: a portaria passou a ser vinculada à exibição. A verificação depois mostrou que a janela de horário não teria bastado, porque o mesmo filme começa à mesma hora em dois cinemas do cenário semeado, e só o vínculo pela exibição fecha horário, sala e cinema juntos. Virou a decisão D21.
 
+**Conta de portaria por sessão não fazia sentido.**
+Apontei que criar e-mail e senha para cada exibição é insustentável: a conta morre com a sessão, alguém precisa inventar e distribuir credenciais toda noite, e senha que se multiplica acaba anotada num papel. Pedi que o agente pesquisasse como isso é feito de verdade. Ele voltou com um código de pareamento por dispositivo, e recusei: um código curto, feito para ser ditado por telefone, vaza — e quem o tiver valida ingresso dos outros, fazendo o titular legítimo levar "já utilizado". Propus contas de funcionário com permissão de portaria, ativando a sessão que vão atender. A pesquisa seguinte mostrou que é exatamente o padrão do mercado. Virou a decisão D24.
+
+**Cidade e UF digitadas à mão quebravam o filtro.**
+Notei que o cadastro de cinema pedia cidade e UF por escrito, e que isso permitiria "São Paulo" e "sao paulo" coexistirem — o filtro do catálogo agrupa por cidade, então viraria duas. Pedi a melhor implementação em vez de um remendo de normalização. Ficaram UF de uma constante e município do IBGE, com o código guardado: nome de cidade se repete entre estados, e agrupar por texto juntaria cidades sem relação. Virou a decisão D23.
+
+**Não havia como criar um organizador.**
+Cobrei que o sistema não tinha caminho para o primeiro organizador. Pedi as alternativas com prós e contras antes de escolher, e o argumento decisivo foi de ambiente: o plano gratuito do Render não dá shell, então um comando de linha resolveria só na máquina local. Escolhi o primeiro cadastro virar organizador, somado à promoção pelo painel. Virou a decisão D22.
+
+**Conta de portaria era um posto, não uma pessoa.**
+Depois de aceitar o modelo de funcionário escolhendo o turno, apontei que o vocabulário ainda estava errado: a conta se chamava "portaria", e enquanto se chamasse assim continuaria parecendo natural criar uma por sessão. Passou a ser conta de **funcionário**, que abre a portaria para trabalhar. E a promoção a organizador deixou de pedir e-mail digitado: virou uma lista de funcionários para escolher, porque digitar exige saber de cor o endereço e erra calado.
+
+**Telas cortadas no celular.**
+Abri a compra num aparelho de 360px e o mapa de assentos vazava pela direita, com o rótulo da trilha de compra cortado à esquerda. Pedi correção, zoom no mapa e uma barra fixa embaixo com poltronas escolhidas, total e o botão de seguir — mantendo o resumo completo no fim da página. A barra se apaga quando o resumo entra em cena, para não haver duas ações iguais na tela ao mesmo tempo.
+
+**Painel do organizador amontoado.**
+Cobrei que eventos, cinemas, salas, funcionários e organizadores ficavam empilhados numa tela só. Virou navegação por abas: as áreas são usadas em momentos diferentes, e rolar por três assuntos para chegar ao quarto era trabalho à toa.
+
+**Faltava editar e remover cinema, sala e funcionário.**
+Apontei que o cadastro só crescia: dava para criar, nunca corrigir nem apagar. Entraram edição e remoção nos três, com as recusas que fazem sentido — cinema com sala não sai, sala com sessão não sai, e funcionário que já validou ingresso não sai porque o histórico deixaria de dizer quem estava na porta. Virou a decisão D25.
+
+**Coluna que respondia a pergunta errada.**
+Perguntei o que era a coluna "atendendo agora" e por que existia. Ao explicar, ficou claro que ela responde "o que o João atende", enquanto quem opera um cinema pergunta o contrário: "a sessão das 21:30 tem alguém na porta?". Pedi para inverter. Entrou um bloco acima da tabela com as próximas sessões e quem cobre cada uma, destacando as descobertas. Virou a decisão D26.
+
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 

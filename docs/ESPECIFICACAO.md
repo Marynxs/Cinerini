@@ -12,9 +12,11 @@ O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não
 |---|---|
 | **Organizador** | Buscar filmes no TMDb, criar eventos e sessões, definir sala, horário, preço e capacidade, publicar, acompanhar vendas |
 | **Cliente** | Navegar e buscar sessões publicadas por cidade, cinema, data e título, escolher poltrona, pagar, ver seus ingressos, compartilhar um ingresso por link |
-| **Portaria** | Validar ingressos de **uma exibição específica**, por câmera ou digitação |
+| **Funcionário** | Abrir a portaria, escolher a sessão do turno entre as do seu cinema e validar os ingressos dela, por câmera ou digitação |
 
-Portaria é vinculada a uma exibição, e criada pelo organizador. É essa vinculação que permite responder "outra sessão" ou "outro evento" em vez de "inválido".
+A conta é de um funcionário e pertence a um cinema; quem a cria é o organizador. Portaria é a tela que ele abre para trabalhar, não a identidade da conta. A sessão do turno é escolhida pelo próprio funcionário, entre as daquele cinema (D24). É essa vinculação que permite responder "outra sessão" ou "outro evento" em vez de "inválido".
+
+O primeiro cadastro numa instalação vazia nasce organizador; depois disso, um organizador promove um funcionário existente, escolhido em lista. Quem é promovido deixa de ser funcionário — os papéis são exclusivos (D22).
 
 ## Fluxos
 
@@ -22,6 +24,8 @@ Portaria é vinculada a uma exibição, e criada pelo organizador. É essa vincu
 Organizador busca no TMDb → escolhe o filme → o sistema importa título, sinopse, pôster e duração → organizador escolhe a sala e define horário e preço → publica. A publicação gera os assentos a partir do layout da sala.
 
 Cinemas e salas são cadastrados uma vez e reaproveitados por qualquer exibição: o cinema guarda nome, cidade, estado e endereço; a sala guarda nome e dimensões.
+
+Cidade e UF são escolhidas em lista, nunca digitadas — a UF de uma constante, o município do IBGE — e o cadastro guarda o código do município. Sem isso o filtro do catálogo agrupa por texto, e duas grafias da mesma cidade viram duas cidades (D23).
 
 ### Compra
 Cliente abre a sessão → vê o mapa com assentos livres, ocupados e em espera → escolhe → o assento entra em espera por 10 minutos → paga → o ingresso é emitido com código assinado.
@@ -44,7 +48,7 @@ Os dois recusados por encaminhamento são separados porque a reação de quem op
 
 O ingresso é marcado como usado no mesmo passo em que é validado.
 
-A portaria é criada pelo organizador, já vinculada a uma sessão, e pode ser reapontada para outra. O cadastro público nunca concede o papel: ele decide quem entra na sala.
+Ao entrar, a portaria escolhe qual sessão está atendendo, e pode trocar a qualquer momento — é o gesto da virada de uma exibição para a seguinte, e não depende do organizador. O cadastro público nunca concede o papel: ele decide quem entra na sala.
 
 ### Compartilhamento
 Cliente gera um link para um ingresso. Quem abre vê o ingresso e o QR. O link é revogável, e revogá-lo não invalida o ingresso.
@@ -65,7 +69,7 @@ Sem transação financeira real. O desfecho é determinístico para que ambos os
 
 ## Dados semeados
 
-Um organizador, dois clientes, um usuário de portaria e ao menos uma sessão publicada com assentos disponíveis — o fluxo inteiro percorrível sem cadastrar nada.
+Um organizador, dois clientes, uma conta de portaria já ligada a um cinema mas **sem turno escolhido**, e sessões publicadas com assentos disponíveis. O fluxo inteiro é percorrível sem cadastrar nada; escolher o turno é o primeiro gesto de quem abre a portaria, e deixá-lo pronto esconderia o passo.
 
 ## Critérios de aceite
 
