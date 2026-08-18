@@ -738,8 +738,8 @@ class TestCoverage:
         self, client: TestClient, auth, db: Session, showing: Showing,
         room: Room
     ) -> None:
-        """Doze horas cobrem a noite; a semana inteira seria ruído."""
-        distante = _sessao(db, showing.event_id, room, dias=3)
+        """A janela cobre os próximos dias; a semana inteira seria ruído."""
+        distante = _sessao(db, showing.event_id, room, dias=5)
 
         r = client.get("/gates/coverage", headers=auth("organizer"))
         assert distante.id not in [c["showing"]["showing_id"] for c in r.json()]

@@ -28,7 +28,11 @@ router = APIRouter(tags=["portaria"])
 # recente porque a sessão que começou há pouco ainda tem gente entrando;
 # futuro curto porque uma lista com o mês inteiro esconderia a de hoje.
 JANELA_ATRAS = timedelta(hours=4)
-JANELA_ADIANTE = timedelta(days=2)
+# Três dias e não dois: a janela é contada a partir de agora, então
+# "dois dias" desliza com a hora do dia e a sessão da noite de depois de
+# amanhã caía fora conforme o relógio andava — presente no catálogo,
+# ausente na lista de turnos.
+JANELA_ADIANTE = timedelta(days=3)
 
 
 def _as_gate_out(db: Session, user: User) -> GateOut:

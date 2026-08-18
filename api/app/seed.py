@@ -170,7 +170,10 @@ def semear(db: Session) -> None:
         if venue.id == sala.venue_id
     }
 
-    horarios = _horarios(dias=5)
+    # Dois dias, e não mais: a lista de turnos da portaria só enxerga as
+    # sessões da janela de JANELA_ADIANTE. Semear além dela produzia um
+    # filme inteiro que o catálogo vende e a portaria não consegue atender.
+    horarios = _horarios(dias=2)
     total_sessoes = 0
 
     for i, (tmdb_id, rotulo) in enumerate(FILMES):
@@ -183,7 +186,11 @@ def semear(db: Session) -> None:
         # Cada filme ocupa uma sala e três horários, em dias alternados, para
         # que o catálogo tenha mais de uma data sem ficar poluído.
         sala = salas[i % len(salas)]
-        agenda = [(sala, h) for h in horarios[i * 3:(i * 3) + 3]]
+        # Modular e não fatiado: com três filmes e seis horários, fatiar
+        # jogaria o terceiro para fora da janela. Repetir horário é
+        # inofensivo porque a sala é outra.
+        agenda = [(sala, horarios[(i * 3 + k) % len(horarios)])
+                  for k in range(3)]
 
         # O primeiro filme ganha sessões num cinema de outra cidade. Sem isso
         # não há como demonstrar o agrupamento por cinema nem o filtro por
