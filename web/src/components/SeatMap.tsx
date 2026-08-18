@@ -1,4 +1,5 @@
 import type { SeatOut } from '../api/types';
+import { ZOOM_MAX, ZOOM_MIN, useZoomMapa } from './useZoomMapa';
 import './SeatMap.css';
 
 interface Props {
@@ -42,13 +43,14 @@ export function SeatMap({ seats, selected, onToggle, disabled }: Props) {
   const numeros = fileiras[0]?.[1].map((a) => a.number) ?? [];
   const corredorApos = Math.ceil(numeros.length / 2);
 
+  const { lado, setLado, rolagem, gestos } = useZoomMapa();
+
   return (
-    <div className="mapa">
-      {/* O mapa é mais largo que um celular e precisa rolar de lado. A
-          rolagem fica neste invólucro, e não na grade: a grade tem a largura
-          do conteúdo, e sem um pai limitado a 100% ela vazava para fora da
-          tela em vez de rolar. */}
-      <div className="mapa-rolagem">
+    <div className="mapa" style={{ '--assento-lado': `${lado}px` } as React.CSSProperties}>
+      {/* O mapa é maior que a tela e precisa rolar nos dois eixos. A rolagem
+          fica neste invólucro, e não na grade: a grade tem o tamanho do
+          conteúdo, e sem um pai limitado ela vaza em vez de rolar. */}
+      <div className="mapa-rolagem" ref={rolagem} {...gestos}>
       <div className="mapa-grade">
         <div className="mapa-numeros" aria-hidden="true">
           <span className="mapa-fileira-letra" />
@@ -87,7 +89,24 @@ export function SeatMap({ seats, selected, onToggle, disabled }: Props) {
         <div className="mapa-tela-rotulo">Tela</div>
       </div>
 
-      <Legenda />
+      <div className="mapa-rodape">
+        <Legenda />
+
+        {/* Barra deslizante além da roda e da pinça: nem todo mundo tem
+            roda, e gesto que não aparece na tela é gesto que não se
+            descobre (D31). */}
+        <label className="mapa-zoom">
+          <span className="mapa-zoom-rotulo">Zoom</span>
+          <input
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            value={lado}
+            aria-label="Tamanho do mapa"
+            onChange={(e) => setLado(Number(e.target.value))}
+          />
+        </label>
+      </div>
     </div>
   );
 }

@@ -15,6 +15,8 @@
      Amarrado a altura da janela para o mapa crescer ate o limite do que cabe
      sem rolagem. O teto de 50px e onde a poltrona para de parecer poltrona;
      o piso vale para telas baixas, e no celular ele e fixado mais abaixo. */
+  /* Valor inicial. O componente sobrescreve com o zoom escolhido, então
+     este `clamp` só vale enquanto o React não pintou (D31). */
   --assento-lado: clamp(22px, 4.2vh, 50px);
   display: flex;
   flex-direction: column;
@@ -32,11 +34,17 @@
    largura do conteúdo, role dentro dele em vez de vazar para fora da tela. */
 .mapa-rolagem {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* Rolagem lateral do mapa sem sequestrar o gesto vertical da página. */
-  touch-action: pan-x pan-y;
+  max-height: 100%;
+  /* Nos dois eixos. `overflow-y: hidden` cortava as fileiras de cima numa
+     sala alta, e elas ficavam inalcançáveis — o defeito que motivou o zoom. */
+  overflow: auto;
+
+  /* `none` porque a pinça e o arrastar são tratados no código: deixar o
+     navegador rolar por conta faria os dois gestos disputarem o mesmo
+     toque, e a pinça só ampliaria de vez em quando (D31). */
+  touch-action: none;
   padding-bottom: var(--e2);
+  overscroll-behavior: contain;
 }
 
 .mapa-grade {
@@ -235,18 +243,79 @@
 /* --- telas estreitas --- */
 
 @media (max-width: 620px) {
-  /* Fixo, e menor que o alvo de toque que se recomendaria em abstrato.
+  /* O tamanho da poltrona não vem mais daqui: quem o define é o zoom, que
+     escreve a variável no próprio elemento (D31). Repetir o valor nesta
+     regra criaria uma declaração morta — inline sempre vence — e a próxima
+     pessoa a ler o arquivo mudaria o número errado.
 
-     A escolha é deliberada: com poltronas maiores, uma sala de doze colunas
-     não cabe na largura de um celular, e o mapa deixa de ser mapa — vira uma
-     fita que se percorre sem nunca ver a sala inteira. Escolher poltrona é
-     uma decisão espacial, e ver o conjunto vale mais aqui do que folga no
-     dedo. A rolagem lateral continua para as salas mais largas. */
-  .mapa {
-    --assento-lado: 22px;
-  }
-
+     Fica só o corredor, que é espaçamento e não alvo de toque. */
   .mapa-corredor {
     width: var(--e2);
+  }
+}
+
+
+/* --- rodapé: legenda e zoom --- */
+
+.mapa-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e5);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.mapa-zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.mapa-zoom-rotulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  color: var(--tinta-fraca);
+  text-transform: uppercase;
+}
+
+/* Barra desenhada à mão: o controle nativo traz a estética do sistema
+   operacional, que destoa de tudo aqui. */
+.mapa-zoom input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 2px;
+  background: var(--picote);
+  cursor: pointer;
+}
+
+.mapa-zoom input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--tinta);
+  border: none;
+  cursor: grab;
+}
+
+.mapa-zoom input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--tinta);
+  border: none;
+  border-radius: 0;
+  cursor: grab;
+}
+
+@media (max-width: 620px) {
+  .mapa-rodape {
+    flex-direction: column;
+    gap: var(--e3);
+  }
+
+  .mapa-zoom input[type="range"] {
+    width: 160px;
   }
 }
