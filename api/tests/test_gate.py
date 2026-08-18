@@ -503,12 +503,39 @@ class TestChoosingShift:
         assert users["gate"].gate_venue_id is None
         assert client.get("/gate/showings", headers=auth("gate")).status_code == 409
 
-    def test_organizer_cannot_choose_the_shift(
-        self, client: TestClient, auth, gate_hired: User, showing: Showing
+    def test_organizer_also_opens_the_gate(
+        self, client: TestClient, auth, showing: Showing
     ) -> None:
-        """O turno é de quem trabalha; o organizador define só o cinema."""
+        """Num cinema pequeno quem publica é quem fica na porta (D27).
+
+        O escopo dele não é um cinema, e sim os eventos que publicou — não
+        precisa de `gate_venue_id` para escolher turno.
+        """
         r = client.put("/gate/shift", json={"showing_id": showing.id},
                        headers=auth("organizer"))
+        assert r.status_code == 200
+        assert r.json()["showing_id"] == showing.id
+
+    def test_any_organizer_takes_any_session(
+        self, client: TestClient, auth, showing: Showing
+    ) -> None:
+        """Não há "catálogo do outro": a operação é uma só (D29)."""
+        r = client.put("/gate/shift", json={"showing_id": showing.id},
+                       headers=auth("organizer2"))
+        assert r.status_code == 200
+
+    def test_a_session_that_does_not_exist_is_still_404(
+        self, client: TestClient, auth
+    ) -> None:
+        r = client.put("/gate/shift", json={"showing_id": 999999999},
+                       headers=auth("organizer"))
+        assert r.status_code == 404
+
+    def test_customer_never_opens_the_gate(
+        self, client: TestClient, auth, showing: Showing
+    ) -> None:
+        r = client.put("/gate/shift", json={"showing_id": showing.id},
+                       headers=auth("customer"))
         assert r.status_code == 403
 
     def test_cancelled_sessions_are_not_offered(
@@ -695,13 +722,17 @@ class TestCoverage:
         assert daqui_a_pouco.id not in [
             c["showing"]["showing_id"] for c in r.json()]
 
-    def test_sessions_of_another_organizer_are_hidden(
+    def test_every_organizer_sees_the_same_coverage(
         self, client: TestClient, auth, daqui_a_pouco: Showing
     ) -> None:
-        """Eventos têm dono de verdade, ao contrário dos cinemas (D22)."""
-        r = client.get("/gates/coverage", headers=auth("organizer2"))
-        assert daqui_a_pouco.id not in [
-            c["showing"]["showing_id"] for c in r.json()]
+        """Duas visões diferentes deixariam uma porta descoberta sem que
+        ninguém visse — a cobertura é da operação inteira (D29)."""
+        um = client.get("/gates/coverage", headers=auth("organizer")).json()
+        outro = client.get("/gates/coverage", headers=auth("organizer2")).json()
+
+        ids = [c["showing"]["showing_id"] for c in outro]
+        assert daqui_a_pouco.id in ids
+        assert [c["showing"]["showing_id"] for c in um] == ids
 
     def test_far_future_sessions_are_out_of_the_window(
         self, client: TestClient, auth, db: Session, showing: Showing,

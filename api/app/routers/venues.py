@@ -58,11 +58,23 @@ def list_municipios(uf: str) -> list[dict]:
 
 @router.post("", response_model=VenueOut, status_code=status.HTTP_201_CREATED)
 def create_venue(data: VenueIn, db: DbSession, _: Organizer) -> Venue:
-    # O nome vem do IBGE, nunca do corpo: é o que garante que dois cadastros
-    # da mesma cidade gravem exatamente o mesmo texto.
-    cidade = resolver(data.state, data.city_ibge_id)
+    """O nome da cidade vem do IBGE, com uma saída para quando ele não vem.
 
-    venue = Venue(**data.model_dump(), city=cidade)
+    Regra: o nome oficial sempre vence. O texto digitado só entra se o IBGE
+    estiver fora, e existe porque a alternativa era o cadastro de cinema
+    ficar refém de um serviço de terceiro (D28).
+    """
+    try:
+        cidade = resolver(data.state, data.city_ibge_id)
+    except HTTPException as erro:
+        if erro.status_code != status.HTTP_503_SERVICE_UNAVAILABLE:
+            raise
+        if not data.city_fallback:
+            raise
+        cidade = data.city_fallback.strip()
+
+    campos = data.model_dump(exclude={"city_fallback"})
+    venue = Venue(**campos, city=cidade)
     db.add(venue)
     try:
         db.commit()

@@ -10,7 +10,7 @@ Três responsabilidades separadas de propósito (D24):
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, true as sa_true
 from sqlalchemy.orm import Session
 
 from app.deps import DbSession, Gate, Organizer
@@ -45,8 +45,24 @@ def _as_gate_out(db: Session, user: User) -> GateOut:
     )
 
 
-def _sessoes_do_cinema(db: Session, venue_id: int) -> list[ShowingBriefOut]:
+def _sessoes_disponiveis(db: Session, quem: User) -> list[ShowingBriefOut]:
+    """As sessões que esta conta pode assumir, e o recorte muda com o papel.
+
+    Funcionário enxerga as do cinema onde trabalha: é o escopo do emprego, e
+    é o que impede alguém do Belas Artes validar ingresso do Odeon.
+
+    Organizador enxerga todas, em qualquer cinema: ele administra o catálogo
+    inteiro (D29), e a portaria é mais uma coisa que ele pode fazer — não um
+    emprego com escopo (D27).
+    """
     agora = datetime.now(timezone.utc)
+
+    escopo = (
+        # `true` em vez de omitir a cláusula: mantém a forma da consulta e
+        # deixa explícito que a ausência de recorte é decisão, não descuido.
+        sa_true() if quem.role == Role.ORGANIZER
+        else Venue.id == quem.gate_venue_id
+    )
 
     linhas = db.execute(
         select(Showing, Event, Room, Venue)
@@ -54,7 +70,7 @@ def _sessoes_do_cinema(db: Session, venue_id: int) -> list[ShowingBriefOut]:
         .join(Room, Showing.room_id == Room.id)
         .join(Venue, Room.venue_id == Venue.id)
         .where(
-            Venue.id == venue_id,
+            escopo,
             # Sessão cancelada não recebe ninguém, então não entra na lista
             # de turnos possíveis.
             Showing.cancelled_at.is_(None),
@@ -119,14 +135,14 @@ def my_showings(db: DbSession, gate: Gate) -> list[ShowingBriefOut]:
     É o escopo que impede alguém da portaria de um cinema validar ingresso de
     outro — e ele vem da conta, não da escolha de quem opera.
     """
-    if gate.gate_venue_id is None:
+    if gate.role == Role.GATE and gate.gate_venue_id is None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Esta conta de portaria não está ligada a nenhum cinema. "
+            "Esta conta de funcionário não está ligada a nenhum cinema. "
             "Peça ao organizador para corrigir o cadastro.",
         )
 
-    return _sessoes_do_cinema(db, gate.gate_venue_id)
+    return _sessoes_disponiveis(db, gate)
 
 
 @router.put("/gate/shift", response_model=GateOut,
@@ -147,13 +163,13 @@ def choose_shift(data: GateShiftIn, db: DbSession, gate: Gate) -> GateOut:
         db.refresh(gate)
         return _as_gate_out(db, gate)
 
-    if gate.gate_venue_id is None:
+    if gate.role == Role.GATE and gate.gate_venue_id is None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Esta conta de portaria não está ligada a nenhum cinema.",
+            "Esta conta de funcionário não está ligada a nenhum cinema.",
         )
 
-    permitidas = {s.showing_id for s in _sessoes_do_cinema(db, gate.gate_venue_id)}
+    permitidas = {s.showing_id for s in _sessoes_disponiveis(db, gate)}
     if data.showing_id not in permitidas:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, "Sessão indisponível para esta portaria.")
@@ -290,6 +306,21 @@ def update_gate(
             porteiro.gate_showing_id = None
         porteiro.gate_venue_id = novo
 
+    if "showing_id" in campos:
+        # O organizador também escala, além de o funcionário escolher. As
+        # duas portas para o mesmo campo não se contradizem: a escolha do
+        # funcionário é o caminho normal (D24), e esta é a correção de quem
+        # coordena a noite — remanejar alguém sem depender de ele estar com
+        # o aparelho na mão.
+        alvo = campos["showing_id"]
+        if alvo is not None:
+            permitidas = {s.showing_id for s in _sessoes_disponiveis(db, porteiro)}
+            if alvo not in permitidas:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND,
+                    "Sessão indisponível para este funcionário.")
+        porteiro.gate_showing_id = alvo
+
     db.commit()
     db.refresh(porteiro)
     return _as_gate_out(db, porteiro)
@@ -342,8 +373,8 @@ def coverage(db: DbSession, organizer: Organizer) -> list[CoverageOut]:
     A janela é a mesma da escolha de turno: o organizador enxerga exatamente
     as sessões que alguém pode assumir agora.
 
-    Recortado pelos eventos deste organizador, que são os que têm dono de
-    verdade no modelo.
+    Sem recorte por quem publicou: o painel administra um catálogo só, e a
+    cobertura precisa concordar com ele (D29).
     """
     agora = datetime.now(timezone.utc)
 
@@ -353,7 +384,8 @@ def coverage(db: DbSession, organizer: Organizer) -> list[CoverageOut]:
         .join(Room, Showing.room_id == Room.id)
         .join(Venue, Room.venue_id == Venue.id)
         .where(
-            Event.organizer_id == organizer.id,
+            # Sem recorte por quem publicou: a cobertura é da operação
+            # inteira, como o resto do painel (D29).
             Showing.cancelled_at.is_(None),
             # Mesma janela que o funcionário enxerga ao escolher o turno.
             # Duas listas com prazos diferentes divergiriam: o organizador

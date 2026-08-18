@@ -27,6 +27,10 @@ class PromoteIn(BaseModel):
     email: EmailStr
 
 
+class OrganizerUpdate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
@@ -80,6 +84,12 @@ class VenueIn(BaseModel):
     state: str = Field(min_length=2, max_length=2, description="UF")
     city_ibge_id: int = Field(gt=0, description="Código do município no IBGE")
     address: str = Field(min_length=4, max_length=255)
+
+    # Só é olhado quando o IBGE não responde: aí o nome vem daqui, porque a
+    # alternativa seria não conseguir cadastrar cinema nenhum enquanto um
+    # serviço de terceiro estiver fora (D28). Com o IBGE no ar este campo é
+    # ignorado — o nome oficial sempre vence.
+    city_fallback: str | None = Field(default=None, min_length=2, max_length=120)
 
     @field_validator("state")
     @classmethod
@@ -447,6 +457,11 @@ class GateUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=2, max_length=120)
     venue_id: int | None = None
+
+    # Escalar alguém para uma sessão sem depender de ele estar com o
+    # aparelho na mão. O caminho normal continua sendo a escolha do próprio
+    # funcionário (D24); este é o remanejamento de quem coordena.
+    showing_id: int | None = None
 
 
 class GateShiftIn(BaseModel):

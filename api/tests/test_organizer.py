@@ -8,7 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Order, OrderStatus, Room, Seat, Showing, Ticket, TicketStatus, User,
+    Event, Order, OrderStatus, Room, Seat, Showing, Ticket, TicketStatus,
+    User,
     Venue,
 )
 
@@ -120,9 +121,9 @@ class TestEvents:
         """A ficha vem do catálogo: aceitá-la do corpo permitiria publicar
         um filme com dados que não são dele."""
         r = client.post("/events",
-                        json={"tmdb_id": 693134, "title": "Título Inventado"},
+                        json={"tmdb_id": 603, "title": "Título Inventado"},
                         headers=auth("organizer"))
-        assert r.json()["title"] == "Duna: Parte Dois"
+        assert r.json()["title"] == "Matrix"
 
     def test_without_tmdb_id_or_title_is_rejected(
         self, client: TestClient, auth
@@ -206,23 +207,46 @@ class TestPublishing:
         assert len(client.get(f"/showings/{showing.id}/seats").json()) == 12
 
 
-class TestOwnership:
-    """Evento alheio devolve 404, não 403: confirmar a existência permitiria
-    mapear o catálogo de outro organizador varrendo ids sequenciais."""
+class TestSharedCatalog:
+    """O catálogo é de uma operação só, não de cada organizador (D29)."""
 
-    def test_another_organizer_cannot_publish(
+    def test_any_organizer_publishes(
         self, client: TestClient, auth, showing: Showing
     ) -> None:
         r = client.post(f"/events/{showing.event_id}/publish",
                         headers=auth("organizer2"))
-        assert r.status_code == 404
+        assert r.status_code == 200
 
-    def test_another_organizer_cannot_edit_showing(
+    def test_any_organizer_edits_a_showing(
         self, client: TestClient, auth, showing: Showing
     ) -> None:
-        r = client.patch(f"/showings/{showing.id}", json={"price_cents": 1},
+        r = client.patch(f"/showings/{showing.id}", json={"price_cents": 1000},
                          headers=auth("organizer2"))
+        assert r.status_code == 200
+
+    def test_the_managed_list_is_the_same_for_everyone(
+        self, client: TestClient, auth, showing: Showing
+    ) -> None:
+        """Duas listas diferentes fariam a equipe discordar do que existe."""
+        um = client.get("/events/managed", headers=auth("organizer")).json()
+        outro = client.get("/events/managed", headers=auth("organizer2")).json()
+
+        assert [e["id"] for e in um] == [e["id"] for e in outro]
+
+    def test_a_missing_event_is_still_404(
+        self, client: TestClient, auth
+    ) -> None:
+        """Some a cerca de dono, não a checagem de existência."""
+        r = client.post("/events/999999999/publish", headers=auth("organizer"))
         assert r.status_code == 404
+
+    def test_customer_still_cannot_publish(
+        self, client: TestClient, auth, showing: Showing
+    ) -> None:
+        """Unificar é entre organizadores, não com o resto do mundo."""
+        r = client.post(f"/events/{showing.event_id}/publish",
+                        headers=auth("customer"))
+        assert r.status_code == 403
 
 
 class TestRoomChange:
@@ -386,3 +410,127 @@ class TestEditingRooms:
         r = client.patch(f"/venues/999999999/rooms/{room.id}",
                          json={"name": "X"}, headers=auth("organizer"))
         assert r.status_code == 404
+
+
+class TestCityFallback:
+    """O cadastro de cinema não fica refém do IBGE (D28)."""
+
+    @pytest.fixture
+    def ibge_fora(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from fastapi import HTTPException, status
+
+        from app import localidades
+
+        def _cai(uf: str):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE, "IBGE indisponível.")
+
+        monkeypatch.setattr(localidades, "municipios", _cai)
+        localidades.clear_cache()
+
+    def test_without_the_ibge_and_without_fallback_it_refuses(
+        self, client: TestClient, auth, ibge_fora: None
+    ) -> None:
+        """Sem nome nenhum não dá para gravar: a coluna não aceita vazio."""
+        r = client.post("/venues", json=CINEMA, headers=auth("organizer"))
+        assert r.status_code == 503
+
+    def test_the_typed_name_is_used_when_the_ibge_is_down(
+        self, client: TestClient, auth, ibge_fora: None
+    ) -> None:
+        r = client.post("/venues",
+                        json={**CINEMA, "city_fallback": "Curitiba"},
+                        headers=auth("organizer"))
+
+        assert r.status_code == 201
+        assert r.json()["city"] == "Curitiba"
+
+    def test_the_official_name_wins_when_the_ibge_answers(
+        self, client: TestClient, auth
+    ) -> None:
+        """Com o IBGE no ar o texto digitado é ignorado, e é o ponto todo."""
+        r = client.post("/venues",
+                        json={**CINEMA, "city_fallback": "cutiriba errado"},
+                        headers=auth("organizer"))
+
+        assert r.status_code == 201
+        assert r.json()["city"] == "Curitiba"
+
+
+class TestDraftLifecycle:
+    """Rascunho é o único estado em que apagar não destrói prova de compra."""
+
+    # Fora da lista do seed: a regra de unicidade é global, e reusar um
+    # filme semeado faria o teste medir o cenário em vez do comportamento.
+    FILME = 157336
+
+    def _rascunho(self, client: TestClient, auth) -> dict:
+        return client.post("/events", json={"tmdb_id": self.FILME},
+                           headers=auth("organizer")).json()
+
+    def test_the_same_film_is_refused_twice(
+        self, client: TestClient, auth, fake_tmdb
+    ) -> None:
+        """Dois eventos do mesmo filme repartiriam as sessões (D30)."""
+        self._rascunho(client, auth)
+        r = client.post("/events", json={"tmdb_id": self.FILME},
+                        headers=auth("organizer"))
+
+        assert r.status_code == 409
+
+    def test_the_refusal_names_the_existing_event(
+        self, client: TestClient, auth, fake_tmdb
+    ) -> None:
+        """Sem o nome, quem recebe o erro não sabe onde criar a sessão."""
+        self._rascunho(client, auth)
+        r = client.post("/events", json={"tmdb_id": self.FILME},
+                        headers=auth("organizer"))
+
+        assert "Interestelar" in r.json()["detail"]
+
+    def test_an_empty_draft_is_removed(
+        self, client: TestClient, auth, db: Session, fake_tmdb
+    ) -> None:
+        rascunho = self._rascunho(client, auth)
+
+        r = client.delete(f"/events/{rascunho['id']}", headers=auth("organizer"))
+        assert r.status_code == 204
+        assert db.get(Event, rascunho["id"]) is None
+
+    def test_a_draft_with_showings_is_refused(
+        self, client: TestClient, auth, room: Room, fake_tmdb
+    ) -> None:
+        rascunho = self._rascunho(client, auth)
+        client.post(f"/events/{rascunho['id']}/showings",
+                    json={"room_id": room.id, "starts_at": AMANHA,
+                          "price_cents": 3000, "audio": "Dublado"},
+                    headers=auth("organizer"))
+
+        r = client.delete(f"/events/{rascunho['id']}", headers=auth("organizer"))
+        assert r.status_code == 409
+
+    def test_a_published_event_is_refused(
+        self, client: TestClient, auth, showing: Showing
+    ) -> None:
+        """Publicado pode ter ingresso vendido: apagar levaria o comprovante."""
+        r = client.delete(f"/events/{showing.event_id}",
+                          headers=auth("organizer"))
+        assert r.status_code == 409
+
+    def test_unpublishing_reopens_the_door(
+        self, client: TestClient, auth, db: Session, fake_tmdb
+    ) -> None:
+        """Despublicar volta ao rascunho, e aí a remoção passa a valer."""
+        rascunho = self._rascunho(client, auth)
+        client.post(f"/events/{rascunho['id']}/publish", headers=auth("organizer"))
+        client.post(f"/events/{rascunho['id']}/unpublish", headers=auth("organizer"))
+
+        r = client.delete(f"/events/{rascunho['id']}", headers=auth("organizer"))
+        assert r.status_code == 204
+
+    def test_only_organizer_removes(
+        self, client: TestClient, auth, fake_tmdb
+    ) -> None:
+        rascunho = self._rascunho(client, auth)
+        r = client.delete(f"/events/{rascunho['id']}", headers=auth("customer"))
+        assert r.status_code == 403

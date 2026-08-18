@@ -17,11 +17,14 @@ from app.tmdb import movie_details
 router = APIRouter(prefix="/events", tags=["eventos"])
 
 
-def _owned_event(db: DbSession, event_id: int, organizer: User) -> Event:
+def _evento(db: DbSession, event_id: int) -> Event:
+    """O evento, sem recorte por quem o criou.
+
+    O catálogo é de uma operação só, não de cada organizador (D29):
+    `organizer_id` registra quem publicou, e deixou de ser cerca de acesso.
+    """
     event = db.get(Event, event_id)
-    # 404 e não 403 quando o dono é outro: responder "sem permissão"
-    # confirmaria a existência, e o id é sequencial.
-    if event is None or event.organizer_id != organizer.id:
+    if event is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento não encontrado.")
     return event
 
@@ -32,14 +35,18 @@ def list_published(db: DbSession, city: int | None = None) -> list[CatalogEventO
     return listar(db, city)
 
 
-@router.get("/mine", response_model=list[EventOut])
-def list_mine(db: DbSession, organizer: Organizer) -> list[Event]:
+@router.get("/managed", response_model=list[EventOut])
+def list_managed(db: DbSession, _: Organizer) -> list[Event]:
+    """Tudo que o painel administra, publicado ou não.
+
+    Diferente de `GET /events`, que é o catálogo público e só mostra o que
+    está publicado. Aqui entram os rascunhos, porque é onde eles são
+    terminados.
+
+    Sem filtro por quem criou: a equipe administra um catálogo só (D29).
+    """
     return list(
-        db.scalars(
-            select(Event)
-            .where(Event.organizer_id == organizer.id)
-            .order_by(Event.created_at.desc())
-        )
+        db.scalars(select(Event).order_by(Event.created_at.desc()))
     )
 
 
@@ -53,7 +60,22 @@ def get_event(event_id: int, db: DbSession) -> Event:
 
 @router.post("", response_model=EventOut, status_code=status.HTTP_201_CREATED)
 def create_event(data: EventIn, db: DbSession, organizer: Organizer) -> Event:
+    """O mesmo filme não entra duas vezes.
+
+    Dois eventos do mesmo `tmdb_id` produziriam dois blocos idênticos no
+    catálogo, com as sessões repartidas entre eles — o cliente veria "Duna"
+    duas vezes e teria de abrir os dois para saber onde está o horário que
+    procura. Um filme é um evento, e as sessões se penduram nele (D30).
+    """
     if data.tmdb_id is not None:
+        repetido = db.scalar(
+            select(Event).where(Event.tmdb_id == data.tmdb_id).limit(1))
+        if repetido is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"'{repetido.title}' já está no catálogo. "
+                "Crie as sessões no evento existente.",
+            )
         # A ficha vem do catálogo, não do corpo da requisição: aceitar título
         # e sinopse do cliente permitiria publicar um filme com dados que não
         # são os dele.
@@ -75,9 +97,42 @@ def create_event(data: EventIn, db: DbSession, organizer: Organizer) -> Event:
     return event
 
 
+@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_event(event_id: int, db: DbSession, _: Organizer) -> None:
+    """Só rascunho, e só sem sessões.
+
+    Publicado não sai porque pode ter ingresso vendido — e apagar levaria
+    junto o comprovante de quem comprou. Rascunho com sessões também não:
+    esvaziar antes torna a consequência visível passo a passo, em vez de
+    escondê-la atrás de uma confirmação genérica (D30).
+
+    Despublicar não é apagar: um evento que saiu do ar continua com o
+    histórico dele, e é isso que o `unpublish` existe para fazer.
+    """
+    event = _evento(db, event_id)
+
+    if event.status != EventStatus.DRAFT:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Só rascunhos podem ser removidos. Despublique o evento antes — "
+            "e se ele já vendeu ingressos, despublicar é o mais longe que dá.",
+        )
+
+    com_sessao = db.scalar(
+        select(Showing.id).where(Showing.event_id == event_id).limit(1))
+    if com_sessao is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Este rascunho tem sessões. Remova as sessões antes.",
+        )
+
+    db.delete(event)
+    db.commit()
+
+
 @router.post("/{event_id}/publish", response_model=EventOut)
 def publish(event_id: int, db: DbSession, organizer: Organizer) -> Event:
-    event = _owned_event(db, event_id, organizer)
+    event = _evento(db, event_id)
 
     if not event.showings:
         raise HTTPException(
@@ -104,7 +159,7 @@ def unpublish(event_id: int, db: DbSession, organizer: Organizer) -> Event:
     Assentos e ingressos permanecem: quem comprou continua com ingresso
     válido e a portaria segue validando. Muda só a visibilidade.
     """
-    event = _owned_event(db, event_id, organizer)
+    event = _evento(db, event_id)
     event.status = EventStatus.DRAFT
     db.commit()
     db.refresh(event)
@@ -133,7 +188,7 @@ def list_showings(event_id: int, db: DbSession) -> list[ShowingOut]:
 def create_showing(
     event_id: int, data: ShowingIn, db: DbSession, organizer: Organizer
 ) -> ShowingOut:
-    event = _owned_event(db, event_id, organizer)
+    event = _evento(db, event_id)
 
     if db.get(Room, data.room_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sala não encontrada.")

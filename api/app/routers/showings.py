@@ -25,11 +25,14 @@ def _showing_or_404(db: DbSession, showing_id: int) -> Showing:
     return showing
 
 
-def _owned(db: DbSession, showing: Showing, organizer: User) -> None:
-    event = db.get(Event, showing.event_id)
-    if event is None or event.organizer_id != organizer.id:
-        # 404 e não 403: confirmar a existência permitiria mapear o catálogo
-        # alheio varrendo ids sequenciais.
+def _existe(db: DbSession, showing: Showing) -> None:
+    """O evento da sessão precisa existir, e mais nada.
+
+    A checagem de dono saiu: o catálogo é de uma operação só, e qualquer
+    organizador opera qualquer sessão (D29). `organizer_id` continua no
+    modelo como registro de quem publicou.
+    """
+    if db.get(Event, showing.event_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sessão não encontrada.")
 
 
@@ -66,7 +69,7 @@ def update_showing(
     showing_id: int, data: ShowingUpdate, db: DbSession, organizer: Organizer
 ) -> ShowingOut:
     showing = _showing_or_404(db, showing_id)
-    _owned(db, showing, organizer)
+    _existe(db, showing)
 
     campos = data.model_dump(exclude_unset=True)
     nova_sala = campos.pop("room_id", None)
@@ -105,7 +108,7 @@ def cancel(
 ) -> ShowingOut:
     """Cancela a sessão com motivo, devolvendo os assentos ao estoque (D10)."""
     showing = _showing_or_404(db, showing_id)
-    _owned(db, showing, organizer)
+    _existe(db, showing)
 
     try:
         cancel_showing(db, showing, data.reason)
@@ -118,7 +121,7 @@ def cancel(
 @router.delete("/{showing_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_showing(showing_id: int, db: DbSession, organizer: Organizer) -> None:
     showing = _showing_or_404(db, showing_id)
-    _owned(db, showing, organizer)
+    _existe(db, showing)
 
     if sold_count(db, showing.id):
         raise HTTPException(

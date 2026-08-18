@@ -159,10 +159,23 @@ def fake_tmdb(monkeypatch: pytest.MonkeyPatch) -> None:
                 "overview": "Paul Atreides se une aos Fremen.",
                 "poster_path": "/poster.jpg",
             }]}
+
+        # Devolve o id que foi pedido, em vez de um fixo. O duplo anterior
+        # respondia sempre 693134, o que o fazia mentir: dois filmes
+        # diferentes voltavam como o mesmo, e nenhum teste conseguia
+        # exercitar a regra de um filme por evento (D30).
+        pedido = int(path.rsplit("/", 1)[-1])
+        titulos = {
+            693134: "Duna: Parte Dois",
+            27205: "A Origem",
+            157336: "Interestelar",
+            603: "Matrix",
+        }
+
         return {
-            "id": 693134,
-            "title": "Duna: Parte Dois",
-            "overview": "Paul Atreides se une aos Fremen.",
+            "id": pedido,
+            "title": titulos.get(pedido, f"Filme {pedido}"),
+            "overview": "Sinopse de teste.",
             "poster_path": "/poster.jpg",
             "backdrop_path": "/backdrop.jpg",
             "runtime": 167,

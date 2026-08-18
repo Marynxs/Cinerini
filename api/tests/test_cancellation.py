@@ -149,12 +149,13 @@ class TestCancelShowing:
                         headers=auth("organizer"))
         assert r.status_code == 409
 
-    def test_another_organizer_cannot_cancel(
+    def test_any_organizer_cancels(
         self, client: TestClient, auth, showing: Showing
     ) -> None:
+        """O catálogo é da operação, não de quem publicou (D29)."""
         r = client.post(f"/showings/{showing.id}/cancel", json=MOTIVO,
                         headers=auth("organizer2"))
-        assert r.status_code == 404
+        assert r.status_code == 200
 
     def test_used_ticket_is_not_reverted(
         self, client: TestClient, auth, db: Session, showing: Showing,

@@ -4,7 +4,9 @@ from sqlalchemy import select
 from app.deps import CurrentUser, DbSession, Organizer
 from app.models import Role, User
 from app.ratelimit import login_by_account, rate_limit
-from app.schemas import LoginIn, PromoteIn, RegisterIn, TokenOut, UserOut
+from app.schemas import (
+    LoginIn, OrganizerUpdate, PromoteIn, RegisterIn, TokenOut, UserOut,
+)
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["autenticação"])
@@ -138,9 +140,10 @@ def promote_organizer(
     concede é só o papel (D22).
 
     Funcionário é promovível: quem trabalha na casa é justamente quem se
-    espera promover. O que muda é que ele deixa de ser funcionário —
-    acumular os dois papéis daria a quem opera a porta o poder de publicar e
-    cancelar sessões.
+    espera promover. Ele deixa de ser funcionário, mas não deixa de poder
+    validar — o organizador abre a portaria pelo próprio papel (D27). O que
+    muda é o escopo: em vez das sessões de um cinema, passa a enxergar as
+    dos eventos que publicou, e por isso o vínculo com o cinema é desfeito.
     """
     alvo = db.scalar(select(User).where(User.email == data.email))
 
@@ -161,6 +164,92 @@ def promote_organizer(
     alvo.gate_venue_id = None
     alvo.gate_showing_id = None
     alvo.role = Role.ORGANIZER
+    db.commit()
+    db.refresh(alvo)
+
+    return UserOut.model_validate(alvo)
+
+
+def _primeiro_organizador(db: DbSession) -> User | None:
+    """A conta mais antiga com o papel.
+
+    É o organizador que nasceu do primeiro cadastro (D22), e serve de âncora:
+    enquanto ele existir, a instalação nunca fica sem ninguém que publique.
+    """
+    return db.scalar(
+        select(User).where(User.role == Role.ORGANIZER).order_by(User.id).limit(1)
+    )
+
+
+@router.patch(
+    "/organizers/{user_id}",
+    response_model=UserOut,
+    tags=["organizador"],
+    summary="Corrige o nome de um organizador",
+)
+def update_organizer(
+    user_id: int, data: OrganizerUpdate, db: DbSession, _: Organizer
+) -> UserOut:
+    """Só o nome. E-mail e senha são identidade da pessoa, não cadastro.
+
+    Trocar o e-mail pelo painel mudaria a credencial de alguém sem que ele
+    soubesse; trocar a senha obrigaria a entregá-la por algum canal (D22).
+    """
+    alvo = db.get(User, user_id)
+    if alvo is None or alvo.role != Role.ORGANIZER:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Organizador não encontrado.")
+
+    alvo.name = data.name
+    db.commit()
+    db.refresh(alvo)
+    return UserOut.model_validate(alvo)
+
+
+@router.delete(
+    "/organizers/{user_id}",
+    response_model=UserOut,
+    tags=["organizador"],
+    summary="Revoga o papel de organizador",
+)
+def demote_organizer(user_id: int, db: DbSession, quem: Organizer) -> UserOut:
+    """Revoga o papel; não apaga a conta.
+
+    Apagar levaria junto os eventos publicados por ela, e com eles as sessões
+    e os ingressos vendidos — quem comprou perderia o ingresso porque alguém
+    saiu da equipe. Revogado, a pessoa vira cliente e o que ela publicou
+    continua de pé (D27).
+
+    O primeiro organizador é intocável: é ele que garante que a instalação
+    nunca fique sem ninguém que publique, e o cadastro público não cria outro
+    depois que a tabela deixou de estar vazia.
+    """
+    alvo = db.get(User, user_id)
+    if alvo is None or alvo.role != Role.ORGANIZER:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Organizador não encontrado.")
+
+    primeiro = _primeiro_organizador(db)
+    if primeiro is not None and primeiro.id == alvo.id:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "O primeiro organizador não pode ser removido: é ele que impede "
+            "a instalação de ficar sem ninguém que publique. O nome dele "
+            "continua editável.",
+        )
+
+    if alvo.id == quem.id:
+        # Sair sozinho não é impedido por princípio, e sim porque o clique
+        # seria irreversível pela própria tela: a pessoa perderia o acesso
+        # que usaria para desfazer.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Você não pode revogar o próprio papel. Peça a outro organizador.",
+        )
+
+    alvo.role = Role.CUSTOMER
+    alvo.gate_venue_id = None
+    alvo.gate_showing_id = None
     db.commit()
     db.refresh(alvo)
 

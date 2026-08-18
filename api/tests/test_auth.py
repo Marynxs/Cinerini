@@ -7,7 +7,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import User
+from app.models import Event, Showing, User
 from app.security import TOKEN_TYPE_TICKET, create_access_token
 
 from .conftest import SENHA
@@ -237,15 +237,21 @@ class TestPromotion:
         assert gate_hired.gate_venue_id is None
         assert gate_hired.gate_showing_id is None
 
-    def test_promoted_account_can_no_longer_validate(
+    def test_promoted_account_keeps_validating_by_the_new_role(
         self, client: TestClient, auth, gate_hired: User
     ) -> None:
+        """Promovido não perde a porta: o organizador também a abre (D27).
+
+        O que muda é o escopo — deixa de ser o cinema onde trabalhava e passa
+        a ser o catálogo que publica. Sem turno escolhido, a resposta é 409
+        de configuração, não 403 de acesso.
+        """
         client.post("/auth/organizers", json={"email": gate_hired.email},
                     headers=auth("organizer"))
 
         r = client.post("/gate/validations", json={"code": "x"},
                         headers=auth("gate"))
-        assert r.status_code == 403
+        assert r.status_code == 409
 
     def test_customer_is_promotable_too(
         self, client: TestClient, auth, users: dict[str, User]
@@ -279,4 +285,105 @@ class TestPromotion:
         r = client.post("/auth/organizers",
                         json={"email": users["customer2"].email},
                         headers=auth(papel))
+        assert r.status_code == 403
+
+
+class TestEditingOrganizers:
+    """O quadro de organizadores também se corrige."""
+
+    def test_renames_an_organizer(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.patch(f"/auth/organizers/{users['organizer2'].id}",
+                         json={"name": "Marina Corrigida"},
+                         headers=auth("organizer"))
+        assert r.status_code == 200
+        assert r.json()["name"] == "Marina Corrigida"
+
+    def test_the_first_organizer_is_editable(
+        self, client: TestClient, auth, db: Session, users: dict[str, User]
+    ) -> None:
+        """Intocável para remoção, não para correção de cadastro (D27)."""
+        primeiro = db.scalar(
+            select(User).where(User.role == "organizer").order_by(User.id).limit(1))
+
+        r = client.patch(f"/auth/organizers/{primeiro.id}",
+                         json={"name": "Primeiro Renomeado"},
+                         headers=auth("organizer"))
+        assert r.status_code == 200
+
+    def test_a_customer_is_not_an_organizer(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.patch(f"/auth/organizers/{users['customer'].id}",
+                         json={"name": "Xisto"}, headers=auth("organizer"))
+        assert r.status_code == 404
+
+    def test_only_organizer_edits(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.patch(f"/auth/organizers/{users['organizer2'].id}",
+                         json={"name": "Xisto"}, headers=auth("customer"))
+        assert r.status_code == 403
+
+
+class TestDemotingOrganizers:
+    """Revoga o papel; não apaga a conta nem o que ela publicou."""
+
+    def test_demotion_turns_the_account_into_a_customer(
+        self, client: TestClient, auth, db: Session, users: dict[str, User]
+    ) -> None:
+        r = client.delete(f"/auth/organizers/{users['organizer2'].id}",
+                          headers=auth("organizer"))
+
+        assert r.status_code == 200
+        assert r.json()["role"] == "customer"
+
+    def test_demotion_keeps_the_account_and_its_events(
+        self, client: TestClient, auth, db: Session, users: dict[str, User],
+        showing: Showing
+    ) -> None:
+        """Apagar levaria junto sessões e ingressos vendidos (D27)."""
+        dono = users["organizer"].id
+        client.delete(f"/auth/organizers/{users['organizer2'].id}",
+                      headers=auth("organizer"))
+
+        assert db.get(User, users["organizer2"].id) is not None
+        assert db.get(Showing, showing.id) is not None
+        assert db.scalar(select(Event.organizer_id)
+                         .where(Event.id == showing.event_id)) == dono
+
+    def test_the_first_organizer_cannot_be_demoted(
+        self, client: TestClient, auth, db: Session
+    ) -> None:
+        """É ele que impede a instalação de ficar sem ninguém que publique."""
+        primeiro = db.scalar(
+            select(User).where(User.role == "organizer").order_by(User.id).limit(1))
+
+        r = client.delete(f"/auth/organizers/{primeiro.id}",
+                          headers=auth("organizer"))
+        assert r.status_code == 409
+
+    def test_cannot_demote_yourself(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        """O clique seria irreversível pela própria tela."""
+        r = client.delete(f"/auth/organizers/{users['organizer2'].id}",
+                          headers=auth("organizer2"))
+        assert r.status_code == 409
+
+    def test_demoted_account_loses_the_panel(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        client.delete(f"/auth/organizers/{users['organizer2'].id}",
+                      headers=auth("organizer"))
+
+        assert client.get("/events/managed",
+                          headers=auth("organizer2")).status_code == 403
+
+    def test_only_organizer_demotes(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.delete(f"/auth/organizers/{users['organizer2'].id}",
+                          headers=auth("customer"))
         assert r.status_code == 403
