@@ -216,7 +216,14 @@ export interface Municipio {
 }
 
 /** Uma sessão e quem está na porta dela. Lista vazia é o dado que importa. */
+export interface CoverageStaff {
+  name: string;
+  // Organizador cobrindo a porta conta como alguém, mas não é funcionário
+  // alocado — a tabela da equipe não o edita (D33).
+  organizer: boolean;
+}
+
 export interface Coverage {
   showing: ShowingBrief;
-  staff: string[];
+  staff: CoverageStaff[];
 }

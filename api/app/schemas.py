@@ -436,6 +436,18 @@ class GateIn(BaseModel):
     password: str = Field(min_length=8, max_length=72)
 
 
+class CoverageStaffOut(BaseModel):
+    """Quem está na porta de uma sessão."""
+
+    name: str
+
+    # Organizador cobrindo a porta conta como alguém, mas não é funcionário
+    # alocado: ele não aparece na tabela da equipe nem é editável por lá, e
+    # a cobertura precisa dizer isso em vez de fingir que são a mesma coisa
+    # (D33).
+    organizer: bool = False
+
+
 class CoverageOut(BaseModel):
     """Uma sessão e quem está na porta dela.
 
@@ -445,7 +457,7 @@ class CoverageOut(BaseModel):
     """
 
     showing: ShowingBriefOut
-    staff: list[str]
+    staff: list[CoverageStaffOut]
 
 
 class GateUpdate(BaseModel):

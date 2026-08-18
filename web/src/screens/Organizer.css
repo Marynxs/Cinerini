@@ -401,6 +401,22 @@
   text-align: right;
 }
 
+/* Vários na mesma porta é o caso normal numa sessão cheia (D27). A vírgula
+   sai por CSS para que o marcador de organizador fique dentro do nome a que
+   pertence, e não solto entre as vírgulas. */
+.cobertura-pessoa + .cobertura-pessoa::before {
+  content: ', ';
+}
+
+/* Etiqueta e não cor: o carmim já é do estado "sem ninguém", e reusá-lo aqui
+   diria "atenção" sobre uma porta que está coberta. */
+.cobertura-papel {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
 /* Sessão sem ninguém: carmim e barra à esquerda. A barra é o que separa os
    dois estados sem depender de cor. */
 .cobertura-item--vazia {

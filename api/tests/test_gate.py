@@ -693,7 +693,24 @@ class TestCoverage:
         r = client.get("/gates/coverage", headers=auth("organizer"))
         alvo = next(c for c in r.json()
                     if c["showing"]["showing_id"] == daqui_a_pouco.id)
-        assert alvo["staff"] == ["Portaria"]
+        assert alvo["staff"] == [{"name": "Portaria", "organizer": False}]
+
+    def test_an_organizer_on_shift_covers_the_session(
+        self, client: TestClient, auth, db: Session, users: dict[str, User],
+        daqui_a_pouco: Showing
+    ) -> None:
+        """Contar só `Role.GATE` fazia a sessão que o organizador estava
+        atendendo aparecer como descoberta — a pergunta que esta lista existe
+        para responder, respondida errado (D33)."""
+        users["organizer2"].gate_showing_id = daqui_a_pouco.id
+        db.commit()
+
+        r = client.get("/gates/coverage", headers=auth("organizer"))
+        alvo = next(c for c in r.json()
+                    if c["showing"]["showing_id"] == daqui_a_pouco.id)
+
+        assert alvo["staff"] == [
+            {"name": users["organizer2"].name, "organizer": True}]
 
     def test_ending_the_shift_uncovers_the_session(
         self, client: TestClient, auth, db: Session, gate_hired: User,

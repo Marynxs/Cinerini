@@ -490,7 +490,7 @@ function Cobertura({ versao }: { versao: number }) {
       <p className="cobertura-titulo">
         Próximas sessões · {descobertas.length === 0
           ? 'todas com alguém na porta'
-          : `${descobertas.length} sem funcionário alocado`}
+          : `${descobertas.length} sem ninguém na porta`}
       </p>
 
       <ul className="cobertura-lista">
@@ -506,8 +506,19 @@ function Cobertura({ versao }: { versao: number }) {
             <span className="cobertura-sessao">
               {c.showing.event_title} · {c.showing.room_name}
             </span>
+            {/* O organizador vem marcado: ele cobre a porta pelo próprio
+                papel (D27), mas não é funcionário alocado — quem lê precisa
+                saber que aquela sessão está coberta por quem também
+                administra, e não por alguém da escala (D33). */}
             <span className="cobertura-quem">
-              {c.staff.length === 0 ? 'sem ninguém' : c.staff.join(', ')}
+              {c.staff.length === 0 ? 'sem ninguém' : c.staff.map((p) => (
+                <span key={p.name} className="cobertura-pessoa">
+                  {p.name}
+                  {p.organizer && (
+                    <span className="cobertura-papel"> · organizador</span>
+                  )}
+                </span>
+              ))}
             </span>
           </li>
         ))}
@@ -703,9 +714,10 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
             {' · '}{revogando.email}
           </p>
           <p className="dialogo-consequencia">
-            A conta continua existindo e vira cliente. Os eventos que ela
-            publicou seguem no ar — apagar levaria junto sessões e ingressos
-            vendidos. Esta ação é irreversível pelo painel dela.
+            A conta volta a ser de funcionário, sem cinema definido — escolha
+            um na seção <em>Funcionários</em> para que ela possa validar de
+            novo. Os eventos que ela publicou seguem no ar: apagar levaria
+            junto sessões e ingressos vendidos.
           </p>
         </Confirmar>
       )}

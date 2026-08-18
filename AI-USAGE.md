@@ -129,6 +129,9 @@ Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra
 **Revogar organizador devolvia a conta a cliente.**
 Pedi que revogar o papel devolvesse a pessoa a funcionário, e não a cliente. O agente havia tratado a revogação como se o papel anterior não importasse. Ao destrinchar, o defeito era maior do que o incômodo que me fez pedir: como a criação de funcionário recusa e-mail já cadastrado e não há recuperação de senha no escopo, quem subisse e descesse ficava com o e-mail queimado e sem caminho de volta. Uma operação e a sua inversa precisam se cancelar. Virou a decisão D32.
 
+**Organizador de plantão aparecia como porta descoberta.**
+Depois de liberar a portaria para o organizador, notei que colocá-lo numa sessão não o mostrava alocado em lugar nenhum. A consulta da cobertura filtrava só quem tem o papel de portaria, então a sessão que ele estava atendendo continuava em carmim, como se ninguém estivesse lá — a lista que existe para responder "esta porta tem alguém" errava justamente sobre quem lê a tela. Virou a decisão D33.
+
 **A portaria só aparecia para quem tinha o papel de portaria.**
 Pedi que o organizador também pudesse abrir a tela da portaria e validar QR. A permissão já existia na API desde a D27 — o organizador enxerga todas as sessões e a validação nunca exigiu o papel de portaria —, mas a navegação mostrava o elo só para funcionários e a tela recusava a entrada. Permissão sem caminho na interface é permissão que não existe.
 

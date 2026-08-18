@@ -16,8 +16,8 @@ from sqlalchemy.orm import Session
 from app.deps import DbSession, Gate, Organizer
 from app.models import Event, Role, Room, Showing, Ticket, User, Venue
 from app.schemas import (
-    CoverageOut, GateIn, GateOut, GateShiftIn, GateUpdate, ShowingBriefOut,
-    ValidationIn, ValidationOut,
+    CoverageOut, CoverageStaffOut, GateIn, GateOut, GateShiftIn, GateUpdate,
+    ShowingBriefOut, ValidationIn, ValidationOut,
 )
 from app.security import hash_password
 from app.validation import GateError, describe, validate
@@ -408,13 +408,22 @@ def coverage(db: DbSession, organizer: Organizer) -> list[CoverageOut]:
     # curta, mas o padrão de uma consulta por linha é o que transforma tela
     # de painel em tela lenta.
     ids = [s.id for s, _, _, _ in linhas]
-    porteiros: dict[int, list[str]] = {}
-    for nome, sessao in db.execute(
-        select(User.name, User.gate_showing_id)
-        .where(User.role == Role.GATE, User.gate_showing_id.in_(ids))
+    porteiros: dict[int, list[CoverageStaffOut]] = {}
+
+    # Organizador entra junto: ele assume turno pelo próprio papel (D27), e
+    # contar só `Role.GATE` fazia a sessão que ele estava atendendo aparecer
+    # como "sem ninguém" — a pergunta que esta lista existe para responder,
+    # respondida errado (D33).
+    for nome, sessao, papel in db.execute(
+        select(User.name, User.gate_showing_id, User.role)
+        .where(
+            User.role.in_((Role.GATE, Role.ORGANIZER)),
+            User.gate_showing_id.in_(ids),
+        )
         .order_by(User.name)
     ):
-        porteiros.setdefault(sessao, []).append(nome)
+        porteiros.setdefault(sessao, []).append(
+            CoverageStaffOut(name=nome, organizer=papel == Role.ORGANIZER))
 
     return [
         CoverageOut(
