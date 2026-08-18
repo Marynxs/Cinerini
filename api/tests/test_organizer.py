@@ -4,15 +4,16 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
     Order, OrderStatus, Room, Seat, Showing, Ticket, TicketStatus, User,
+    Venue,
 )
 
 AMANHA = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
-CINEMA = {"name": "Cine Novo", "city": "Curitiba", "state": "PR",
+CINEMA = {"name": "Cine Novo", "city_ibge_id": 4106902, "state": "PR",
           "address": "Rua XV, 100"}
 
 
@@ -63,13 +64,15 @@ class TestVenues:
         assert client.get("/venues").status_code == 200
 
     def test_city_filter(self, client: TestClient, room: Room) -> None:
-        assert client.get("/venues",
-                          params={"city": "São Paulo"}).json()[0]["city"] == "São Paulo"
+        """O filtro é pelo código do IBGE: nome de cidade se repete (D23)."""
+        r = client.get("/venues", params={"city": 3550308})
+        assert r.json()[0]["city"] == "São Paulo"
 
     def test_cities_feed_the_catalog_filter(
         self, client: TestClient, room: Room
     ) -> None:
-        assert "São Paulo" in client.get("/venues/cities").json()
+        cidades = client.get("/venues/cities").json()
+        assert {"id": 3550308, "nome": "São Paulo", "uf": "SP"} in cidades
 
 
 class TestRooms:
@@ -272,3 +275,114 @@ class TestRoomChange:
 
         r = client.delete(f"/showings/{showing.id}", headers=auth("organizer"))
         assert r.status_code == 409
+
+
+class TestEditingVenues:
+    """Cadastro errado se corrige; recriar levaria salas e vendas junto."""
+
+    def test_renames_a_venue(self, client: TestClient, auth, room: Room) -> None:
+        r = client.patch(f"/venues/{room.venue_id}", json={"name": "Cine Rebatizado"},
+                         headers=auth("organizer"))
+        assert r.status_code == 200
+        assert r.json()["name"] == "Cine Rebatizado"
+
+    def test_changes_the_city_with_uf_and_code_together(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        r = client.patch(f"/venues/{room.venue_id}",
+                         json={"state": "PR", "city_ibge_id": 4106902},
+                         headers=auth("organizer"))
+        assert r.status_code == 200
+        assert r.json()["city"] == "Curitiba"
+        assert r.json()["city_ibge_id"] == 4106902
+
+    def test_city_without_uf_is_refused(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        """Mudar só um deixaria o código apontando para outro estado (D23)."""
+        r = client.patch(f"/venues/{room.venue_id}", json={"city_ibge_id": 4106902},
+                         headers=auth("organizer"))
+        assert r.status_code == 422
+
+    def test_only_organizer_edits(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        r = client.patch(f"/venues/{room.venue_id}", json={"name": "X"},
+                         headers=auth("customer"))
+        assert r.status_code == 403
+
+
+class TestRemovingVenues:
+    def test_venue_with_rooms_is_refused(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        """Cascata levaria salas, sessões e ingressos vendidos junto."""
+        r = client.delete(f"/venues/{room.venue_id}", headers=auth("organizer"))
+        assert r.status_code == 409
+
+    def test_empty_venue_is_removed(
+        self, client: TestClient, auth, db: Session
+    ) -> None:
+        criado = client.post("/venues", json=CINEMA,
+                             headers=auth("organizer")).json()
+
+        r = client.delete(f"/venues/{criado['id']}", headers=auth("organizer"))
+        assert r.status_code == 204
+        assert db.get(Venue, criado["id"]) is None
+
+    def test_removing_a_venue_unlinks_its_staff(
+        self, client: TestClient, auth, db: Session
+    ) -> None:
+        """`ondelete=SET NULL`: a conta vira cadastro pela metade, não some."""
+        criado = client.post("/venues", json=CINEMA,
+                             headers=auth("organizer")).json()
+        gate = client.post(f"/venues/{criado['id']}/gates", json={
+            "name": "Porta", "email": "porta.orfa@cinerini.com.br",
+            "password": "senhaDaPortaria1"}, headers=auth("organizer")).json()
+
+        client.delete(f"/venues/{criado['id']}", headers=auth("organizer"))
+
+        depois = client.get("/gates", headers=auth("organizer")).json()
+        alvo = next(g for g in depois if g["id"] == gate["id"])
+        assert alvo["venue_id"] is None
+
+
+class TestEditingRooms:
+    def test_renames_a_room(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"name": "Sala VIP"}, headers=auth("organizer"))
+        assert r.status_code == 200
+        assert r.json()["name"] == "Sala VIP"
+
+    def test_layout_change_updates_capacity(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"rows": 5, "seats_per_row": 10},
+                         headers=auth("organizer"))
+        assert r.json()["capacity"] == 50
+
+    def test_layout_change_does_not_touch_sold_maps(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room
+    ) -> None:
+        """Assentos pertencem à exibição e já foram gerados (D6)."""
+        antes = db.scalar(
+            select(func.count(Seat.id)).where(Seat.showing_id == showing.id))
+
+        client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                     json={"rows": 2, "seats_per_row": 2},
+                     headers=auth("organizer"))
+
+        depois = db.scalar(
+            select(func.count(Seat.id)).where(Seat.showing_id == showing.id))
+        assert depois == antes
+
+    def test_room_of_another_venue_is_404(
+        self, client: TestClient, auth, room: Room
+    ) -> None:
+        r = client.patch(f"/venues/999999999/rooms/{room.id}",
+                         json={"name": "X"}, headers=auth("organizer"))
+        assert r.status_code == 404

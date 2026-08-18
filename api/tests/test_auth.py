@@ -3,7 +3,7 @@
 import jwt
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -153,3 +153,130 @@ class TestRoleAuthorization:
         r = client.get("/catalog/search", params={"q": "duna"},
                        headers=auth(papel))
         assert r.status_code == esperado
+
+
+def _esvaziar(db: Session) -> None:
+    """Deixa o banco como uma instalação recém-criada.
+
+    A ordem vem do próprio seed em vez de ser repetida aqui: são as mesmas
+    dependências, e duas listas para a mesma coisa divergem. Roda dentro da
+    transação do teste, que é desfeita no fim.
+    """
+    from app.seed import TABELAS
+
+    for tabela in TABELAS:
+        db.execute(text(f"DELETE FROM {tabela}"))
+    db.commit()
+
+
+class TestFirstAccount:
+    """Instalação vazia precisa de um caminho para o primeiro organizador."""
+
+    def test_first_signup_becomes_organizer(
+        self, client: TestClient, db: Session
+    ) -> None:
+        """Sem isto, um clone recém-instalado nasce sem ninguém que publique."""
+        _esvaziar(db)
+
+        r = client.post("/auth/register", json={
+            "name": "Primeiro", "email": "primeiro@cinerini.com.br",
+            "password": "senhaForte123"})
+
+        assert r.status_code == 201
+        assert r.json()["user"]["role"] == "organizer"
+
+    def test_second_signup_is_a_customer(
+        self, client: TestClient, db: Session
+    ) -> None:
+        """A porta se fecha no primeiro cadastro e nunca reabre (D22)."""
+        _esvaziar(db)
+
+        client.post("/auth/register", json={
+            "name": "Primeiro", "email": "primeiro@cinerini.com.br",
+            "password": "senhaForte123"})
+
+        r = client.post("/auth/register", json={
+            "name": "Segundo", "email": "segundo@cinerini.com.br",
+            "password": "senhaForte123"})
+
+        assert r.json()["user"]["role"] == "customer"
+
+    def test_signup_is_a_customer_when_users_exist(
+        self, client: TestClient, users: dict[str, User]
+    ) -> None:
+        r = client.post("/auth/register", json={
+            "name": "Comum", "email": "comum@cinerini.com.br",
+            "password": "senhaForte123"})
+
+        assert r.json()["user"]["role"] == "customer"
+
+
+class TestPromotion:
+    """Organizador é promovido por outro, nunca criado com senha inventada."""
+
+    def test_organizer_promotes_an_employee(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.post("/auth/organizers",
+                        json={"email": users["gate"].email},
+                        headers=auth("organizer"))
+
+        assert r.status_code == 200
+        assert r.json()["role"] == "organizer"
+
+    def test_promotion_drops_the_gate_assignment(
+        self, client: TestClient, auth, db: Session, gate_hired: User
+    ) -> None:
+        """Os papéis são exclusivos: quem publica não valida na porta."""
+        assert gate_hired.gate_venue_id is not None
+
+        client.post("/auth/organizers", json={"email": gate_hired.email},
+                    headers=auth("organizer"))
+        db.refresh(gate_hired)
+
+        assert gate_hired.gate_venue_id is None
+        assert gate_hired.gate_showing_id is None
+
+    def test_promoted_account_can_no_longer_validate(
+        self, client: TestClient, auth, gate_hired: User
+    ) -> None:
+        client.post("/auth/organizers", json={"email": gate_hired.email},
+                    headers=auth("organizer"))
+
+        r = client.post("/gate/validations", json={"code": "x"},
+                        headers=auth("gate"))
+        assert r.status_code == 403
+
+    def test_customer_is_promotable_too(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.post("/auth/organizers",
+                        json={"email": users["customer"].email},
+                        headers=auth("organizer"))
+        assert r.status_code == 200
+
+    def test_promoting_twice_is_refused(
+        self, client: TestClient, auth, users: dict[str, User]
+    ) -> None:
+        r = client.post("/auth/organizers",
+                        json={"email": users["organizer2"].email},
+                        headers=auth("organizer"))
+        assert r.status_code == 409
+
+    def test_unknown_email_is_refused(
+        self, client: TestClient, auth
+    ) -> None:
+        """Promover não cria conta: a pessoa se cadastra sozinha antes."""
+        r = client.post("/auth/organizers",
+                        json={"email": "ninguem@cinerini.com.br"},
+                        headers=auth("organizer"))
+        assert r.status_code == 404
+
+    @pytest.mark.parametrize("papel", ["customer", "gate"])
+    def test_only_organizer_promotes(
+        self, client: TestClient, auth, users: dict[str, User], papel: str
+    ) -> None:
+        r = client.post("/auth/organizers",
+                        json={"email": users["customer2"].email},
+                        headers=auth(papel))
+        assert r.status_code == 403

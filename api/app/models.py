@@ -57,10 +57,20 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[Role] = mapped_column(String(20))
 
-    # Só para papel GATE: a exibição que este usuário está autorizado a
-    # validar. Aponta para a sessão e não para o evento (D21) — uma porta
-    # física atende um horário numa sala, e o vínculo por filme aceitaria o
-    # ingresso de amanhã na sessão de hoje.
+    # Os dois campos abaixo só valem para o papel GATE, e têm donos
+    # diferentes de propósito (D24).
+
+    # O cinema onde a pessoa trabalha. Definido pelo organizador na criação e
+    # praticamente imutável: é o escopo do emprego, e é ele que impede um
+    # funcionário do Belas Artes de validar ingresso do Odeon.
+    gate_venue_id: Mapped[int | None] = mapped_column(
+        ForeignKey("venues.id", ondelete="SET NULL"), index=True
+    )
+
+    # A exibição do turno atual, escolhida pelo próprio funcionário ao
+    # começar. Aponta para a sessão e não para o evento (D21): uma porta
+    # atende um horário numa sala, e o vínculo por filme aceitaria o ingresso
+    # de amanhã na sessão de hoje.
     #
     # use_alter porque o ciclo users → showings → events → users existe: o
     # Postgres precisa criar as tabelas antes de amarrar esta chave.
@@ -112,8 +122,15 @@ class Venue(Base):
 
     name: Mapped[str] = mapped_column(String(255))
 
-    # Indexada porque é o filtro principal do catálogo: o cliente escolhe
-    # cidade antes de escolher filme.
+    # Código do município no IBGE. É ele que o catálogo agrupa, e não o nome:
+    # nome de cidade não é único no Brasil — há dezenas de "Bom Jesus" e
+    # "Santa Luzia" em estados diferentes, e agrupar por texto juntaria
+    # cidades que não têm relação (D23).
+    city_ibge_id: Mapped[int] = mapped_column(Integer, index=True)
+
+    # Guardado junto porque a exibição não pode depender de uma chamada ao
+    # IBGE a cada listagem. O nome vem de lá na gravação e nunca do corpo da
+    # requisição.
     city: Mapped[str] = mapped_column(String(120), index=True)
     state: Mapped[str] = mapped_column(String(2))
     address: Mapped[str] = mapped_column(String(255))

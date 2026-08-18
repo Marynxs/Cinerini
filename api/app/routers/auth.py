@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
-from app.deps import CurrentUser, DbSession
+from app.deps import CurrentUser, DbSession, Organizer
 from app.models import Role, User
 from app.ratelimit import login_by_account, rate_limit
-from app.schemas import LoginIn, RegisterIn, TokenOut, UserOut
+from app.schemas import LoginIn, PromoteIn, RegisterIn, TokenOut, UserOut
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["autenticação"])
@@ -20,11 +20,11 @@ router = APIRouter(prefix="/auth", tags=["autenticação"])
     dependencies=[Depends(rate_limit(limit=20, window_seconds=3600, scope="register"))],
 )
 def register(data: RegisterIn, db: DbSession) -> TokenOut:
-    """Cadastro público. Cria sempre CUSTOMER.
+    """Cadastro público. Cria CUSTOMER — exceto na instalação vazia.
 
-    Portaria é criada pelo organizador em `POST /showings/{id}/gates`, e
-    organizador vem do seed. Aceitar o papel vindo do corpo da requisição
-    deixaria qualquer visitante decidir quem entra na sala.
+    O papel nunca vem do corpo da requisição: aceitá-lo deixaria qualquer
+    visitante se declarar organizador e decidir quem entra na sala. Portaria
+    é criada pelo organizador, e organizador é promovido por outro (D22).
 
     A resposta de e-mail duplicado revela que a conta existe. Ver decisão D8:
     esconder isso exigiria confirmação por e-mail, fora do escopo. O limite
@@ -38,11 +38,19 @@ def register(data: RegisterIn, db: DbSession) -> TokenOut:
             detail="Já existe uma conta com este e-mail.",
         )
 
+    # Banco sem ninguém: o primeiro a se cadastrar vira organizador, senão a
+    # instalação nasce sem caminho para o primeiro (D22). A condição é a
+    # tabela estritamente vazia, e não "não há organizador" — assim a regra
+    # se fecha no primeiro cadastro e nunca reabre, nem se um organizador
+    # for removido depois.
+    vazio = db.scalar(select(User.id).limit(1)) is None
+    papel = Role.ORGANIZER if vazio else Role.CUSTOMER
+
     user = User(
         name=data.name,
         email=data.email,
         password_hash=hash_password(data.password),
-        role=Role.CUSTOMER,
+        role=papel,
     )
     db.add(user)
     db.commit()
@@ -97,3 +105,63 @@ def login(data: LoginIn, db: DbSession) -> TokenOut:
 @router.get("/me", response_model=UserOut)
 def me(user: CurrentUser) -> UserOut:
     return UserOut.model_validate(user)
+
+
+@router.get(
+    "/organizers",
+    response_model=list[UserOut],
+    tags=["organizador"],
+    summary="Quem já é organizador",
+)
+def list_organizers(db: DbSession, _: Organizer) -> list[UserOut]:
+    return [
+        UserOut.model_validate(u) for u in db.scalars(
+            select(User).where(User.role == Role.ORGANIZER).order_by(User.name)
+        )
+    ]
+
+
+@router.post(
+    "/organizers",
+    response_model=UserOut,
+    tags=["organizador"],
+    summary="Promove uma conta existente a organizador",
+)
+def promote_organizer(
+    data: PromoteIn, db: DbSession, promotor: Organizer
+) -> UserOut:
+    """Promoção em vez de criação: a conta e a senha já são da pessoa.
+
+    Criar a conta pelo painel obrigaria o organizador a inventar uma senha e
+    entregá-la por algum canal — e senha que trafega por mensagem é senha
+    que fica no histórico de alguém. Aqui a conta já existe, e o que se
+    concede é só o papel (D22).
+
+    Funcionário é promovível: quem trabalha na casa é justamente quem se
+    espera promover. O que muda é que ele deixa de ser funcionário —
+    acumular os dois papéis daria a quem opera a porta o poder de publicar e
+    cancelar sessões.
+    """
+    alvo = db.scalar(select(User).where(User.email == data.email))
+
+    if alvo is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Nenhuma conta com este e-mail. Peça que se cadastre primeiro.",
+        )
+
+    if alvo.role == Role.ORGANIZER:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Esta conta já é de organizador.")
+
+    # Funcionário promovido deixa de ser funcionário: os papéis são
+    # exclusivos, e quem passa a publicar não continua validando na porta.
+    # Se precisar dos dois, são duas contas — e aí fica registrado que são
+    # duas pessoas diferentes na mesma sessão.
+    alvo.gate_venue_id = None
+    alvo.gate_showing_id = None
+    alvo.role = Role.ORGANIZER
+    db.commit()
+    db.refresh(alvo)
+
+    return UserOut.model_validate(alvo)

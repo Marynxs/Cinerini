@@ -41,9 +41,11 @@ USUARIOS = [
     ("Portaria Sala 1", "portaria@cinerini.com.br", Role.GATE),
 ]
 
+# O código do IBGE vem escrito e não resolvido pela rede: o seed precisa
+# rodar sem internet, e é ele que garante um cenário reproduzível (D23).
 VENUES = [
-    ("Cine Belas Artes", "São Paulo", "SP", "Rua da Consolação, 2423"),
-    ("Cine Odeon", "Rio de Janeiro", "RJ", "Praça Floriano, 7"),
+    ("Cine Belas Artes", 3550308, "São Paulo", "SP", "Rua da Consolação, 2423"),
+    ("Cine Odeon", 3304557, "Rio de Janeiro", "RJ", "Praça Floriano, 7"),
 ]
 
 # (cinema, nome, fileiras, poltronas por fileira)
@@ -116,9 +118,10 @@ def _horarios(dias: int) -> list[datetime]:
     ]
 
 
-# Ordem inversa das dependências: filho antes do pai. users vai por último
-# porque gate_showing_id referencia showings.
-TABELAS = ("tickets", "orders", "seats", "showings",
+# Ordem inversa das dependências: filho antes do pai. `share_links` abre a
+# lista porque referencia tickets, e users fecha porque gate_showing_id
+# referencia showings e gate_venue_id referencia venues.
+TABELAS = ("share_links", "tickets", "orders", "seats", "showings",
            "events", "rooms", "venues", "users")
 
 
@@ -143,8 +146,9 @@ def semear(db: Session) -> None:
     organizador = usuarios[Role.ORGANIZER][0]
 
     venues = []
-    for nome, cidade, uf, endereco in VENUES:
-        v = Venue(name=nome, city=cidade, state=uf, address=endereco)
+    for nome, ibge, cidade, uf, endereco in VENUES:
+        v = Venue(name=nome, city=cidade, city_ibge_id=ibge,
+                  state=uf, address=endereco)
         db.add(v)
         venues.append(v)
     db.flush()
@@ -205,12 +209,14 @@ def semear(db: Session) -> None:
             total_sessoes += 1
             primeira = primeira or s
 
-        # A portaria fica na primeira sessão do primeiro filme. É o que dá os
-        # dois recusados de uma vez: as outras sessões deste filme demonstram
-        # "outra sessão", e qualquer ingresso dos demais filmes demonstra
-        # "outro evento".
+        # A portaria trabalha no cinema da primeira sessão do primeiro filme,
+        # e nasce **sem turno escolhido**: escolher é o primeiro gesto de quem
+        # opera, e deixá-lo pronto esconderia o passo (D24). Esse cinema dá os
+        # dois recusados de uma vez — as outras sessões do mesmo filme
+        # demonstram "outra sessão", e os demais filmes, "outro evento".
         if i == 0 and primeira is not None:
-            usuarios[Role.GATE][0].gate_showing_id = primeira.id
+            sala_da_primeira = next(s for s in salas if s.id == primeira.room_id)
+            usuarios[Role.GATE][0].gate_venue_id = sala_da_primeira.venue_id
 
     db.commit()
 

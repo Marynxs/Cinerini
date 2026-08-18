@@ -20,6 +20,13 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=8, max_length=72)
 
 
+class PromoteIn(BaseModel):
+    # Por e-mail e não por id: quem promove conhece a pessoa pelo endereço
+    # com que ela se cadastrou, não por um número que a interface teria de
+    # expor antes.
+    email: EmailStr
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
@@ -62,9 +69,16 @@ class TmdbDetailOut(BaseModel):
 
 
 class VenueIn(BaseModel):
+    """O nome da cidade não entra por aqui.
+
+    Só a UF e o código do município: o nome é resolvido no servidor contra a
+    lista do IBGE. Aceitá-lo do cliente reabriria a porta que a D23 fecha —
+    dois cadastros escrevendo "São Paulo" e "sao paulo" para o mesmo lugar.
+    """
+
     name: str = Field(min_length=2, max_length=255)
-    city: str = Field(min_length=2, max_length=120)
     state: str = Field(min_length=2, max_length=2, description="UF")
+    city_ibge_id: int = Field(gt=0, description="Código do município no IBGE")
     address: str = Field(min_length=4, max_length=255)
 
     @field_validator("state")
@@ -81,8 +95,62 @@ class VenueOut(BaseModel):
     id: int
     name: str
     city: str
+    city_ibge_id: int
     state: str
     address: str
+
+
+class UfOut(BaseModel):
+    sigla: str
+    nome: str
+
+
+class MunicipioOut(BaseModel):
+    id: int
+    nome: str
+
+
+class CityOut(BaseModel):
+    """Uma cidade com cinema, para o filtro do catálogo.
+
+    Traz a UF junto porque nome de cidade se repete entre estados, e o
+    cliente precisa distinguir qual "Bom Jesus" está vendo (D23).
+    """
+
+    id: int
+    nome: str
+    uf: str
+
+
+class VenueUpdate(BaseModel):
+    """Campos editáveis de um cinema.
+
+    A cidade só muda em par: mandar a UF sem o município deixaria o código
+    apontando para outro estado, que é o erro que a D23 fecha.
+    """
+
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    state: str | None = Field(default=None, min_length=2, max_length=2)
+    city_ibge_id: int | None = Field(default=None, gt=0)
+    address: str | None = Field(default=None, min_length=4, max_length=255)
+
+    @field_validator("state")
+    @classmethod
+    def uf_maiuscula(cls, v: str | None) -> str | None:
+        return v.upper() if v else v
+
+
+class RoomUpdate(BaseModel):
+    """Campos editáveis de uma sala.
+
+    O layout continua editável mesmo com sessões marcadas: os assentos
+    pertencem à exibição e são gerados na publicação, então a mudança vale
+    para as próximas e não reescreve mapa já vendido (D6).
+    """
+
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    rows: int | None = Field(default=None, ge=1, le=26)
+    seats_per_row: int | None = Field(default=None, ge=1, le=40)
 
 
 class RoomIn(BaseModel):
@@ -299,6 +367,10 @@ class ShowingBriefOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    # Preenchido na lista de turnos, onde serve para escolher. Ausente no
+    # veredito de validação, que descreve a sessão sem precisar apontá-la.
+    showing_id: int | None = None
+
     event_id: int
     event_title: str
     starts_at: datetime
@@ -327,24 +399,59 @@ class ValidationOut(BaseModel):
 
 
 class GateOut(BaseModel):
-    """Uma portaria e a sessão que ela atende."""
+    """Uma conta de portaria: onde trabalha e o que atende agora."""
 
     id: int
     name: str
     email: EmailStr
+
+    # O cinema é o escopo do emprego e quem define é o organizador.
+    venue_id: int | None
+    venue_name: str | None
+
+    # A sessão é o turno, e quem escolhe é o próprio funcionário (D24).
     showing_id: int | None
     showing: ShowingBriefOut | None
 
 
 class GateIn(BaseModel):
+    """Conta de uma pessoa, não de um posto.
+
+    Sem sessão: quem escolhe o turno é quem trabalha. O organizador define
+    apenas o cinema, que é o que a conta nunca deixa de ser (D24).
+    """
+
     name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
 
 
-class GateRebindIn(BaseModel):
-    # Nulo desvincula: a portaria continua existindo e para de validar, que é
-    # o que se quer entre uma sessão e a seguinte.
+class CoverageOut(BaseModel):
+    """Uma sessão e quem está na porta dela.
+
+    A lista vazia é o dado que importa: sessão prestes a começar sem
+    ninguém atendendo é o que o organizador precisa ver antes que a fila se
+    forme (D26).
+    """
+
+    showing: ShowingBriefOut
+    staff: list[str]
+
+
+class GateUpdate(BaseModel):
+    """O que o organizador edita numa conta de funcionário.
+
+    Nome e cinema, nunca a senha: trocá-la pelo painel obrigaria a entregar
+    a nova por algum canal, que é o problema que a promoção evita (D22).
+    """
+
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    venue_id: int | None = None
+
+
+class GateShiftIn(BaseModel):
+    # Nulo encerra o turno: a conta continua existindo e para de validar, que
+    # é o que se quer entre uma sessão e a seguinte.
     showing_id: int | None
 
 

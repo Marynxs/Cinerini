@@ -75,6 +75,9 @@ def users(db: Session) -> dict[str, User]:
                          password_hash=hash_password(SENHA), role=Role.CUSTOMER),
         "customer2": User(name="Cliente 2", email="cli2@cinerini.com.br",
                           password_hash=hash_password(SENHA), role=Role.CUSTOMER),
+        # Sem cinema aqui: quem precisa de portaria pronta usa a fixture
+        # `gate_bound`, e assim os testes de cadastro incompleto continuam
+        # tendo um caso real para exercitar.
         "gate": User(name="Portaria", email="port@cinerini.com.br",
                      password_hash=hash_password(SENHA), role=Role.GATE),
     }
@@ -98,7 +101,8 @@ def auth(client: TestClient, users: dict[str, User]):
 
 @pytest.fixture
 def room(db: Session) -> Room:
-    venue = Venue(name="Cine Teste", city="São Paulo", state="SP",
+    venue = Venue(name="Cine Teste", city="São Paulo", city_ibge_id=3550308,
+                  state="SP",
                   address="Rua de Teste, 1")
     db.add(venue)
     db.flush()
@@ -107,6 +111,18 @@ def room(db: Session) -> Room:
     db.add(sala)
     db.commit()
     return sala
+
+
+@pytest.fixture
+def gate_hired(db: Session, users: dict[str, User], room: Room) -> User:
+    """Funcionário com cinema definido, mas ainda sem turno escolhido.
+
+    É o estado em que uma conta nasce: o organizador diz onde a pessoa
+    trabalha, e escolher a sessão é o primeiro gesto dela (D24).
+    """
+    users["gate"].gate_venue_id = room.venue_id
+    db.commit()
+    return users["gate"]
 
 
 @pytest.fixture

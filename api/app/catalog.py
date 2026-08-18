@@ -79,7 +79,7 @@ def montar_sessao(
     )
 
 
-def listar(db: Session, city: str | None = None) -> list[CatalogEventOut]:
+def listar(db: Session, city: int | None = None) -> list[CatalogEventOut]:
     """Filmes em cartaz com suas sessões futuras.
 
     Sessão que já começou sai da lista: ninguém compra ingresso para algo
@@ -101,7 +101,7 @@ def listar(db: Session, city: str | None = None) -> list[CatalogEventOut]:
     )
 
     if city:
-        stmt = stmt.where(Venue.city.ilike(city))
+        stmt = stmt.where(Venue.city_ibge_id == city)
 
     linhas = db.execute(stmt).all()
 

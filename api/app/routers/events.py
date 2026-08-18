@@ -27,7 +27,7 @@ def _owned_event(db: DbSession, event_id: int, organizer: User) -> Event:
 
 
 @router.get("", response_model=list[CatalogEventOut])
-def list_published(db: DbSession, city: str | None = None) -> list[CatalogEventOut]:
+def list_published(db: DbSession, city: int | None = None) -> list[CatalogEventOut]:
     """Catálogo público: filmes em cartaz com suas sessões futuras."""
     return listar(db, city)
 
