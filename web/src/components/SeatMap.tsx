@@ -44,6 +44,11 @@ export function SeatMap({ seats, selected, onToggle, disabled }: Props) {
 
   return (
     <div className="mapa">
+      {/* O mapa é mais largo que um celular e precisa rolar de lado. A
+          rolagem fica neste invólucro, e não na grade: a grade tem a largura
+          do conteúdo, e sem um pai limitado a 100% ela vazava para fora da
+          tela em vez de rolar. */}
+      <div className="mapa-rolagem">
       <div className="mapa-grade">
         <div className="mapa-numeros" aria-hidden="true">
           <span className="mapa-fileira-letra" />
@@ -74,6 +79,7 @@ export function SeatMap({ seats, selected, onToggle, disabled }: Props) {
             <span className="mapa-fileira-letra" aria-hidden="true">{letra}</span>
           </div>
         ))}
+      </div>
       </div>
 
       <div className="mapa-tela">

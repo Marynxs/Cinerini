@@ -16,12 +16,17 @@
   justify-content: center;
   gap: var(--e4);
   width: 100%;
-  /* Espaço para o rótulo, que flutua abaixo do disco. */
+  /* Espaço para o rótulo, que flutua abaixo dos discos. */
   padding-bottom: var(--e5);
+  position: relative;
 }
 
+/* `static` de propósito: o rótulo é posicionado contra a trilha inteira, e
+   não contra o disco. Ancorado no disco e centralizado nele, o rótulo da
+   primeira etapa saía pela esquerda da tela num celular — que é exatamente
+   a etapa em que se começa. */
 .trilha-etapa {
-  position: relative;
+  position: static;
   flex: 0 0 auto;
 }
 
@@ -64,16 +69,16 @@
 .trilha-etapa--atual .trilha-rotulo {
   display: block;
   position: absolute;
-  top: calc(100% + var(--e2));
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
   font: var(--etiqueta);
   font-size: 10.5px;
   letter-spacing: var(--tracking-etiqueta);
   color: var(--carimbo);
   font-weight: 600;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .trilha-filete {

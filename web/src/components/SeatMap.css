@@ -13,19 +13,40 @@
      mesma largura para alinhar com as colunas.
 
      Amarrado a altura da janela para o mapa crescer ate o limite do que cabe
-     sem rolagem. O piso de 26px e o menor alvo que um dedo acerta com
-     confianca; o teto de 52px e onde a poltrona para de parecer poltrona. */
-  --assento-lado: clamp(26px, 4.2vh, 50px);
+     sem rolagem. O teto de 50px e onde a poltrona para de parecer poltrona;
+     o piso vale para telas baixas, e no celular ele e fixado mais abaixo. */
+  --assento-lado: clamp(22px, 4.2vh, 50px);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--e4);
+  width: 100%;
+  max-width: 100%;
+  /* `min-width: 0` porque este bloco é item de um grid: sem ele o conteúdo
+     largo impõe a própria largura à coluna e a rolagem interna nunca chega
+     a existir — o mapa simplesmente vaza para fora da tela. */
+  min-width: 0;
+}
+
+/* Invólucro que rola. Limitado a 100% da coluna para que a grade, que tem a
+   largura do conteúdo, role dentro dele em vez de vazar para fora da tela. */
+.mapa-rolagem {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Rolagem lateral do mapa sem sequestrar o gesto vertical da página. */
+  touch-action: pan-x pan-y;
+  padding-bottom: var(--e2);
 }
 
 .mapa-grade {
   display: flex;
   flex-direction: column;
   gap: var(--e2);
+  /* Nunca encolhe para caber: poltrona espremida deixa de ser alvo de dedo,
+     e é para isso que existe a rolagem acima. */
+  width: max-content;
+  margin: 0 auto;
 }
 
 /* --- régua de números, no topo --- */
@@ -214,17 +235,18 @@
 /* --- telas estreitas --- */
 
 @media (max-width: 620px) {
-  .mapa {
-    --assento-lado: 30px;
-  }
+  /* Fixo, e menor que o alvo de toque que se recomendaria em abstrato.
 
-  .mapa-grade {
-    overflow-x: auto;
-    max-width: 100%;
-    padding-bottom: var(--e2);
+     A escolha é deliberada: com poltronas maiores, uma sala de doze colunas
+     não cabe na largura de um celular, e o mapa deixa de ser mapa — vira uma
+     fita que se percorre sem nunca ver a sala inteira. Escolher poltrona é
+     uma decisão espacial, e ver o conjunto vale mais aqui do que folga no
+     dedo. A rolagem lateral continua para as salas mais largas. */
+  .mapa {
+    --assento-lado: 22px;
   }
 
   .mapa-corredor {
-    width: var(--e3);
+    width: var(--e2);
   }
 }

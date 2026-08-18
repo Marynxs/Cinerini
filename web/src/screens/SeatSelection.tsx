@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Link } from 'react-router-dom';
 
@@ -81,6 +81,31 @@ export function SeatSelection({
   }, [perdidas, seats]);
 
   const total = escolhidas.length * showing.price_cents;
+
+  /* A barra fixa e o botão do resumo mostram a mesma ação. Observar o botão
+     é o que permite apagar a barra exatamente quando o painel completo entra
+     em cena, em vez de deixar duas ações iguais visíveis ao mesmo tempo.
+
+     `IntersectionObserver` e não posição de rolagem: a altura do resumo muda
+     com o número de poltronas, e comparar coordenadas erraria a cada
+     seleção. */
+  const acaoRef = useRef<HTMLButtonElement>(null);
+  const [resumoVisivel, setResumoVisivel] = useState(false);
+
+  useEffect(() => {
+    const alvo = acaoRef.current;
+    if (!alvo) return;
+
+    const observador = new IntersectionObserver(
+      ([entrada]) => setResumoVisivel(entrada.isIntersecting),
+      // A barra tem cerca de 76px: sem descontá-los, ela só sumiria depois
+      // de já estar cobrindo o botão que a substitui.
+      { rootMargin: '0px 0px -76px 0px' },
+    );
+
+    observador.observe(alvo);
+    return () => observador.disconnect();
+  }, []);
 
   function alternar(seatId: number) {
     setSelecionadas((atuais) => {
@@ -224,6 +249,7 @@ export function SeatSelection({
             </div>
 
             <button
+              ref={acaoRef}
               type="button"
               className="acao"
               disabled={escolhidas.length === 0 || submitting}
@@ -257,6 +283,37 @@ export function SeatSelection({
         )}
         </div>
       </main>
+
+      {/* Barra fixa do celular: total e ação sempre à mão, sem obrigar a
+          rolar até o fim para saber quanto deu.
+
+          Ela se apaga quando o botão do resumo aparece na tela — em vez de
+          duas ações iguais empilhadas, o painel completo "absorve" a barra
+          ao ser alcançado. */}
+      <div
+        className={`barra-fixa${resumoVisivel ? ' barra-fixa--oculta' : ''}`}
+        aria-hidden={resumoVisivel}
+      >
+        <div className="barra-fixa-info">
+          <span className="barra-fixa-conta">
+            {escolhidas.length === 0
+              ? 'Nenhuma poltrona'
+              : `${escolhidas.length} ${
+                  escolhidas.length === 1 ? 'poltrona' : 'poltronas'}`}
+          </span>
+          <span className="barra-fixa-total">{dinheiro(total)}</span>
+        </div>
+
+        <button
+          type="button"
+          className="acao barra-fixa-acao"
+          disabled={escolhidas.length === 0 || submitting || resumoVisivel}
+          onClick={() => onConfirm(selecionadas)}
+        >
+          {submitting ? 'Reservando…'
+            : reserva ? 'Atualizar' : 'Reservar'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -369,3 +369,77 @@
     font-size: 15px;
   }
 }
+
+/* --- barra fixa do celular ---
+
+   Some no desktop: lá a coluna do resumo já fica visível o tempo inteiro, e
+   uma barra presa embaixo só roubaria altura do mapa. */
+
+.barra-fixa {
+  display: none;
+}
+
+@media (max-width: 940px) {
+  .barra-fixa {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--e4);
+    padding: var(--e3) var(--e4);
+    /* `env(safe-area-inset-bottom)` afasta a barra da faixa de gestos do
+       iPhone, onde o polegar não alcança o botão sem fechar o app. */
+    padding-bottom: calc(var(--e3) + env(safe-area-inset-bottom, 0px));
+    background: var(--papel);
+    border-top: var(--linha-forte);
+    /* Sombra para cima: separa a barra do conteúdo que passa por baixo. */
+    box-shadow: 0 -4px 12px rgb(25 21 18 / 0.1);
+    transition: transform 140ms ease-out, opacity 140ms ease-out;
+  }
+
+  /* Desce em vez de sumir: o painel completo já está na tela e ocupa o
+     lugar dela, e o movimento explica de onde a barra saiu. */
+  .barra-fixa--oculta {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .barra-fixa-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .barra-fixa-conta {
+    font: var(--etiqueta);
+    letter-spacing: var(--tracking-etiqueta);
+    color: var(--tinta-fraca);
+    text-transform: uppercase;
+  }
+
+  .barra-fixa-total {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .barra-fixa-acao {
+    width: auto;
+    flex: 0 0 auto;
+    padding-left: var(--e6);
+    padding-right: var(--e6);
+  }
+
+  /* Espaço para a barra não cobrir o fim da página. */
+  .corpo {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
