@@ -148,8 +148,8 @@ def describe(db: Session, showing_id: int) -> Sessao | None:
 def validate(db: Session, gate: User, codigo: str) -> Validation:
     if gate.gate_showing_id is None:
         raise GateError(
-            "Esta portaria não está vinculada a nenhuma sessão. "
-            "Peça ao organizador para vinculá-la antes de validar."
+            "Nenhuma sessão escolhida para este turno. Escolha a sessão "
+            "que você está atendendo antes de validar."
         )
 
     jti, sessao_do_token = _extrair_jti(codigo)
