@@ -10,6 +10,30 @@ import './SeatSelection.css';
 /** Mesmo limite do schema da API, para o cliente não descobrir no erro. */
 const MAX_POLTRONAS = 10;
 
+/* A escolha sobrevive ao desvio pelo login.
+
+   Quem não tem conta escolhe as poltronas, clica em reservar e é mandado
+   para o login. Ao voltar, o componente é montado de novo e a seleção nascia
+   vazia — a pessoa era punida por não ter previsto que precisaria de conta.
+
+   `sessionStorage` e não `localStorage`: a escolha vale para esta visita, e
+   guardá-la entre sessões faria o mapa reabrir dias depois com poltronas que
+   já foram vendidas. Por sessão de cinema, porque escolher outra sessão é
+   outra compra. */
+const chaveEscolha = (showingId: number) => `cinerini.poltronas.${showingId}`;
+
+function lerEscolha(showingId: number): number[] {
+  try {
+    const bruto = sessionStorage.getItem(chaveEscolha(showingId));
+    const lista = bruto ? JSON.parse(bruto) : null;
+    return Array.isArray(lista) ? lista.filter((n) => typeof n === 'number') : [];
+  } catch {
+    // Armazenamento bloqueado ou conteúdo corrompido não podem derrubar a
+    // tela: sem a memória, a escolha apenas começa vazia.
+    return [];
+  }
+}
+
 interface Props {
   showing: ShowingOut;
   seats: SeatOut[];
@@ -44,7 +68,8 @@ const duracao = (minutos: number) =>
 export function SeatSelection({
   showing, seats, onConfirm, submitting, erro, perdidas = [], reserva,
 }: Props) {
-  const [selecionadas, setSelecionadas] = useState<number[]>([]);
+  const [selecionadas, setSelecionadas] = useState<number[]>(
+    () => lerEscolha(showing.id));
   const [limiteAtingido, setLimiteAtingido] = useState(false);
 
   const escolhidas = useMemo(
@@ -61,6 +86,30 @@ export function SeatSelection({
   useEffect(() => {
     if (reserva) setSelecionadas(reserva.tickets.map((t) => t.seat_id));
   }, [reserva?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* A memória pode estar velha: entre escolher e voltar do login, outra
+     pessoa pode ter levado a poltrona. Restaurar sem conferir marcaria como
+     escolhida uma cadeira que o mapa mostra ocupada. */
+  useEffect(() => {
+    setSelecionadas((atuais) => {
+      const validas = atuais.filter((id) =>
+        seats.some((a) => a.id === id && !a.taken));
+      return validas.length === atuais.length ? atuais : validas;
+    });
+  }, [seats]);
+
+  /* Guarda a cada mudança, e não só ao sair: não há evento confiável de
+     "vou navegar agora" que cubra login, botão do navegador e recarga. */
+  useEffect(() => {
+    try {
+      if (selecionadas.length === 0) {
+        sessionStorage.removeItem(chaveEscolha(showing.id));
+      } else {
+        sessionStorage.setItem(chaveEscolha(showing.id),
+                               JSON.stringify(selecionadas));
+      }
+    } catch { /* armazenamento indisponível: seguir sem memória */ }
+  }, [selecionadas, showing.id]);
 
   // O aviso some sozinho quando o cliente libera uma poltrona: deixá-lo na
   // tela depois de resolvido viraria ruído.
