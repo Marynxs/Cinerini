@@ -272,3 +272,155 @@
 .portaria-escolha select {
   width: 100%;
 }
+
+/* --- abas do painel ---
+
+   Etiquetas de pasta, não botões: o vocabulário é o do arquivo de papel, e a
+   aba ativa se funde com o conteúdo abaixo em vez de flutuar sobre ele. */
+
+.abas {
+  display: flex;
+  gap: var(--e1);
+  margin-top: var(--e5);
+  border-bottom: var(--linha-forte);
+  overflow-x: auto;
+}
+
+.aba {
+  flex: none;
+  padding: var(--e3) var(--e4);
+  border: 1.5px solid transparent;
+  border-bottom: none;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aba:hover {
+  color: var(--tinta);
+}
+
+/* A margem negativa cobre a linha do contêiner, emendando a aba ativa com o
+   conteúdo — é o que faz a pasta parecer aberta. */
+.aba--ativa {
+  background: var(--papel);
+  border-color: var(--tinta);
+  color: var(--tinta);
+  margin-bottom: -2px;
+  padding-bottom: calc(var(--e3) + 2px);
+}
+
+@media (max-width: 620px) {
+  .aba {
+    padding: var(--e3);
+    font-size: 11px;
+  }
+}
+
+/* --- ações de linha ---
+
+   Discretas de propósito: editar e remover são exceções no uso diário, e
+   destacá-las competiria com o dado que a tabela existe para mostrar. */
+
+.linha-acoes,
+.tabela-acoes {
+  display: flex;
+  gap: var(--e3);
+  align-items: baseline;
+}
+
+.linha-acoes {
+  margin-left: auto;
+}
+
+.tabela-acoes {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.tabela-acoes .elo,
+.linha-acoes .elo {
+  font-size: 10.5px;
+}
+
+/* --- cobertura das próximas sessões ---
+
+   Fica acima da tabela de equipe porque responde a pergunta operacional:
+   qual porta está sem gente. A tabela responde a outra — o que cada pessoa
+   atende — e serve para conferir depois. */
+
+.cobertura {
+  margin: var(--e4) var(--e4) 0;
+  padding: var(--e3) var(--e4);
+  border: 1.5px solid var(--picote);
+  background: var(--papel-escuro);
+}
+
+.cobertura-titulo {
+  font: var(--etiqueta);
+  letter-spacing: var(--tracking-etiqueta);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  margin-bottom: var(--e2);
+}
+
+.cobertura-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cobertura-item {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: var(--e3);
+  align-items: baseline;
+  padding: var(--e1) 0;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-bottom: 1px dotted var(--picote);
+}
+
+.cobertura-quando {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-transform: capitalize;
+}
+
+.cobertura-quem {
+  color: var(--tinta-fraca);
+  text-align: right;
+}
+
+/* Sessão sem ninguém: carmim e barra à esquerda. A barra é o que separa os
+   dois estados sem depender de cor. */
+.cobertura-item--vazia {
+  color: var(--carimbo);
+  border-left: 3px solid var(--carimbo);
+  padding-left: var(--e2);
+  font-weight: 600;
+}
+
+.cobertura-item--vazia .cobertura-quem {
+  color: var(--carimbo);
+}
+
+@media (max-width: 620px) {
+  .cobertura-item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .cobertura-sessao {
+    grid-column: 1 / -1;
+    color: var(--tinta-media);
+  }
+}

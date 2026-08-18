@@ -5,9 +5,9 @@
 
 import { request } from './client';
 import type {
-  CatalogEvent, EventOut, Gate, MyTicket, OrderOut, PaymentOut, Room,
-  SeatOut, SharedTicket, ShowingOut, TmdbSearchResult, TokenOut, User,
-  Validation, Venue,
+  CatalogEvent, City, Coverage, EventOut, Gate, Municipio, MyTicket, OrderOut,
+  PaymentOut, Room, SeatOut, SharedTicket, ShowingBrief, ShowingOut,
+  TmdbSearchResult, TokenOut, Uf, User, Validation, Venue,
 } from './types';
 
 export const auth = {
@@ -25,19 +25,22 @@ export const auth = {
 };
 
 export const catalogo = {
-  cidades: () => request<string[]>('/venues/cities', { publica: true }),
+  cidades: () => request<City[]>('/venues/cities', { publica: true }),
 
-  cinemas: (cidade?: string) =>
-    request<Venue[]>(
-      cidade ? `/venues?city=${encodeURIComponent(cidade)}` : '/venues',
-      { publica: true },
-    ),
+  // `cidade` é o código do município no IBGE, não o nome: nome de cidade
+  // se repete entre estados (D23).
+  cinemas: (cidade?: number) =>
+    request<Venue[]>(cidade ? `/venues?city=${cidade}` : '/venues',
+                     { publica: true }),
 
-  eventos: (cidade?: string) =>
-    request<CatalogEvent[]>(
-      cidade ? `/events?city=${encodeURIComponent(cidade)}` : '/events',
-      { publica: true },
-    ),
+  eventos: (cidade?: number) =>
+    request<CatalogEvent[]>(cidade ? `/events?city=${cidade}` : '/events',
+                            { publica: true }),
+
+  ufs: () => request<Uf[]>('/venues/ufs', { publica: true }),
+
+  municipios: (uf: string) =>
+    request<Municipio[]>(`/venues/ufs/${uf}/municipios`, { publica: true }),
 
   evento: (id: number) =>
     request<EventOut>(`/events/${id}`, { publica: true }),
@@ -84,8 +87,29 @@ export const organizador = {
     }),
 
   criarCinema: (dados: {
-    name: string; city: string; state: string; address: string;
+    name: string; state: string; city_ibge_id: number; address: string;
   }) => request<Venue>('/venues', { method: 'POST', body: dados }),
+
+  editarCinema: (venueId: number, dados: Partial<{
+    name: string; state: string; city_ibge_id: number; address: string;
+  }>) => request<Venue>(`/venues/${venueId}`, { method: 'PATCH', body: dados }),
+
+  removerCinema: (venueId: number) =>
+    request<void>(`/venues/${venueId}`, { method: 'DELETE' }),
+
+  editarSala: (venueId: number, roomId: number, dados: Partial<{
+    name: string; rows: number; seats_per_row: number;
+  }>) => request<Room>(`/venues/${venueId}/rooms/${roomId}`, {
+    method: 'PATCH', body: dados,
+  }),
+
+  removerSala: (venueId: number, roomId: number) =>
+    request<void>(`/venues/${venueId}/rooms/${roomId}`, { method: 'DELETE' }),
+
+  organizadores: () => request<User[]>('/auth/organizers'),
+
+  promover: (email: string) =>
+    request<User>('/auth/organizers', { method: 'POST', body: { email } }),
 
   criarSala: (venueId: number, dados: {
     name: string; rows: number; seats_per_row: number;
@@ -133,17 +157,34 @@ export const portaria = {
   validar: (code: string) =>
     request<Validation>('/gate/validations', { method: 'POST', body: { code } }),
 
-  // Cadastro e vínculo são do organizador, nunca da própria portaria.
+  // As sessões que esta conta pode atender, e a escolha do turno. Quem
+  // escolhe é quem trabalha, não o organizador (D24).
+  turnos: () => request<ShowingBrief[]>('/gate/showings'),
+
+  escolherTurno: (showingId: number | null) =>
+    request<Gate>('/gate/shift', {
+      method: 'PUT', body: { showing_id: showingId },
+    }),
+
+  // Cadastro é do organizador, nunca da própria portaria.
   listar: () => request<Gate[]>('/gates'),
 
-  criar: (showingId: number, dados: {
+  // Sessões começando em breve e quem as atende. Vira a pergunta do avesso:
+  // não "o que o João atende", e sim "esta sessão tem alguém" (D26).
+  cobertura: () => request<Coverage[]>('/gates/coverage'),
+
+  criar: (venueId: number, dados: {
     name: string; email: string; password: string;
-  }) => request<Gate>(`/showings/${showingId}/gates`, {
+  }) => request<Gate>(`/venues/${venueId}/gates`, {
     method: 'POST', body: dados,
   }),
 
-  revincular: (gateId: number, showingId: number | null) =>
-    request<Gate>(`/gates/${gateId}`, {
-      method: 'PATCH', body: { showing_id: showingId },
-    }),
+  // Nome e cinema, nunca a senha: trocá-la pelo painel obrigaria a entregar
+  // a nova por algum canal (D22).
+  editar: (gateId: number, dados: Partial<{
+    name: string; venue_id: number | null;
+  }>) => request<Gate>(`/gates/${gateId}`, { method: 'PATCH', body: dados }),
+
+  remover: (gateId: number) =>
+    request<void>(`/gates/${gateId}`, { method: 'DELETE' }),
 };

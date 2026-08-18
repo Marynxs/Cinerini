@@ -24,6 +24,8 @@ export interface Venue {
   id: number;
   name: string;
   city: string;
+  /** Código do município no IBGE: é por ele que o catálogo agrupa (D23). */
+  city_ibge_id: number;
   state: string;
   address: string;
 }
@@ -164,6 +166,8 @@ export type GateResult =
 
 /** Uma exibição em uma linha: o que a portaria mostra e confere. */
 export interface ShowingBrief {
+  /** Presente na lista de turnos, ausente no veredito de validação. */
+  showing_id: number | null;
   event_id: number;
   event_title: string;
   starts_at: string;
@@ -176,6 +180,10 @@ export interface Gate {
   id: number;
   name: string;
   email: string;
+  /** O cinema onde a conta trabalha. Definido pelo organizador. */
+  venue_id: number | null;
+  venue_name: string | null;
+  /** A sessão do turno. Escolhida pelo próprio funcionário. */
   showing_id: number | null;
   showing: ShowingBrief | null;
 }
@@ -186,4 +194,29 @@ export interface Validation {
   customer_name: string | null;
   showing: ShowingBrief | null;
   used_at: string | null;
+}
+
+/** Cidade com cinema, para o filtro do catálogo.
+
+    Traz a UF porque nome de cidade se repete entre estados. */
+export interface City {
+  id: number;
+  nome: string;
+  uf: string;
+}
+
+export interface Uf {
+  sigla: string;
+  nome: string;
+}
+
+export interface Municipio {
+  id: number;
+  nome: string;
+}
+
+/** Uma sessão e quem está na porta dela. Lista vazia é o dado que importa. */
+export interface Coverage {
+  showing: ShowingBrief;
+  staff: string[];
 }

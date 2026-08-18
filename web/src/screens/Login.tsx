@@ -20,7 +20,7 @@ const CONTAS_SEMEADAS = [
   { papel: 'Organizador', email: 'organizador@cinerini.com.br' },
   { papel: 'Cliente', email: 'cliente1@cinerini.com.br' },
   { papel: 'Cliente', email: 'cliente2@cinerini.com.br' },
-  { papel: 'Portaria', email: 'portaria@cinerini.com.br' },
+  { papel: 'Funcionário', email: 'portaria@cinerini.com.br' },
 ];
 
 const SENHA_SEMEADA = 'cinerini123';

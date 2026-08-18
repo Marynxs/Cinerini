@@ -8,7 +8,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { portaria } from '../api/endpoints';
-import type { Gate as Portaria, GateResult, ShowingBrief, Validation } from '../api/types';
+import type {
+  Gate as Portaria, GateResult, ShowingBrief, Validation,
+} from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Carregando, Layout, Vazio } from '../components/Layout';
 import { useLeitorQr } from './useLeitorQr';
@@ -169,10 +171,12 @@ export function Gate() {
   const { user, carregando } = useAuth();
 
   const [vinculo, setVinculo] = useState<Portaria | null>(null);
+  const [turnos, setTurnos] = useState<ShowingBrief[] | null>(null);
   const [validacao, setValidacao] = useState<Validation | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [digitado, setDigitado] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [trocando, setTrocando] = useState(false);
 
   const ehPortaria = user?.role === 'gate';
 
@@ -180,6 +184,26 @@ export function Gate() {
     if (!ehPortaria) return;
     portaria.vinculo().then(setVinculo).catch((e: Error) => setErro(e.message));
   }, [ehPortaria]);
+
+  // Os turnos só são buscados quando há o que escolher: com a sessão já
+  // definida, a tela vai direto para a câmera.
+  const precisaEscolher = ehPortaria && (vinculo?.showing_id == null || trocando);
+
+  useEffect(() => {
+    if (!precisaEscolher) return;
+    setTurnos(null);
+    portaria.turnos().then(setTurnos).catch((e: Error) => setErro(e.message));
+  }, [precisaEscolher]);
+
+  async function escolher(showingId: number | null) {
+    setErro(null);
+    try {
+      setVinculo(await portaria.escolherTurno(showingId));
+      setTrocando(false);
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
 
   /* Trava contra a segunda leitura do mesmo código.
 
@@ -212,7 +236,8 @@ export function Gate() {
 
   // A câmera desliga enquanto há veredito na tela e enquanto uma validação
   // está no ar. Sem isso, o mesmo QR seria lido seis vezes por segundo.
-  const lendo = Boolean(ehPortaria) && validacao === null && !enviando;
+  const lendo = Boolean(ehPortaria) && !precisaEscolher
+    && validacao === null && !enviando;
   const { video, estado, reiniciar } = useLeitorQr(lendo, validar);
 
   if (carregando) return <Layout><Carregando /></Layout>;
@@ -221,7 +246,7 @@ export function Gate() {
     return (
       <Layout>
         <Vazio titulo="Área da portaria">
-          <p>Entre com uma conta de portaria para validar ingressos.</p>
+          <p>Entre com uma conta de funcionário para validar ingressos.</p>
           <p style={{ marginTop: 'var(--e4)' }}>
             <Link to="/entrar" state={{ de: '/portaria' }} className="elo">
               Entrar
@@ -242,6 +267,69 @@ export function Gate() {
 
   const sessao = vinculo?.showing;
 
+  /* Escolher o turno é o primeiro gesto de quem chega para trabalhar. Fica
+     antes da câmera porque validar sem saber que sessão se atende é como a
+     porta aceitar qualquer um — e porque o operador troca de sessão sozinho
+     ao longo da noite, sem depender do organizador (D24). */
+  if (precisaEscolher) {
+    return (
+      <Layout>
+        <div className="portaria-cabeca">
+          <div>
+            <p className="portaria-etiqueta">Funcionário · {vinculo?.name}</p>
+            <h1 className="portaria-sessao">
+              {trocando ? 'Trocar de sessão' : 'Qual sessão você atende?'}
+            </h1>
+          </div>
+          {vinculo?.venue_name && (
+            <p className="portaria-cinema">{vinculo.venue_name}</p>
+          )}
+        </div>
+
+        {erro && (
+          <p className="erro-form" role="alert" style={{ marginTop: 'var(--e4)' }}>
+            <span className="erro-form-marca" aria-hidden="true">!</span>{erro}
+          </p>
+        )}
+
+        {turnos === null && !erro && <Carregando texto="Buscando sessões" />}
+
+        {turnos?.length === 0 && (
+          <Vazio titulo="Nenhuma sessão por perto">
+            <p>
+              Não há sessões deste cinema começando nas próximas horas. Assim
+              que houver, elas aparecem aqui.
+            </p>
+          </Vazio>
+        )}
+
+        {turnos && turnos.length > 0 && (
+          <ul className="turnos">
+            {turnos.map((s) => (
+              <li key={s.showing_id}>
+                <button type="button" className="turno"
+                        onClick={() => escolher(s.showing_id)}>
+                  <span className="turno-hora">{quando(s.starts_at)}</span>
+                  <span className="turno-filme">{s.event_title}</span>
+                  <span className="turno-sala">{s.room_name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {trocando && (
+          <p style={{ marginTop: 'var(--e5)' }}>
+            <button type="button" className="elo elo--fraco"
+                    onClick={() => setTrocando(false)}>
+              Continuar na sessão atual
+            </button>
+          </p>
+        )}
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       {/* Qual sessão esta portaria atende, dito antes da primeira leitura:
@@ -249,32 +337,31 @@ export function Gate() {
           alguém. */}
       <div className="portaria-cabeca">
         <div>
-          <p className="portaria-etiqueta">Portaria</p>
-          <h1 className="portaria-sessao">
-            {sessao ? sessao.event_title : 'Sem sessão vinculada'}
-          </h1>
+          <p className="portaria-etiqueta">Portaria · {vinculo?.name}</p>
+          <h1 className="portaria-sessao">{sessao?.event_title}</h1>
         </div>
 
-        {sessao ? (
+        <div>
           <dl className="portaria-ficha">
             <div>
               <dt>Quando</dt>
-              <dd>{quando(sessao.starts_at)}</dd>
+              <dd>{sessao && quando(sessao.starts_at)}</dd>
             </div>
             <div>
               <dt>Onde</dt>
-              <dd>{sessao.venue_name} · {sessao.venue_city}</dd>
+              <dd>{sessao?.venue_name} · {sessao?.venue_city}</dd>
             </div>
             <div>
               <dt>Sala</dt>
-              <dd>{sessao.room_name}</dd>
+              <dd>{sessao?.room_name}</dd>
             </div>
           </dl>
-        ) : vinculo && (
-          <p className="portaria-solta">
-            Peça ao organizador para vincular esta portaria a uma sessão.
-          </p>
-        )}
+
+          <button type="button" className="elo elo--fraco portaria-trocar"
+                  onClick={() => setTrocando(true)}>
+            Trocar de sessão
+          </button>
+        </div>
       </div>
 
       <div className="camera">

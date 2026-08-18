@@ -8,7 +8,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { catalogo, organizador, portaria } from '../api/endpoints';
 import type {
-  EventOut, Gate, Room, ShowingOut, TmdbSearchResult, Venue,
+  Coverage, EventOut, Gate, Municipio, Room, ShowingOut, TmdbSearchResult,
+  Uf, User, Venue,
 } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Confirmar } from '../components/Confirmar';
@@ -24,6 +25,14 @@ const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   }).replace(',', '');
+
+type AbaId = 'eventos' | 'cinemas' | 'equipe';
+
+const ABAS: { id: AbaId; rotulo: string }[] = [
+  { id: 'eventos', rotulo: 'Eventos e sessões' },
+  { id: 'cinemas', rotulo: 'Cinemas e salas' },
+  { id: 'equipe', rotulo: 'Equipe' },
+];
 
 /** Junta data e hora locais num instante absoluto.
 
@@ -41,6 +50,13 @@ export function Organizer() {
   const [eventos, setEventos] = useState<EventOut[] | null>(null);
   const [sessoes, setSessoes] = useState<Record<number, ShowingOut[]>>({});
   const [erro, setErro] = useState<string | null>(null);
+  const [aba, setAba] = useState<AbaId>('eventos');
+  /* Sobe a cada mudança no quadro de gente. As duas seções da aba
+     Equipe leem a mesma realidade por ângulos diferentes: criar um
+     funcionário acrescenta um candidato à promoção, e promover tira
+     alguém da lista de funcionários. Sem um sinal comum, cada uma
+     ficaria mostrando o quadro de antes da ação da outra. */
+  const [equipe, setEquipe] = useState(0);
 
   const recarregar = useCallback(async () => {
     setErro(null);
@@ -97,57 +113,97 @@ export function Organizer() {
         </p>
       )}
 
-      <NovoEvento aoCriar={recarregar} />
+      {/* Abas em vez de tudo empilhado: as quatro áreas são usadas em
+          momentos diferentes — publicar é semanal, montar portaria é diário,
+          cadastrar cinema é uma vez só — e empilhá-las obrigava a rolar por
+          três assuntos para chegar ao quarto. */}
+      <div className="abas" role="tablist" aria-label="Áreas do painel">
+        {ABAS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            role="tab"
+            id={`aba-${a.id}`}
+            aria-selected={aba === a.id}
+            aria-controls={`painel-${a.id}`}
+            className={`aba${aba === a.id ? ' aba--ativa' : ''}`}
+            onClick={() => setAba(a.id)}
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </div>
 
-      <section className="painel-secao">
-        <h2 className="painel-titulo">Meus eventos</h2>
+      <div role="tabpanel" id={`painel-${aba}`} aria-labelledby={`aba-${aba}`}>
+        {aba === 'eventos' && (
+          <>
+            <NovoEvento aoCriar={recarregar} />
 
-        {eventos === null && <Carregando />}
+            <section className="painel-secao">
+              <h2 className="painel-titulo">Meus eventos</h2>
 
-        {eventos?.length === 0 && (
-          <p className="vazio-linha">
-            Nenhum evento ainda. Busque um filme acima para criar o primeiro.
-          </p>
+              {eventos === null && <Carregando />}
+
+              {eventos?.length === 0 && (
+                <p className="vazio-linha">
+                  Nenhum evento ainda. Busque um filme acima para criar o
+                  primeiro.
+                </p>
+              )}
+
+              {eventos?.map((evento) => (
+                <Evento
+                  key={evento.id}
+                  evento={evento}
+                  sessoes={sessoes[evento.id] ?? []}
+                  salas={todasSalas}
+                  venues={venues}
+                  aoMudar={recarregar}
+                />
+              ))}
+            </section>
+          </>
         )}
 
-        {eventos?.map((evento) => (
-          <Evento
-            key={evento.id}
-            evento={evento}
-            sessoes={sessoes[evento.id] ?? []}
-            salas={todasSalas}
-            venues={venues}
-            aoMudar={recarregar}
-          />
-        ))}
-      </section>
+        {aba === 'cinemas' && (
+          <Cinemas venues={venues} salas={salas} aoMudar={recarregar} />
+        )}
 
-      <Portarias
-        sessoes={eventos?.flatMap((e) => sessoes[e.id] ?? []) ?? []}
-      />
-
-      <Cinemas venues={venues} salas={salas} aoMudar={recarregar} />
+        {aba === 'equipe' && (
+          <>
+            <Portarias
+              venues={venues}
+              versao={equipe}
+              aoMudar={() => setEquipe((n) => n + 1)}
+            />
+            <Organizadores
+              versao={equipe}
+              aoMudar={() => setEquipe((n) => n + 1)}
+            />
+          </>
+        )}
+      </div>
     </Layout>
   );
 }
 
-/* -------------------------------------------------------- portarias */
+/* --------------------------------------------- portarias e equipe */
 
-/** Rótulo de uma sessão numa linha, para escolher numa lista.
+/** Contas de portaria: uma pessoa, um cinema.
 
-    Filme, dia, hora e sala juntos porque um organizador com o mesmo filme em
-    dois cinemas não distingue as sessões por nenhum desses campos sozinho. */
-const rotuloSessao = (s: ShowingOut) =>
-  `${s.event_title} · ${new Date(s.starts_at).toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  }).replace(',', '')} · ${s.venue_name} · ${s.room_name}`;
-
-/** Contas de portaria e a sessão que cada uma atende.
-
-    Fica no painel do organizador porque portaria não se auto-cadastra: o
+    Fica no painel do organizador porque portaria não se auto-cadastra — o
     papel decide quem entra na sala, e concedê-lo pelo formulário público
-    deixaria qualquer visitante abrir a porta (D21). */
-function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
+    deixaria qualquer visitante abrir a porta.
+
+    O que se define aqui é o **cinema**, que é o escopo do emprego. Qual
+    sessão a pessoa atende é escolha dela, a cada turno, na própria tela da
+    portaria (D24). */
+interface EquipeProps {
+  versao: number;
+  aoMudar: () => void;
+}
+
+function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] }) {
   const [gates, setGates] = useState<Gate[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -155,24 +211,38 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [sessaoId, setSessaoId] = useState('');
+  const [venueId, setVenueId] = useState('');
+
+  const [editando, setEditando] = useState<number | null>(null);
+  const [removendo, setRemovendo] = useState<Gate | null>(null);
 
   const recarregar = useCallback(() => {
     portaria.listar().then(setGates).catch((e: Error) => setErro(e.message));
   }, []);
 
-  useEffect(recarregar, [recarregar]);
+  async function remover(alvo: Gate) {
+    setErro(null);
+    try {
+      await portaria.remover(alvo.id);
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  useEffect(recarregar, [recarregar, versao]);
 
   async function criar(evento: FormEvent) {
     evento.preventDefault();
     setErro(null);
     setSalvando(true);
     try {
-      await portaria.criar(Number(sessaoId), {
+      await portaria.criar(Number(venueId), {
         name: nome, email, password: senha,
       });
-      setNome(''); setEmail(''); setSenha(''); setSessaoId('');
-      recarregar();
+      setNome(''); setEmail(''); setSenha(''); setVenueId('');
+      // Avisa a seção de promoção: o novo funcionário já é candidato.
+      aoMudar();
     } catch (e) {
       setErro((e as Error).message);
     } finally {
@@ -180,28 +250,20 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
     }
   }
 
-  async function revincular(gateId: number, valor: string) {
-    setErro(null);
-    try {
-      await portaria.revincular(gateId, valor ? Number(valor) : null);
-      recarregar();
-    } catch (e) {
-      setErro((e as Error).message);
-    }
-  }
-
   return (
     <section className="painel-secao">
-      <h2 className="painel-titulo">Portarias</h2>
+      <h2 className="painel-titulo">Funcionários</h2>
 
       {erro && <p className="motivo">{erro}</p>}
+
+      <Cobertura versao={versao} />
 
       {gates === null && <Carregando />}
 
       {gates?.length === 0 && (
         <p className="vazio-linha">
-          Nenhuma portaria cadastrada. Crie uma abaixo para validar ingressos
-          na entrada.
+          Nenhum funcionário cadastrado. Crie um abaixo para validar
+          ingressos na entrada.
         </p>
       )}
 
@@ -209,9 +271,11 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
         <table className="tabela">
           <thead>
             <tr>
-              <th>Portaria</th>
+              <th>Funcionário</th>
               <th>Acesso</th>
-              <th>Sessão que valida</th>
+              <th>Cinema</th>
+              <th>Atendendo agora</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -219,21 +283,25 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
               <tr key={g.id}>
                 <td>{g.name}</td>
                 <td className="portaria-email">{g.email}</td>
+                <td>{g.venue_name ?? <span className="motivo">sem cinema</span>}</td>
                 <td>
-                  {/* Trocar a sessão é o gesto normal, não a exceção: a
-                      mesma porta atende exibições diferentes ao longo do
-                      dia, e recadastrar a cada uma encheria o sistema de
-                      contas mortas. */}
-                  <select
-                    className="portaria-vinculo"
-                    value={g.showing_id ?? ''}
-                    onChange={(e) => revincular(g.id, e.target.value)}
-                  >
-                    <option value="">Sem sessão — não valida nada</option>
-                    {sessoes.map((s) => (
-                      <option key={s.id} value={s.id}>{rotuloSessao(s)}</option>
-                    ))}
-                  </select>
+                  {/* Só leitura: quem escolhe o turno é quem trabalha, e
+                      mostrar aqui serve para o organizador saber quem está
+                      em qual porta agora. */}
+                  {g.showing
+                    ? `${g.showing.event_title} · ${quando(g.showing.starts_at)}`
+                    : <span className="vazio-linha">fora de turno</span>}
+                </td>
+                <td className="tabela-acoes">
+                  <button type="button" className="elo"
+                          onClick={() => setEditando(
+                            editando === g.id ? null : g.id)}>
+                    {editando === g.id ? 'Cancelar' : 'Editar'}
+                  </button>
+                  <button type="button" className="elo elo--perigo"
+                          onClick={() => setRemovendo(g)}>
+                    Remover
+                  </button>
                 </td>
               </tr>
             ))}
@@ -243,9 +311,9 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
 
       <form className="forma-inline" onSubmit={criar}>
         <div className="campo-curto">
-          <span className="campo-rotulo">Nova portaria</span>
+          <span className="campo-rotulo">Novo funcionário</span>
           <input value={nome} onChange={(e) => setNome(e.target.value)}
-                 placeholder="Entrada Sala 1" minLength={2} required />
+                 placeholder="Nome da pessoa" minLength={2} required />
         </div>
 
         <div className="campo-curto">
@@ -262,21 +330,263 @@ function Portarias({ sessoes }: { sessoes: ShowingOut[] }) {
         </div>
 
         <div className="campo-curto portaria-escolha">
-          <span className="campo-rotulo">Sessão</span>
-          <select value={sessaoId} required
-                  onChange={(e) => setSessaoId(e.target.value)}>
-            <option value="" disabled>Escolha a sessão</option>
-            {sessoes.map((s) => (
-              <option key={s.id} value={s.id}>{rotuloSessao(s)}</option>
+          <span className="campo-rotulo">Cinema onde trabalha</span>
+          <select value={venueId} required
+                  onChange={(e) => setVenueId(e.target.value)}>
+            <option value="" disabled>Escolha o cinema</option>
+            {venues.map((v) => (
+              <option key={v.id} value={v.id}>{v.name} · {v.city}</option>
             ))}
           </select>
         </div>
 
         <button type="submit" className="botao-compacto"
-                disabled={salvando || !sessaoId}>
-          {salvando ? 'Criando…' : 'Criar portaria'}
+                disabled={salvando || !venueId}>
+          {salvando ? 'Criando…' : 'Criar funcionário'}
         </button>
       </form>
+
+      {editando !== null && gates?.some((g) => g.id === editando) && (
+        <EditarFuncionario
+          gate={gates.find((g) => g.id === editando)!}
+          venues={venues}
+          aoSalvar={() => { setEditando(null); aoMudar(); }}
+        />
+      )}
+
+      {removendo && (
+        <Confirmar
+          titulo="Remover funcionário"
+          rotuloConfirmar="Remover funcionário"
+          aoFechar={() => setRemovendo(null)}
+          aoConfirmar={() => {
+            const alvo = removendo; setRemovendo(null); remover(alvo);
+          }}
+        >
+          <p>
+            <span className="dialogo-destaque">{removendo.name}</span>
+            {' · '}{removendo.email}
+          </p>
+          <p className="dialogo-consequencia">
+            A conta deixa de existir e não entra mais no sistema. Quem já
+            validou ingressos não pode ser removido — o histórico deixaria de
+            dizer quem estava na porta. Esta ação é irreversível.
+          </p>
+        </Confirmar>
+      )}
+    </section>
+  );
+}
+
+/** Sessões que começam em breve e quem está na porta de cada uma.
+
+    Existe porque a tabela abaixo responde a pergunta errada. Ela diz o que
+    cada funcionário atende; quem opera um cinema precisa do contrário — se a
+    sessão das 21:30 tem alguém. Cruzar as duas colunas na cabeça funciona
+    com três funcionários e falha numa noite cheia, e o erro só aparece
+    quando a fila já se formou (D26).
+
+    O carmim aqui é uso legítimo: sessão descoberta é atenção, não enfeite. */
+function Cobertura({ versao }: { versao: number }) {
+  const [lista, setLista] = useState<Coverage[] | null>(null);
+
+  useEffect(() => {
+    portaria.cobertura().then(setLista).catch(() => setLista([]));
+  }, [versao]);
+
+  if (lista === null || lista.length === 0) return null;
+
+  const descobertas = lista.filter((c) => c.staff.length === 0);
+
+  return (
+    <div className="cobertura">
+      <p className="cobertura-titulo">
+        Próximas sessões · {descobertas.length === 0
+          ? 'todas com alguém na porta'
+          : `${descobertas.length} sem ninguém`}
+      </p>
+
+      <ul className="cobertura-lista">
+        {lista.map((c) => (
+          <li
+            key={c.showing.showing_id}
+            className={`cobertura-item${
+              c.staff.length === 0 ? ' cobertura-item--vazia' : ''}`}
+          >
+            <span className="cobertura-quando">
+              {quando(c.showing.starts_at)}
+            </span>
+            <span className="cobertura-sessao">
+              {c.showing.event_title} · {c.showing.room_name}
+            </span>
+            <span className="cobertura-quem">
+              {c.staff.length === 0 ? 'sem ninguém' : c.staff.join(', ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Edição de um funcionário: nome e cinema.
+
+    A senha não entra: trocá-la pelo painel obrigaria a entregar a nova por
+    algum canal, e senha que trafega por mensagem fica no histórico de
+    alguém (D22). */
+function EditarFuncionario(
+  { gate, venues, aoSalvar }:
+  { gate: Gate; venues: Venue[]; aoSalvar: () => void },
+) {
+  const [nome, setNome] = useState(gate.name);
+  const [venueId, setVenueId] = useState(
+    gate.venue_id === null ? '' : String(gate.venue_id));
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await portaria.editar(gate.id, {
+        name: nome,
+        venue_id: venueId === '' ? null : Number(venueId),
+      });
+      aoSalvar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className="forma-inline" onSubmit={salvar}>
+      {erro && <p className="motivo">{erro}</p>}
+
+      <div className="campo-curto" style={{ flex: '1 1 160px' }}>
+        <span className="campo-rotulo">Nome</span>
+        <input value={nome} onChange={(e) => setNome(e.target.value)}
+               minLength={2} required />
+      </div>
+
+      <div className="campo-curto portaria-escolha">
+        <span className="campo-rotulo">Cinema onde trabalha</span>
+        <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
+          <option value="">Sem cinema — não valida nada</option>
+          {venues.map((v) => (
+            <option key={v.id} value={v.id}>{v.name} · {v.city}</option>
+          ))}
+        </select>
+      </div>
+
+      <button type="submit" className="botao-compacto" disabled={salvando}>
+        {salvando ? 'Salvando…' : 'Salvar'}
+      </button>
+
+      <span className="campo-ajuda">
+        Trocar de cinema encerra o turno em andamento.
+      </span>
+    </form>
+  );
+}
+
+/** Quem mais pode publicar eventos.
+
+    Promoção e não criação: a conta e a senha já são da pessoa. Criá-la aqui
+    obrigaria o organizador a inventar uma senha e mandá-la por algum canal —
+    e senha que trafega por mensagem fica no histórico de alguém (D22). */
+function Organizadores({ versao, aoMudar }: EquipeProps) {
+  const [lista, setLista] = useState<User[] | null>(null);
+  const [candidatos, setCandidatos] = useState<Gate[]>([]);
+  const [email, setEmail] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  /* Promover é escolher numa lista, não digitar o e-mail. Digitar exige
+     saber de cor o endereço com que a pessoa se cadastrou, e erra calado:
+     um caractere trocado devolve "conta não encontrada" sem dizer qual era
+     a certa. */
+  const recarregar = useCallback(() => {
+    organizador.organizadores().then(setLista)
+      .catch((e: Error) => setErro(e.message));
+    portaria.listar().then(setCandidatos).catch(() => setCandidatos([]));
+  }, []);
+
+  useEffect(recarregar, [recarregar, versao]);
+
+  async function promover(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await organizador.promover(email);
+      setEmail('');
+      // A lista de funcionários encolheu: quem foi promovido deixa de ser
+      // funcionário, e a seção acima precisa refletir isso.
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <section className="painel-secao">
+      <h2 className="painel-titulo">Organizadores</h2>
+
+      {erro && <p className="motivo">{erro}</p>}
+
+      {lista === null && <Carregando />}
+
+      {lista && (
+        <table className="tabela">
+          <thead>
+            <tr><th>Nome</th><th>E-mail</th></tr>
+          </thead>
+          <tbody>
+            {lista.map((o) => (
+              <tr key={o.id}>
+                <td>{o.name}</td>
+                <td className="portaria-email">{o.email}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {candidatos.length === 0 ? (
+        <p className="vazio-linha">
+          Nenhum funcionário para promover. Cadastre um na seção acima.
+        </p>
+      ) : (
+        <form className="forma-inline" onSubmit={promover}>
+          <div className="campo-curto portaria-escolha">
+            <span className="campo-rotulo">Promover funcionário a organizador</span>
+            <select value={email} required
+                    onChange={(e) => setEmail(e.target.value)}>
+              <option value="" disabled>Escolha o funcionário</option>
+              {candidatos.map((c) => (
+                <option key={c.id} value={c.email}>
+                  {c.name}{c.venue_name ? ` · ${c.venue_name}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button type="submit" className="botao-compacto"
+                  disabled={salvando || !email}>
+            {salvando ? 'Promovendo…' : 'Promover'}
+          </button>
+        </form>
+      )}
+
+      <p className="vazio-linha">
+        Quem é promovido deixa de ser funcionário: os papéis são exclusivos, e
+        quem publica sessões não continua validando na porta.
+      </p>
     </section>
   );
 }
@@ -642,18 +952,68 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
   const [erro, setErro] = useState<string | null>(null);
 
   const [nome, setNome] = useState('');
-  const [cidade, setCidade] = useState('');
   const [uf, setUf] = useState('');
+  const [cidadeId, setCidadeId] = useState('');
   const [endereco, setEndereco] = useState('');
+
+  /* Cidade e UF escolhidas em lista, nunca digitadas: eram texto livre, e o
+     filtro do catálogo agrupa cinemas por cidade — "São Paulo" e "sao paulo"
+     viravam duas cidades, e nenhuma validação de formato pega isso (D23).
+
+     As UFs vêm de uma constante no servidor; os municípios, do IBGE. */
+  const [ufs, setUfs] = useState<Uf[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[] | null>(null);
+
+  // Um id de cada vez: dois formulários abertos ao mesmo tempo deixariam
+  // ambíguo qual deles o botão de salvar atende.
+  const [editando, setEditando] = useState<number | null>(null);
+  const [salaEditando, setSalaEditando] = useState<number | null>(null);
+  const [removendo, setRemovendo] = useState<Venue | null>(null);
+  const [salaRemovendo, setSalaRemovendo] = useState<Room | null>(null);
+
+  async function remover(alvo: Venue) {
+    setErro(null);
+    try {
+      await organizador.removerCinema(alvo.id);
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  async function removerSala(alvo: Room) {
+    setErro(null);
+    try {
+      await organizador.removerSala(alvo.venue_id, alvo.id);
+      aoMudar();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  useEffect(() => {
+    catalogo.ufs().then(setUfs).catch(() => setUfs([]));
+  }, []);
+
+  useEffect(() => {
+    setCidadeId('');
+    if (!uf) { setMunicipios(null); return; }
+
+    setMunicipios(null);
+    catalogo.municipios(uf)
+      .then(setMunicipios)
+      .catch((e: Error) => { setMunicipios([]); setErro(e.message); });
+  }, [uf]);
 
   async function criarCinema(evento: FormEvent) {
     evento.preventDefault();
     setErro(null);
     try {
       await organizador.criarCinema({
-        name: nome, city: cidade, state: uf, address: endereco,
+        name: nome, state: uf, city_ibge_id: Number(cidadeId),
+        address: endereco,
       });
-      setNome(''); setCidade(''); setUf(''); setEndereco('');
+      setNome(''); setUf(''); setCidadeId(''); setEndereco('');
       aoMudar();
     } catch (e) {
       setErro((e as Error).message);
@@ -671,7 +1031,27 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
           <div className="evento-cabeca">
             <span className="evento-nome">{venue.name}</span>
             <span className="cinema-cidade">{venue.city} · {venue.state}</span>
+
+            <span className="linha-acoes">
+              <button type="button" className="elo"
+                      onClick={() => setEditando(
+                        editando === venue.id ? null : venue.id)}>
+                {editando === venue.id ? 'Cancelar' : 'Editar'}
+              </button>
+              <button type="button" className="elo elo--perigo"
+                      onClick={() => setRemovendo(venue)}>
+                Remover
+              </button>
+            </span>
           </div>
+
+          {editando === venue.id && (
+            <EditarCinema
+              venue={venue}
+              ufs={ufs}
+              aoSalvar={() => { setEditando(null); aoMudar(); }}
+            />
+          )}
 
           {(salas[venue.id]?.length ?? 0) === 0 ? (
             <p className="vazio-linha">Nenhuma sala cadastrada.</p>
@@ -683,6 +1063,7 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
                   <th className="tabela-num">Fileiras</th>
                   <th className="tabela-num">Por fileira</th>
                   <th className="tabela-num">Capacidade</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -692,10 +1073,29 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
                     <td className="tabela-num">{sala.rows}</td>
                     <td className="tabela-num">{sala.seats_per_row}</td>
                     <td className="tabela-num">{sala.capacity}</td>
+                    <td className="tabela-acoes">
+                      <button type="button" className="elo"
+                              onClick={() => setSalaEditando(
+                                salaEditando === sala.id ? null : sala.id)}>
+                        {salaEditando === sala.id ? 'Cancelar' : 'Editar'}
+                      </button>
+                      <button type="button" className="elo elo--perigo"
+                              onClick={() => setSalaRemovendo(sala)}>
+                        Remover
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          )}
+
+          {salaEditando !== null
+            && salas[venue.id]?.some((s) => s.id === salaEditando) && (
+            <EditarSala
+              sala={salas[venue.id].find((s) => s.id === salaEditando)!}
+              aoSalvar={() => { setSalaEditando(null); aoMudar(); }}
+            />
           )}
 
           <NovaSala venueId={venue.id} aoCriar={aoMudar} />
@@ -710,23 +1110,221 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
                  placeholder="Nome" minLength={2} required />
         </div>
         <div className="campo-curto">
-          <span className="campo-rotulo">Cidade</span>
-          <input value={cidade} onChange={(e) => setCidade(e.target.value)}
-                 minLength={2} required />
-        </div>
-        <div className="campo-curto">
           <span className="campo-rotulo">UF</span>
-          <input value={uf} onChange={(e) => setUf(e.target.value)}
-                 maxLength={2} minLength={2} style={{ width: '48px' }} required />
+          <select value={uf} onChange={(e) => setUf(e.target.value)} required>
+            <option value="" disabled>UF</option>
+            {ufs.map((u) => (
+              <option key={u.sigla} value={u.sigla}>{u.sigla}</option>
+            ))}
+          </select>
+        </div>
+        <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+          <span className="campo-rotulo">Cidade</span>
+          <select value={cidadeId} required disabled={!uf || municipios === null}
+                  onChange={(e) => setCidadeId(e.target.value)}>
+            <option value="" disabled>
+              {!uf ? 'Escolha a UF primeiro'
+                : municipios === null ? 'Carregando…'
+                  : 'Escolha a cidade'}
+            </option>
+            {(municipios ?? []).map((m) => (
+              <option key={m.id} value={m.id}>{m.nome}</option>
+            ))}
+          </select>
         </div>
         <div className="campo-curto" style={{ flex: '1 1 200px' }}>
           <span className="campo-rotulo">Endereço</span>
           <input value={endereco} onChange={(e) => setEndereco(e.target.value)}
                  minLength={4} required />
         </div>
-        <button type="submit" className="botao-compacto">Adicionar cinema</button>
+        <button type="submit" className="botao-compacto" disabled={!cidadeId}>
+          Adicionar cinema
+        </button>
       </form>
+
+      {removendo && (
+        <Confirmar
+          titulo="Remover cinema"
+          rotuloConfirmar="Remover cinema"
+          aoFechar={() => setRemovendo(null)}
+          aoConfirmar={() => { const alvo = removendo; setRemovendo(null); remover(alvo); }}
+        >
+          <p>
+            <span className="dialogo-destaque">{removendo.name}</span>
+            {' · '}{removendo.city} · {removendo.state}
+          </p>
+          <p className="dialogo-consequencia">
+            O cinema sai do cadastro. Contas de funcionário ligadas a ele
+            ficam sem cinema e param de validar. Esta ação é irreversível.
+          </p>
+        </Confirmar>
+      )}
+
+      {salaRemovendo && (
+        <Confirmar
+          titulo="Remover sala"
+          rotuloConfirmar="Remover sala"
+          aoFechar={() => setSalaRemovendo(null)}
+          aoConfirmar={() => {
+            const alvo = salaRemovendo; setSalaRemovendo(null); removerSala(alvo);
+          }}
+        >
+          <p>
+            <span className="dialogo-destaque">{salaRemovendo.name}</span>
+            {' · '}{salaRemovendo.capacity} lugares
+          </p>
+          <p className="dialogo-consequencia">
+            Sala com sessões agendadas não pode ser removida. Esta ação é
+            irreversível.
+          </p>
+        </Confirmar>
+      )}
     </section>
+  );
+}
+
+/** Edição de uma sala.
+
+    O layout continua editável mesmo com sessões marcadas: os assentos
+    pertencem à exibição e são gerados na publicação (D6), então a mudança
+    vale para as próximas e não reescreve mapa já vendido. */
+function EditarSala(
+  { sala, aoSalvar }: { sala: Room; aoSalvar: () => void },
+) {
+  const [nome, setNome] = useState(sala.name);
+  const [fileiras, setFileiras] = useState(String(sala.rows));
+  const [porFileira, setPorFileira] = useState(String(sala.seats_per_row));
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await organizador.editarSala(sala.venue_id, sala.id, {
+        name: nome, rows: Number(fileiras), seats_per_row: Number(porFileira),
+      });
+      aoSalvar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className="forma-inline" onSubmit={salvar}>
+      {erro && <p className="motivo">{erro}</p>}
+
+      <div className="campo-curto" style={{ flex: '1 1 140px' }}>
+        <span className="campo-rotulo">Sala</span>
+        <input value={nome} onChange={(e) => setNome(e.target.value)}
+               minLength={1} required />
+      </div>
+
+      <div className="campo-curto">
+        <span className="campo-rotulo">Fileiras</span>
+        <input type="number" min={1} max={26} value={fileiras}
+               style={{ width: '72px' }} required
+               onChange={(e) => setFileiras(e.target.value)} />
+      </div>
+
+      <div className="campo-curto">
+        <span className="campo-rotulo">Por fileira</span>
+        <input type="number" min={1} max={40} value={porFileira}
+               style={{ width: '72px' }} required
+               onChange={(e) => setPorFileira(e.target.value)} />
+      </div>
+
+      <button type="submit" className="botao-compacto" disabled={salvando}>
+        {salvando ? 'Salvando…' : 'Salvar'}
+      </button>
+
+      <span className="campo-ajuda">
+        Vale para as próximas sessões; mapas já gerados não mudam.
+      </span>
+    </form>
+  );
+}
+
+/** Edição de um cinema, aberta na própria linha.
+
+    A cidade só muda em par com a UF: mandar uma sem a outra deixaria o
+    código do município apontando para outro estado (D23). */
+function EditarCinema(
+  { venue, ufs, aoSalvar }: { venue: Venue; ufs: Uf[]; aoSalvar: () => void },
+) {
+  const [nome, setNome] = useState(venue.name);
+  const [endereco, setEndereco] = useState(venue.address);
+  const [uf, setUf] = useState(venue.state);
+  const [cidadeId, setCidadeId] = useState(String(venue.city_ibge_id));
+  const [municipios, setMunicipios] = useState<Municipio[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    catalogo.municipios(uf).then(setMunicipios).catch(() => setMunicipios([]));
+  }, [uf]);
+
+  async function salvar(evento: FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await organizador.editarCinema(venue.id, {
+        name: nome, address: endereco,
+        state: uf, city_ibge_id: Number(cidadeId),
+      });
+      aoSalvar();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className="forma-inline" onSubmit={salvar}>
+      {erro && <p className="motivo">{erro}</p>}
+
+      <div className="campo-curto" style={{ flex: '1 1 160px' }}>
+        <span className="campo-rotulo">Nome</span>
+        <input value={nome} onChange={(e) => setNome(e.target.value)}
+               minLength={2} required />
+      </div>
+
+      <div className="campo-curto">
+        <span className="campo-rotulo">UF</span>
+        <select value={uf} onChange={(e) => { setUf(e.target.value); setCidadeId(''); }}>
+          {ufs.map((u) => <option key={u.sigla} value={u.sigla}>{u.sigla}</option>)}
+        </select>
+      </div>
+
+      <div className="campo-curto" style={{ flex: '1 1 180px' }}>
+        <span className="campo-rotulo">Cidade</span>
+        <select value={cidadeId} required disabled={municipios === null}
+                onChange={(e) => setCidadeId(e.target.value)}>
+          <option value="" disabled>
+            {municipios === null ? 'Carregando…' : 'Escolha a cidade'}
+          </option>
+          {(municipios ?? []).map((m) => (
+            <option key={m.id} value={m.id}>{m.nome}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+        <span className="campo-rotulo">Endereço</span>
+        <input value={endereco} onChange={(e) => setEndereco(e.target.value)}
+               minLength={4} required />
+      </div>
+
+      <button type="submit" className="botao-compacto"
+              disabled={salvando || !cidadeId}>
+        {salvando ? 'Salvando…' : 'Salvar'}
+      </button>
+    </form>
   );
 }
 

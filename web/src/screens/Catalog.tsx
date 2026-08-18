@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { catalogo } from '../api/endpoints';
-import type { CatalogEvent, ShowingOut } from '../api/types';
+import type { CatalogEvent, City, ShowingOut } from '../api/types';
 import { Carregando, Layout, Vazio } from '../components/Layout';
 import './Catalog.css';
 
@@ -125,10 +125,13 @@ const ultimaResposta = new Map<string, CatalogEvent[]>();
 
 export function Catalog() {
   const [params, setParams] = useSearchParams();
+  // O parâmetro é o código do município no IBGE, não o nome: nome de cidade
+  // se repete entre estados, e filtrar por texto juntaria cidades sem
+  // relação nenhuma (D23).
   const cidadeAtual = params.get('cidade');
   const chave = cidadeAtual ?? '';
 
-  const [cidades, setCidades] = useState<string[]>([]);
+  const [cidades, setCidades] = useState<City[]>([]);
   const [filmes, setFilmes] = useState<CatalogEvent[] | null>(
     () => ultimaResposta.get(chave) ?? null,
   );
@@ -148,7 +151,7 @@ export function Catalog() {
 
     let cancelado = false;
 
-    catalogo.eventos(cidadeAtual ?? undefined)
+    catalogo.eventos(cidadeAtual ? Number(cidadeAtual) : undefined)
       .then((lista) => {
         ultimaResposta.set(chave, lista);
         // A resposta de uma cidade abandonada não pode sobrescrever a tela
@@ -168,8 +171,8 @@ export function Catalog() {
     [filmes, busca],
   );
 
-  function escolherCidade(cidade: string | null) {
-    setParams(cidade ? { cidade } : {}, { replace: true });
+  function escolherCidade(cidade: number | null) {
+    setParams(cidade ? { cidade: String(cidade) } : {}, { replace: true });
   }
 
   const sessoesVisiveis = visiveis?.reduce(
@@ -232,12 +235,15 @@ export function Catalog() {
 
             {cidades.map((cidade) => (
               <button
-                key={cidade}
+                key={cidade.id}
                 type="button"
-                className={`cidade${cidadeAtual === cidade ? ' cidade--ativa' : ''}`}
-                onClick={() => escolherCidade(cidade)}
+                className={`cidade${
+                  cidadeAtual === String(cidade.id) ? ' cidade--ativa' : ''}`}
+                onClick={() => escolherCidade(cidade.id)}
               >
-                {cidade}
+                {/* A UF acompanha o nome porque cidades homônimas em estados
+                    diferentes seriam indistinguíveis na lista. */}
+                {cidade.nome} · {cidade.uf}
               </button>
             ))}
           </div>
@@ -261,7 +267,9 @@ export function Catalog() {
             {busca
               ? `Nada corresponde a "${busca}".`
               : cidadeAtual
-                ? `Não há sessões em ${cidadeAtual} no momento.`
+                ? `Não há sessões em ${cidades.find(
+                    (c) => String(c.id) === cidadeAtual)?.nome
+                    ?? 'nesta cidade'} no momento.`
                 : 'Não há sessões disponíveis no momento.'}
           </p>
         </Vazio>
