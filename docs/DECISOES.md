@@ -422,7 +422,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **Escopo por evento e não por cinema:** o organizador não tem um cinema onde trabalha, tem os eventos que publicou. Amarrá-lo a um `gate_venue_id` seria inventar um vínculo empregatício que não existe.
 
-**Revogar não apaga:** a conta vira cliente e o que ela publicou continua de pé. Apagar levaria junto eventos, sessões e ingressos vendidos — quem comprou perderia o ingresso porque alguém saiu da equipe.
+**Revogar não apaga:** o que a conta publicou continua de pé. Apagar levaria junto eventos, sessões e ingressos vendidos — quem comprou perderia o ingresso porque alguém saiu da equipe. Para qual papel ela volta é a D32.
 
 **O primeiro organizador é âncora:** ele nasce do primeiro cadastro em banco vazio (D22), e o cadastro público não cria outro depois que a tabela deixou de estar vazia. Removê-lo abriria a porta para a instalação ficar sem ninguém que publique. Editar o nome dele não tem esse risco, então continua liberado.
 
@@ -499,3 +499,37 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **`touch-action: none` é obrigatório**, não preferência: sem isso o navegador rola por conta própria e os dois gestos disputam o mesmo toque, fazendo a pinça funcionar só de vez em quando.
 
 **Arrastar move só no toque.** No mouse, arrastar sobre uma poltrona seria confundido com a intenção de escolhê-la.
+
+---
+
+## D32 · Promoção e revogação se desfazem uma à outra
+
+**Decidido:** revogar o papel de organizador devolve a conta a **funcionário**, não a cliente, e sem cinema. O organizador alcança a tela da portaria pelo próprio papel, pelo mesmo elo de navegação que o funcionário usa.
+
+**Descartado:** revogar para cliente, como era. E restaurar automaticamente o cinema que a pessoa tinha antes da promoção.
+
+**O defeito:** promover era caminho de mão única. `promote_organizer` zera o vínculo com o cinema e troca o papel; `demote_organizer` devolvia `Role.CUSTOMER`. Quem subisse e descesse virava cliente — e o e-mail ficava **queimado**, porque `create_gate` recusa e-mail já existente e não há recuperação de senha no escopo. A conta que a D27 fazia questão de preservar sobrevivia sem servir para nada. O ciclo apareceu no banco semeado: a conta de portaria estava como cliente, e a equipe, vazia.
+
+**Simetria é a regra:** uma operação e a sua inversa precisam se cancelar. Promover tira o funcionário da equipe; revogar devolve. Sem isso, "revogar" é um apagamento disfarçado — pior que apagar, porque deixa o registro ocupando o e-mail.
+
+**O cinema não volta:** a promoção o desfez, e o cargo na volta pode ser outro. A conta reaparece na aba *Equipe* sem cinema, que é exatamente o estado que pede a atenção de quem coordena — e a listagem já inclui os sem cinema de propósito (D25). Guardar o vínculo anterior exigiria uma coluna para lembrar um dado que perde validade no instante em que é gravado.
+
+**O turno morre com o papel:** a sessão que a pessoa atendia como organizador não é herdada pelo funcionário que ela volta a ser. Turno é escolha de quem trabalha, a cada virada (D24).
+
+**O organizador na portaria já valia na API** desde a D27 — `_sessoes_disponiveis` abre o escopo inteiro para ele, e a validação nunca exigiu `Role.GATE`. Só o front escondia: a navegação mostrava o elo apenas para `role === 'gate'`, e a tela recusava com "entre com uma conta de funcionário". Uma permissão que existe e não tem caminho na interface é uma permissão que não existe.
+
+---
+
+## D33 · Cobertura conta quem está na porta, não quem tem o cargo
+
+**Decidido:** a lista de cobertura inclui qualquer conta com turno escolhido — funcionário ou organizador — e marca o organizador como tal. A tabela de funcionários continua só com funcionários.
+
+**Descartado:** contar apenas `Role.GATE`, como era. E colocar o organizador dentro da tabela de funcionários.
+
+**O defeito:** a consulta filtrava `User.role == Role.GATE`. Como o organizador assume turno pelo próprio papel (D27), a sessão que ele estava atendendo aparecia em carmim, como **descoberta**. A D26 existe para responder "esta sessão tem alguém na porta?" — e respondia errado justamente quando quem cobria era quem lê a tela.
+
+**Por que não entra na tabela de funcionários:** aquela tabela é superfície de edição — nome, cinema, remoção. Organizador não tem cinema onde trabalha (D27), não é removível por lá, e a senha dele não é do cadastro de equipe. Listá-lo ofereceria ações que falhariam. As duas listas respondem perguntas diferentes: uma é a escala, a outra é o estado da noite.
+
+**A marca é etiqueta, não cor:** o carmim já significa "sem ninguém", e reusá-lo no organizador diria "atenção" sobre uma porta que está coberta.
+
+**O rótulo mudou junto:** era "N sem funcionário alocado", e virou "N sem ninguém na porta". A contagem sempre foi de portas descobertas, não de vagas na escala — o texto é que descrevia o filtro antigo em vez do que a lista mede.

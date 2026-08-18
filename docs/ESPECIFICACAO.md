@@ -10,13 +10,13 @@ O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não
 
 | Papel | Pode |
 |---|---|
-| **Organizador** | Buscar filmes no TMDb, criar eventos e sessões, definir sala, horário, preço e capacidade, publicar, acompanhar vendas |
+| **Organizador** | Buscar filmes no TMDb, criar eventos e sessões, definir sala, horário, preço e capacidade, publicar, acompanhar vendas, e validar na portaria como o funcionário faz |
 | **Cliente** | Navegar e buscar sessões publicadas por cidade, cinema, data e título, escolher poltrona, pagar, ver seus ingressos, compartilhar um ingresso por link |
 | **Funcionário** | Abrir a portaria, escolher a sessão do turno entre as do seu cinema e validar os ingressos dela, por câmera ou digitação |
 
 A conta é de um funcionário e pertence a um cinema; quem a cria é o organizador. Portaria é a tela que ele abre para trabalhar, não a identidade da conta. A sessão do turno é escolhida pelo próprio funcionário, entre as daquele cinema (D24). É essa vinculação que permite responder "outra sessão" ou "outro evento" em vez de "inválido".
 
-O primeiro cadastro numa instalação vazia nasce organizador; depois disso, um organizador promove um funcionário existente, escolhido em lista. Quem é promovido deixa de ser funcionário — os papéis são exclusivos (D22).
+O primeiro cadastro numa instalação vazia nasce organizador; depois disso, um organizador promove um funcionário existente, escolhido em lista. Quem é promovido deixa de ser funcionário — os papéis são exclusivos (D22) — e revogar o papel devolve a conta à equipe, sem cinema definido (D32).
 
 ## Fluxos
 

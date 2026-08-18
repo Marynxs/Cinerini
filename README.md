@@ -142,7 +142,7 @@ A tela de login lista as quatro e preenche o formulário num clique — inclusiv
 
 | Papel | E-mail | O que faz |
 |---|---|---|
-| Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica e cancela |
+| Organizador | `organizador@cinerini.com.br` | Cadastra cinemas, salas, eventos e sessões; publica, cancela e também valida na portaria |
 | Cliente | `cliente1@cinerini.com.br` | Compra, vê ingressos, compartilha e cancela |
 | Cliente | `cliente2@cinerini.com.br` | Serve para demonstrar a disputa por poltrona |
 | Funcionário | `portaria@cinerini.com.br` | Abre a portaria, escolhe a sessão do turno e valida os ingressos dela |
@@ -153,7 +153,7 @@ A portaria trabalha no Cine Belas Artes e **nasce sem turno escolhido**: ao entr
 
 Contas de funcionário são criadas pelo organizador, na aba *Equipe* do painel, escolhendo o **cinema**. Qual sessão a pessoa atende é decisão dela, a cada turno (D24).
 
-**Para criar um organizador:** numa instalação vazia, o primeiro cadastro nasce organizador. Havendo um, ele promove um funcionário escolhido em lista, na aba *Equipe* do painel. Quem é promovido deixa de ser funcionário. Não há comando de linha para isso porque o plano gratuito do Render não dá acesso ao shell, e um comando deixaria a instalação publicada sem caminho nenhum (D22).
+**Para criar um organizador:** numa instalação vazia, o primeiro cadastro nasce organizador. Havendo um, ele promove um funcionário escolhido em lista, na aba *Equipe* do painel. Quem é promovido deixa de ser funcionário, e revogar o papel o devolve à equipe — as duas operações se desfazem uma à outra (D32). Não há comando de linha para isso porque o plano gratuito do Render não dá acesso ao shell, e um comando deixaria a instalação publicada sem caminho nenhum (D22).
 
 **Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D20).
 
@@ -182,7 +182,7 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 265 casos, sem rede e sem chave do TMDb
+pytest                  # 267 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
