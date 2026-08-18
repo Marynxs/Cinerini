@@ -2,7 +2,7 @@
 
 Plataforma de eventos e ingressos de cinema. O organizador publica sessões a partir do catálogo do TMDb, o cliente escolhe a poltrona num mapa e paga (simulado), recebe um ingresso com código em QR e pode compartilhá-lo por link. Na entrada, a portaria valida o ingresso.
 
-*Cinerini* — cinema + Marini.
+*Cinerini* — cinema + Marini (meu sobrenome).
 
 **No ar:** [cinerini.vercel.app](https://cinerini.vercel.app) · API em [cinerini-api.onrender.com](https://cinerini-api.onrender.com) ([`/docs`](https://cinerini-api.onrender.com/docs))
 
@@ -182,7 +182,7 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 231 casos, sem rede e sem chave do TMDb
+pytest                  # 265 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
@@ -229,7 +229,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 26 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 31 decisões |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
 | `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |

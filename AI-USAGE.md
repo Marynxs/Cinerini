@@ -105,6 +105,24 @@ Apontei que o cadastro só crescia: dava para criar, nunca corrigir nem apagar. 
 **Coluna que respondia a pergunta errada.**
 Perguntei o que era a coluna "atendendo agora" e por que existia. Ao explicar, ficou claro que ela responde "o que o João atende", enquanto quem opera um cinema pergunta o contrário: "a sessão das 21:30 tem alguém na porta?". Pedi para inverter. Entrou um bloco acima da tabela com as próximas sessões e quem cobre cada uma, destacando as descobertas. Virou a decisão D26.
 
+**Catálogo repartido entre organizadores não fazia sentido.**
+Cada organizador só via os próprios eventos e sessões. Apontei que queria tudo unificado. A mudança resolveu uma inconsistência que já existia: cinema nunca teve dono, então metade do cadastro era compartilhada e a outra metade não, sem nada justificando a linha entre elas. Virou a decisão D29.
+
+**Organizador precisava validar ingresso.**
+Pedi que o organizador pudesse abrir a portaria por qualquer motivo. O agente havia escrito o oposto no código — que acumular os papéis daria a quem opera a porta o poder de publicar — e o argumento não se aplicava: quem já pode tudo não ganha poder ao validar. Virou a decisão D27, junto com editar e revogar organizador.
+
+**Poltronas somiam depois do login.**
+Escolhi poltronas sem estar logado, fui mandado para o login e voltei com o mapa em branco. O comentário no código já prometia preservar a seleção — e nada preservava. Virou memória por sessão de cinema, com as poltronas que outra pessoa levou no meio-tempo saindo sozinhas.
+
+**Mapa cortado em sala grande.**
+Salas altas perdiam as fileiras de cima, sem jeito de alcançá-las. Pedi pesquisa antes da correção. O agente havia introduzido o defeito ao consertar outro corte, e propôs um botão de "ver a sala inteira"; preferi zoom de verdade — roda no computador, pinça no celular e uma barra ao lado. Virou a decisão D31.
+
+**Rótulo da trilha no lugar errado no computador.**
+A correção do celular tinha mudado os dois. Pedi que no computador o nome da etapa voltasse para baixo do ícone, mantendo o novo comportamento na tela estreita.
+
+**Rascunho não se apagava, e o mesmo filme entrava duas vezes.**
+Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado pode ter ingresso vendido — e recusa de filme repetido nomeando o evento que já existe. Virou a decisão D30.
+
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 

@@ -409,3 +409,93 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Recortado por evento e não por cinema:** eventos têm dono no modelo, cinemas não (D22). É o único recorte que se sustenta hoje.
 
 **A coluna da tabela continua**, porque as duas perguntas são legítimas: a lista serve para agir antes da sessão, a coluna para conferir quem está fora de turno.
+
+---
+
+## D27 · Organizador abre a portaria, e o papel se revoga sem apagar a conta
+
+**Decidido:** o organizador valida ingressos pelo próprio papel, sem conta separada. O escopo dele não é um cinema, e sim os eventos que publicou. Um organizador pode corrigir o nome de outro e revogar o papel de outro — o primeiro organizador é intocável para revogação, mas editável.
+
+**Descartado:** exigir uma segunda conta de funcionário para o organizador validar. E apagar a conta ao revogar o papel.
+
+**Por quê acumular aqui:** num cinema pequeno quem publica a sessão é quem fica na porta. Obrigá-lo a manter duas contas seria burocracia sem ganho de segurança — ele já pode tudo o que a portaria pode, e mais. A separação de papéis existe para **limitar** o funcionário, não para limitar quem já tem todo o poder.
+
+**Escopo por evento e não por cinema:** o organizador não tem um cinema onde trabalha, tem os eventos que publicou. Amarrá-lo a um `gate_venue_id` seria inventar um vínculo empregatício que não existe.
+
+**Revogar não apaga:** a conta vira cliente e o que ela publicou continua de pé. Apagar levaria junto eventos, sessões e ingressos vendidos — quem comprou perderia o ingresso porque alguém saiu da equipe.
+
+**O primeiro organizador é âncora:** ele nasce do primeiro cadastro em banco vazio (D22), e o cadastro público não cria outro depois que a tabela deixou de estar vazia. Removê-lo abriria a porta para a instalação ficar sem ninguém que publique. Editar o nome dele não tem esse risco, então continua liberado.
+
+**Ninguém revoga a si mesmo:** não por princípio, e sim porque o clique seria irreversível pela própria tela — a pessoa perderia o acesso que usaria para desfazer.
+
+**Vários funcionários na mesma sessão são permitidos**, e isso está certo. As plataformas de ingresso tratam múltiplos aparelhos no mesmo portão como o caso normal, e o que exigem é detecção de duplicata entre eles — que aqui já é a garantia 3, resolvida no banco pela escrita condicional. Limitar a um por sessão quebraria a entrada de qualquer sessão cheia, que é justamente quando mais gente é necessária na porta.
+
+---
+
+## D28 · Cidade digitada à mão quando o IBGE não responde
+
+**Decidido:** o campo de cidade vira texto livre **apenas** quando a lista de municípios falha. O nome oficial sempre vence: com o IBGE no ar, o texto enviado é ignorado.
+
+**Descartado:** deixar o cadastro de cinema indisponível enquanto o IBGE estiver fora.
+
+**Por quê:** a D23 fechou o texto livre para acabar com "São Paulo" e "sao paulo" convivendo. Mas ela criou uma dependência dura: sem o IBGE, não se cadastra cinema nenhum. Um serviço de terceiro fora do ar não pode travar o cadastro do sistema inteiro.
+
+**A regra que mantém a D23 de pé:** o servidor só olha o campo manual depois de a consulta ao IBGE ter falhado com 503. Não é o cliente que decide usar o atalho — se a lista responde, o nome vem dela. Assim a saída de emergência não vira porta dos fundos para reintroduzir o texto livre.
+
+**O que se aceita perder:** nesse caso o `city_ibge_id` gravado pode não corresponder ao nome digitado, e o agrupamento do catálogo fica pelo código. É preferível a um cadastro impossível, e a divergência se corrige editando o cinema quando o IBGE voltar.
+
+---
+
+## D29 · Catálogo único, sem dono por organizador
+
+**Decidido:** qualquer organizador vê e opera qualquer evento, sessão, cinema e sala. `events.organizer_id` continua no modelo como registro de quem publicou, e deixou de ser cerca de acesso. `GET /events/mine` virou `GET /events/managed`.
+
+**Descartado:** manter cada organizador com o próprio catálogo, que era o comportamento anterior.
+
+**Por quê:** o sistema é de um cinema, não um marketplace de produtores independentes. Uma equipe que administra a mesma operação precisa enxergar a mesma realidade — com recorte por dono, quem cobrisse o turno do colega não conseguiria cancelar a sessão dele com o projetor quebrado.
+
+**A inconsistência que isto resolve:** `Venue` nunca teve dono, então qualquer organizador já cadastrava cinema e criava sala em cinema alheio, enquanto eventos eram privados. Metade do cadastro era compartilhada e a outra metade não, sem que nada justificasse a linha entre elas.
+
+**O que não mudou:** cliente e funcionário continuam sem acesso ao painel. Unificar é entre organizadores, não com o resto do mundo. E `404` para evento inexistente continua — sumiu a cerca de dono, não a checagem de existência.
+
+**O que se perde:** o sistema deixa de suportar dois cinemas independentes na mesma instalação. É uma troca deliberada — o produto é um cinema com uma equipe, e fingir multilocação sem construí-la de verdade seria pior que assumir a escolha.
+
+---
+
+## D30 · Um filme, um evento — e rascunho é o único apagável
+
+**Decidido:** criar evento com um `tmdb_id` que já está no catálogo é recusado, com o nome do evento existente na mensagem. Apagar só vale para rascunho sem sessões.
+
+**Descartado:** permitir o mesmo filme duas vezes, e apagar em cascata.
+
+**Por quê a unicidade:** dois eventos do mesmo filme produziriam dois blocos idênticos no catálogo, com as sessões repartidas entre eles. O cliente veria "Duna" duas vezes e teria de abrir os dois para achar o horário que procura. Um filme é um evento; as sessões se penduram nele.
+
+**A mensagem nomeia o evento existente** porque o erro sozinho não resolve o problema de quem o recebe: a pessoa queria criar uma sessão, e precisa saber onde criá-la.
+
+**Por quê só rascunho:** publicado pode ter ingresso vendido, e apagar levaria junto o comprovante de quem comprou. Despublicar existe para tirar do ar sem destruir histórico — e para o evento que já vendeu, é o mais longe que dá.
+
+**Por quê sem sessões:** exigir esvaziar antes torna a consequência visível passo a passo, em vez de escondê-la atrás de uma confirmação genérica. É a mesma regra de cinema e sala (D25).
+
+**O botão só aparece quando a remoção é possível.** Oferecer e responder 409 seria prometer o que não se pode cumprir.
+
+**Efeito colateral no teste:** o duplo do TMDb devolvia sempre o mesmo filme, independente do que fosse pedido. Isso o fazia mentir — dois filmes diferentes voltavam como o mesmo — e nenhum teste conseguiria exercitar esta regra. Passou a devolver o id pedido.
+
+---
+
+## D31 · Zoom no mapa por roda, pinça e barra
+
+**Decidido:** o mapa amplia pela roda do mouse, por pinça no toque, e por uma barra deslizante ao lado. Arrastar move o mapa no toque. A rolagem vale nos dois eixos.
+
+**Descartado:** só rolagem, e um botão binário de "ver a sala inteira".
+
+**O defeito que motivou tudo:** ao criar o invólucro de rolagem para consertar o corte lateral, ele nasceu com `overflow-y: hidden`. Numa sala alta isso cortava as fileiras de cima e as deixava **inalcançáveis** — nem rolando se chegava nelas. Uma sala de oito fileiras não mostrava o problema; uma de vinte escondia metade.
+
+**O alerta que se aceita:** a documentação de gráficos interativos registra que roda do mouse para zoom atrapalha rolar a página, e que a prática comum é exigir Ctrl. A troca é aceita aqui por duas razões: no computador a tela da compra não rola — quem rola é a área do mapa —, e arrastar assume o papel de mover, então nada fica inalcançável. Exigir Ctrl seria esconder o zoom atrás de um atalho que ninguém descobre no meio de uma compra.
+
+**Três entradas para a mesma coisa** porque são três contextos: roda no computador, pinça no celular, e a barra para quem não tem roda ou não descobre o gesto. Gesto que não aparece na tela é gesto que não se descobre.
+
+**Ampliação em torno do centro visível:** ampliar a partir do canto jogaria a vista para longe da poltrona que a pessoa estava olhando — a queixa que a literatura registra sobre plantas grandes é justamente perder-se ao navegar.
+
+**`touch-action: none` é obrigatório**, não preferência: sem isso o navegador rola por conta própria e os dois gestos disputam o mesmo toque, fazendo a pinça funcionar só de vez em quando.
+
+**Arrastar move só no toque.** No mouse, arrastar sobre uma poltrona seria confundido com a intenção de escolhê-la.
