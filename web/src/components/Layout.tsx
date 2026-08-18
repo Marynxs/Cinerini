@@ -32,7 +32,11 @@ export function Layout({ children, semPadding }: Props) {
                 {user.role === 'organizer' && (
                   <Link to="/painel" className="elo">Painel</Link>
                 )}
-                {user.role === 'gate' && (
+                {/* O organizador chega à portaria pelo próprio papel: ele
+                    administra o catálogo inteiro, e validar na entrada é
+                    mais uma coisa que pode fazer — inclusive quando o
+                    funcionário escalado falta (D27). */}
+                {(user.role === 'gate' || user.role === 'organizer') && (
                   <Link to="/portaria" className="elo">Portaria</Link>
                 )}
                 <button type="button" className="elo elo--fraco" onClick={sair}>

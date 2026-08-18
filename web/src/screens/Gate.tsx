@@ -178,16 +178,19 @@ export function Gate() {
   const [enviando, setEnviando] = useState(false);
   const [trocando, setTrocando] = useState(false);
 
-  const ehPortaria = user?.role === 'gate';
+  /* Quem valida, e não quem "é" a portaria: o organizador abre a mesma tela
+     pelo próprio papel (D27). A API já concordava — era só o front que
+     escondia o caminho. */
+  const podeValidar = user?.role === 'gate' || user?.role === 'organizer';
 
   useEffect(() => {
-    if (!ehPortaria) return;
+    if (!podeValidar) return;
     portaria.vinculo().then(setVinculo).catch((e: Error) => setErro(e.message));
-  }, [ehPortaria]);
+  }, [podeValidar]);
 
   // Os turnos só são buscados quando há o que escolher: com a sessão já
   // definida, a tela vai direto para a câmera.
-  const precisaEscolher = ehPortaria && (vinculo?.showing_id == null || trocando);
+  const precisaEscolher = podeValidar && (vinculo?.showing_id == null || trocando);
 
   useEffect(() => {
     if (!precisaEscolher) return;
@@ -236,17 +239,20 @@ export function Gate() {
 
   // A câmera desliga enquanto há veredito na tela e enquanto uma validação
   // está no ar. Sem isso, o mesmo QR seria lido seis vezes por segundo.
-  const lendo = Boolean(ehPortaria) && !precisaEscolher
+  const lendo = Boolean(podeValidar) && !precisaEscolher
     && validacao === null && !enviando;
   const { video, estado, reiniciar } = useLeitorQr(lendo, validar);
 
   if (carregando) return <Layout><Carregando /></Layout>;
 
-  if (!ehPortaria) {
+  if (!podeValidar) {
     return (
       <Layout>
         <Vazio titulo="Área da portaria">
-          <p>Entre com uma conta de funcionário para validar ingressos.</p>
+          <p>
+            Entre com uma conta de funcionário ou de organizador para validar
+            ingressos.
+          </p>
           <p style={{ marginTop: 'var(--e4)' }}>
             <Link to="/entrar" state={{ de: '/portaria' }} className="elo">
               Entrar

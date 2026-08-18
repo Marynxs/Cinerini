@@ -126,6 +126,9 @@ Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
+**A portaria só aparecia para quem tinha o papel de portaria.**
+Pedi que o organizador também pudesse abrir a tela da portaria e validar QR. A permissão já existia na API desde a D27 — o organizador enxerga todas as sessões e a validação nunca exigiu o papel de portaria —, mas a navegação mostrava o elo só para funcionários e a tela recusava a entrada. Permissão sem caminho na interface é permissão que não existe.
+
 ## Ajustes surgidos na verificação
 
 **`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**
