@@ -7,7 +7,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Event, Showing, User
+from app.models import Event, Room, Showing, User
 from app.security import TOKEN_TYPE_TICKET, create_access_token
 
 from .conftest import SENHA
@@ -330,14 +330,54 @@ class TestEditingOrganizers:
 class TestDemotingOrganizers:
     """Revoga o papel; não apaga a conta nem o que ela publicou."""
 
-    def test_demotion_turns_the_account_into_a_customer(
+    def test_demotion_turns_the_account_back_into_staff(
         self, client: TestClient, auth, db: Session, users: dict[str, User]
     ) -> None:
+        """Volta a funcionário, não a cliente (D32)."""
         r = client.delete(f"/auth/organizers/{users['organizer2'].id}",
                           headers=auth("organizer"))
 
         assert r.status_code == 200
-        assert r.json()["role"] == "customer"
+        assert r.json()["role"] == "gate"
+
+    def test_demotion_clears_the_venue_and_the_shift(
+        self, client: TestClient, auth, db: Session, users: dict[str, User]
+    ) -> None:
+        """Sem cinema, a conta reaparece na Equipe pedindo correção — e o
+        turno que ela atendia como organizador não é herdado (D32)."""
+        alvo = users["organizer2"]
+        client.delete(f"/auth/organizers/{alvo.id}", headers=auth("organizer"))
+        db.refresh(alvo)
+
+        assert alvo.gate_venue_id is None
+        assert alvo.gate_showing_id is None
+
+    def test_promotion_and_demotion_undo_each_other(
+        self, client: TestClient, auth, db: Session, users: dict[str, User],
+        room: Room
+    ) -> None:
+        """O ciclo era de mão única: quem subia e descia virava cliente, e o
+        e-mail ficava queimado porque a criação de funcionário recusa e-mail
+        existente e não há recuperação de senha (D32)."""
+        pessoa = users["gate"]
+
+        subiu = client.post("/auth/organizers", json={"email": pessoa.email},
+                            headers=auth("organizer"))
+        assert subiu.status_code in (200, 201)
+        assert subiu.json()["role"] == "organizer"
+
+        desceu = client.delete(f"/auth/organizers/{pessoa.id}",
+                               headers=auth("organizer"))
+        assert desceu.status_code == 200
+        assert desceu.json()["role"] == "gate"
+
+        # E dá para recolocá-la num cinema pelo painel, que é o que fecha o
+        # ciclo: antes, esta conta não voltava a validar nada.
+        recolocada = client.patch(f"/gates/{pessoa.id}",
+                                  json={"venue_id": room.venue_id},
+                                  headers=auth("organizer"))
+        assert recolocada.status_code == 200
+        assert recolocada.json()["venue_id"] == room.venue_id
 
     def test_demotion_keeps_the_account_and_its_events(
         self, client: TestClient, auth, db: Session, users: dict[str, User],

@@ -217,8 +217,17 @@ def demote_organizer(user_id: int, db: DbSession, quem: Organizer) -> UserOut:
 
     Apagar levaria junto os eventos publicados por ela, e com eles as sessões
     e os ingressos vendidos — quem comprou perderia o ingresso porque alguém
-    saiu da equipe. Revogado, a pessoa vira cliente e o que ela publicou
-    continua de pé (D27).
+    saiu da equipe. Revogado, o que ela publicou continua de pé (D27).
+
+    Volta a funcionário, e não a cliente: promover era um caminho de mão
+    única. Quem subia e descia virava cliente, e o e-mail ficava queimado —
+    `create_gate` recusa e-mail existente, e não há recuperação de senha, de
+    modo que a pessoa perdia o acesso de trabalho para sempre. Promoção e
+    revogação agora se desfazem uma à outra (D32).
+
+    O cinema não é restaurado porque a promoção o desfez e o cargo pode ser
+    outro na volta. A conta reaparece na aba *Equipe* sem cinema, que é
+    exatamente o estado que pede correção de quem coordena.
 
     O primeiro organizador é intocável: é ele que garante que a instalação
     nunca fique sem ninguém que publique, e o cadastro público não cria outro
@@ -247,8 +256,10 @@ def demote_organizer(user_id: int, db: DbSession, quem: Organizer) -> UserOut:
             "Você não pode revogar o próprio papel. Peça a outro organizador.",
         )
 
-    alvo.role = Role.CUSTOMER
+    alvo.role = Role.GATE
     alvo.gate_venue_id = None
+    # O turno morre com o papel: a sessão que ela atendia como organizador
+    # não é herdada pelo funcionário que ela volta a ser.
     alvo.gate_showing_id = None
     db.commit()
     db.refresh(alvo)
