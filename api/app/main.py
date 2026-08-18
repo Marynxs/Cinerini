@@ -33,6 +33,27 @@ app.include_router(sharing.router)
 app.include_router(gate.router)
 
 
+@app.get("/", tags=["infra"], summary="Porta de entrada da API")
+def raiz() -> dict[str, str]:
+    """Existe porque a raiz de um serviço é o que as pessoas digitam.
+
+    Sem esta rota, abrir o endereço da API devolvia `404 Not Found` — tecnicamente
+    correto e inútil: quem chegou ali não sabe se errou o endereço, se o
+    serviço caiu, ou se é assim mesmo. Este corpo diz o que é e para onde ir.
+
+    Não redireciona para `/docs` de propósito: redirecionar esconderia que a
+    raiz não serve interface, e quem estivesse conferindo o serviço por
+    script receberia um 307 no lugar de uma resposta.
+    """
+    return {
+        "servico": "API do Cinerini",
+        "documentacao": "/docs",
+        "contrato": "/openapi.json",
+        "saude": "/health",
+        "site": "https://cinerini.vercel.app",
+    }
+
+
 @app.get("/health", tags=["infra"])
 def health() -> dict[str, str]:
     return {"status": "ok"}
