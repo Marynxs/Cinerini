@@ -75,7 +75,7 @@ A exibição é conferida **antes** do estado do ingresso. Na ordem inversa, rec
 docker compose up --build
 ```
 
-Front em **http://localhost:5173**, API em **http://localhost:8000**, documentação interativa em **/docs**. A primeira subida leva alguns minutos construindo as imagens; as seguintes são imediatas.
+Front em **http://localhost:5173**, API em **http://localhost:8000**, documentação interativa em **/docs**. A primeira subida leva alguns minutos construindo as imagens e ocupa cerca de 850 MB; as seguintes são imediatas.
 
 Sobe um PostgreSQL próprio em contêiner, aplica as migrations e semeia o cenário de teste antes de abrir a porta. **Não usa credencial nenhuma da máquina**: o banco é o contêiner ao lado, a chave que assina os ingressos é um valor de desenvolvimento declarado no `docker-compose.yml`, e o `.env` local fica de fora pelos `.dockerignore`.
 
@@ -258,6 +258,8 @@ Declaradas porque existem, não porque passaram despercebidas.
 **A lista de municípios depende do IBGE.** Se a API de localidades estiver fora, não dá para cadastrar cinema novo, e nada mais que isso: catálogo, compra e portaria não passam por lá. A resposta nesse caso diz o que aconteceu, e o seed traz os códigos escritos para semear sem internet (D23).
 
 **Só há mapa de assentos.** O desafio pede um dos dois modos, e a escolha foi assento numerado por ser onde a garantia de unicidade aparece de verdade.
+
+**O mapa não atualiza sozinho.** Ele mostra a ocupação do momento em que a tela abriu. Se outra pessoa comprar a poltrona enquanto você escolhe, o mapa continua mostrando livre até você recarregar. Atualizar em tempo real exigiria websocket ou consulta periódica, e nenhum dos dois muda a garantia: quem tentar reservar uma poltrona já vendida recebe recusa explícita, com o nome da poltrona perdida. A garantia vive no índice único do banco, não no que a tela está mostrando. O custo de um mapa desatualizado é no máximo uma escolha refeita, nunca uma venda dupla.
 
 ---
 
