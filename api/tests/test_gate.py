@@ -1,7 +1,7 @@
 """Validação na portaria: os seis desfechos, a corrida entre duas leituras,
 e o cadastro da portaria pelo organizador.
 
-Duas das quatro garantias do projeto se resolvem aqui — o ingresso que não
+Duas das quatro garantias do projeto se resolvem aqui: o ingresso que não
 pode ser validado duas vezes, e o ingresso legítimo de outro lugar que não
 pode virar "inválido".
 """
@@ -202,7 +202,7 @@ class TestInvalid:
 
 
 class TestWrongShowing:
-    """Mesmo filme, exibição diferente — outro horário, sala ou cinema."""
+    """Mesmo filme, exibição diferente: outro horário, sala ou cinema."""
 
     @pytest.fixture
     def qr_de_outra_sessao(
@@ -244,7 +244,7 @@ class TestWrongShowing:
     def test_typed_code_is_also_distinguished(
         self, client: TestClient, auth, db: Session, qr_de_outra_sessao: str
     ) -> None:
-        """Sem assinatura, a exibição vem do banco — mesmo veredito."""
+        """Sem assinatura, a exibição vem do banco, e o veredito é o mesmo."""
         jti = jwt.decode(qr_de_outra_sessao, get_settings().secret_key,
                          algorithms=[ALGORITHM])["jti"]
         assert validar(client, auth, jti)["result"] == "wrong_showing"
@@ -329,7 +329,7 @@ class TestAccess:
     def test_unbound_gate_is_a_configuration_error(
         self, client: TestClient, auth, users: dict[str, User], qr: str
     ) -> None:
-        """Sem vínculo, tudo seria recusa — e isso é erro de cadastro."""
+        """Sem vínculo, tudo seria recusa, e isso é erro de cadastro."""
         assert users["gate"].gate_showing_id is None
 
         r = client.post("/gate/validations", json={"code": qr},
@@ -508,7 +508,7 @@ class TestChoosingShift:
     ) -> None:
         """Num cinema pequeno quem publica é quem fica na porta (D27).
 
-        O escopo dele não é um cinema, e sim os eventos que publicou — não
+        O escopo dele não é um cinema, e sim os eventos que publicou. Não
         precisa de `gate_venue_id` para escolher turno.
         """
         r = client.put("/gate/shift", json={"showing_id": showing.id},
@@ -700,7 +700,7 @@ class TestCoverage:
         daqui_a_pouco: Showing
     ) -> None:
         """Contar só `Role.GATE` fazia a sessão que o organizador estava
-        atendendo aparecer como descoberta — a pergunta que esta lista existe
+        atendendo aparecer como descoberta, que é a pergunta que esta lista existe
         para responder, respondida errado (D33)."""
         users["organizer2"].gate_showing_id = daqui_a_pouco.id
         db.commit()
@@ -743,7 +743,7 @@ class TestCoverage:
         self, client: TestClient, auth, daqui_a_pouco: Showing
     ) -> None:
         """Duas visões diferentes deixariam uma porta descoberta sem que
-        ninguém visse — a cobertura é da operação inteira (D29)."""
+        ninguém visse, porque a cobertura é da operação inteira (D29)."""
         um = client.get("/gates/coverage", headers=auth("organizer")).json()
         outro = client.get("/gates/coverage", headers=auth("organizer2")).json()
 

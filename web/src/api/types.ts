@@ -219,7 +219,7 @@ export interface Municipio {
 export interface CoverageStaff {
   name: string;
   // Organizador cobrindo a porta conta como alguém, mas não é funcionário
-  // alocado — a tabela da equipe não o edita (D33).
+  // alocado, porque a tabela da equipe não o edita (D33).
   organizer: boolean;
 }
 

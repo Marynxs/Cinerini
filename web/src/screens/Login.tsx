@@ -12,7 +12,7 @@ import './Login.css';
    omissão na tela não protegeria nada e cobraria de quem avalia uma ida ao
    GitHub no primeiro minuto de uso.
 
-   O que a decisão aceita é vandalismo — entrar como organizador e cancelar
+   O que a decisão aceita é vandalismo: entrar como organizador e cancelar
    sessões. Fica aceito porque o estrago se desfaz com `python -m app.seed
    --reset`, e porque o rótulo declara que este é um ambiente de
    demonstração em vez de fingir que é produção. */

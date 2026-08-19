@@ -1,6 +1,6 @@
 # Imagem do front, em dois estágios.
 #
-# O Vite embute as variáveis `VITE_*` no bundle durante o build — elas não
+# O Vite embute as variáveis `VITE_*` no bundle durante o build, e elas não
 # existem em tempo de execução. Por isso a URL da API entra como argumento de
 # build, e não como variável do contêiner: passá-la no `environment` não teria
 # efeito nenhum.

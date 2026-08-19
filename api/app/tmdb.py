@@ -2,7 +2,7 @@
 
 O catálogo do cliente não passa por aqui: título, sinopse, pôster e duração
 são copiados para a tabela events na publicação. Este módulo serve apenas ao
-organizador, enquanto ele procura o filme — por isso o cache é modesto.
+organizador, enquanto ele procura o filme, e por isso o cache é modesto.
 """
 
 import time
@@ -32,7 +32,7 @@ class TTLCache:
 
     O teto existe porque a chave vem da busca digitada pelo usuário: sem
     limite, termos aleatórios fariam o dicionário crescer sem fim. Expirar
-    por tempo não basta — entrada que ninguém consulta de novo nunca seria
+    por tempo não basta, porque entrada que ninguém consulta de novo nunca seria
     removida.
     """
 

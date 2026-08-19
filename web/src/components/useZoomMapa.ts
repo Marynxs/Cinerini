@@ -8,7 +8,7 @@
    rolar e passa a ampliar. A literatura de gráficos interativos alerta que
    isso atrapalha rolar a página, e a mitigação comum é exigir Ctrl. Aqui a
    troca é aceita porque o mapa vive numa tela que não rola no computador, e
-   porque arrastar assume o papel de mover — nenhuma parte fica inalcançável
+   porque arrastar assume o papel de mover, e nenhuma parte fica inalcançável
    (D31).
 */
 
@@ -31,7 +31,7 @@ export function useZoomMapa() {
   /* Ampliar em torno do centro do que está visível.
 
      Sem isto, ampliar joga a vista para o canto superior esquerdo e a
-     pessoa perde a poltrona que estava olhando — que é exatamente a queixa
+     pessoa perde a poltrona que estava olhando, que é exatamente a queixa
      que a literatura registra sobre zoom em plantas grandes. */
   const setLado = useCallback((proximo: number | ((l: number) => number)) => {
     setLadoBruto((atual) => {
@@ -58,7 +58,7 @@ export function useZoomMapa() {
   }, []);
 
   // Roda do mouse. Registrado à mão porque o React trata `wheel` como
-  // passivo, e listener passivo não pode chamar `preventDefault` — sem
+  // passivo, e listener passivo não pode chamar `preventDefault`. Sem
   // isso a página rolaria junto com o zoom.
   useEffect(() => {
     const el = rolagem.current;
@@ -75,7 +75,7 @@ export function useZoomMapa() {
 
   /* Pinça e arrasto, por Pointer Events.
 
-     Um só conjunto de eventos cobre dedo, caneta e mouse — com `touch` e
+     Um só conjunto de eventos cobre dedo, caneta e mouse. Com `touch` e
      `mouse` separados seria preciso escrever a mesma lógica duas vezes e
      conciliar os eventos sintéticos que o navegador emite depois do toque. */
   const ativos = useRef(new Map<number, { x: number; y: number }>());

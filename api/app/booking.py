@@ -47,7 +47,7 @@ def release_expired_holds(db: Session, showing_id: int) -> int:
     Feito sob demanda, no início de cada reserva, em vez de por tarefa
     agendada. Um agendador seria mais uma peça de infraestrutura para manter
     e para o avaliador configurar, e a espera vencida só atrapalha alguém no
-    momento em que esse alguém tenta reservar — que é exatamente quando esta
+    momento em que esse alguém tenta reservar, que é exatamente quando esta
     função roda.
 
     O ingresso é marcado como cancelado, e não apagado: o índice único é
@@ -108,7 +108,7 @@ def hold_seats(
 
     A disputa não é resolvida por consulta prévia: entre verificar e inserir
     cabe outra transação. A inserção é tentada e o índice único parcial
-    arbitra — quem perde recebe IntegrityError, traduzido aqui.
+    arbitra: quem perde recebe IntegrityError, traduzido aqui.
     """
     if not seat_ids:
         raise BookingError("Selecione ao menos uma poltrona.")
@@ -165,7 +165,7 @@ def _quais_ocupados(db: Session, showing_id: int, seat_ids: list[int]) -> list[s
     """Descobre quais poltronas da seleção foram perdidas, para a mensagem.
 
     Consultado depois da falha, não antes: aqui a informação é para explicar
-    ao cliente, e não para decidir — a decisão já foi tomada pelo banco.
+    ao cliente, e não para decidir: a decisão já foi tomada pelo banco.
     """
     from app.seating import taken_seat_ids
 

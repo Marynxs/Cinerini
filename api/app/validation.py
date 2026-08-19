@@ -2,7 +2,7 @@
 
 Nenhum dos desfechos é erro de requisição: todos têm o mesmo posto, e quem os
 lê é um operador com uma pessoa parada na frente esperando entrar. Traduzir
-"inválido" em 404 faria a tela tratar metade dos casos como falha de rede — e
+"inválido" em 404 faria a tela tratar metade dos casos como falha de rede, e
 um ingresso recusado é resposta, não falha.
 
 A ordem das perguntas é deliberada. Primeiro *onde este ingresso vale*, depois
@@ -40,7 +40,7 @@ class GateResult(str, enum.Enum):
 
     # Filme certo, exibição errada: outro horário, outra sala ou outro
     # cinema. Separado de WRONG_EVENT porque a reação de quem opera é
-    # diferente — um manda para outra sala, o outro para outro horário, e às
+    # diferente: um manda para outra sala, o outro para outro horário, e às
     # vezes para outro dia (D21).
     WRONG_SHOWING = "wrong_showing"
 
@@ -76,7 +76,7 @@ class Validation:
     customer_name: str | None = None
 
     # A exibição a que o ingresso pertence. Vem preenchida sempre que houve
-    # ingresso de verdade — no desfecho válido para conferir, nos recusados
+    # ingresso de verdade: no desfecho válido para conferir, nos recusados
     # para dizer a quem foi barrado onde o ingresso vale.
     showing: Sessao | None = None
 
@@ -88,7 +88,7 @@ class Validation:
 def _extrair_jti(codigo: str) -> tuple[str | None, int | None]:
     """Aceita o QR assinado ou o código impresso, e diz de onde veio.
 
-    O segundo elemento é a exibição que a assinatura afirma — `None` quando o
+    O segundo elemento é a exibição que a assinatura afirma, e vem `None` quando o
     código foi digitado, porque aí não há assinatura de onde tirá-la.
     """
     codigo = codigo.strip()
@@ -98,8 +98,8 @@ def _extrair_jti(codigo: str) -> tuple[str | None, int | None]:
         return payload.get("jti"), payload.get("shw")
 
     # Digitação manual, para quando a câmera não coopera. O que sustenta este
-    # caminho não é assinatura, e sim o `jti` ser um uuid4 — 122 bits que não
-    # se adivinham — somado ao papel de portaria exigido na rota (D16).
+    # caminho não é assinatura, e sim o `jti` ser um uuid4, com 122 bits que
+    # não se adivinham, somado ao papel de portaria exigido na rota (D16).
     try:
         return str(uuid.UUID(codigo)), None
     except ValueError:
@@ -216,7 +216,7 @@ def validate(db: Session, gate: User, codigo: str) -> Validation:
         return Validation(GateResult.VALID, **comuns)
 
     # Zero linhas: o ingresso existe e não estava válido. Só agora relemos o
-    # status, e apenas para explicar — a decisão já foi tomada acima.
+    # status, e apenas para explicar: a decisão já foi tomada acima.
     db.refresh(ticket)
 
     if ticket.status == TicketStatus.USED:

@@ -4,7 +4,7 @@ Três responsabilidades separadas de propósito (D24):
 
 - o **organizador** cria a conta e define em que cinema ela vale;
 - o **funcionário** escolhe, a cada turno, qual sessão está atendendo;
-- ninguém mais chega perto — o papel decide quem entra na sala.
+- ninguém mais chega perto: o papel decide quem entra na sala.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -30,7 +30,7 @@ router = APIRouter(tags=["portaria"])
 JANELA_ATRAS = timedelta(hours=4)
 # Três dias e não dois: a janela é contada a partir de agora, então
 # "dois dias" desliza com a hora do dia e a sessão da noite de depois de
-# amanhã caía fora conforme o relógio andava — presente no catálogo,
+# amanhã caía fora conforme o relógio andava, presente no catálogo e
 # ausente na lista de turnos.
 JANELA_ADIANTE = timedelta(days=3)
 
@@ -56,7 +56,7 @@ def _sessoes_disponiveis(db: Session, quem: User) -> list[ShowingBriefOut]:
     é o que impede alguém do Belas Artes validar ingresso do Odeon.
 
     Organizador enxerga todas, em qualquer cinema: ele administra o catálogo
-    inteiro (D29), e a portaria é mais uma coisa que ele pode fazer — não um
+    inteiro (D29), e a portaria é mais uma coisa que ele pode fazer, não um
     emprego com escopo (D27).
     """
     agora = datetime.now(timezone.utc)
@@ -104,12 +104,12 @@ def _funcionario(db: Session, gate_id: int) -> User:
     Sem recorte por organizador, e isso é consequência declarada de `Venue`
     não ter dono (D22): qualquer organizador já cadastra cinema e cria sala
     em cinema alheio, então recortar só a equipe seria uma cerca isolada em
-    volta de um terreno aberto — daria a impressão de isolamento que o resto
+    volta de um terreno aberto, dando a impressão de isolamento que o resto
     do cadastro não sustenta.
 
     A tentativa anterior recortava por "cinemas onde tenho sessão", e
     quebrava no caso mais comum: cinema recém-criado, funcionário
-    cadastrado, nenhuma sessão marcada ainda — e o cadastro nascia
+    cadastrado, nenhuma sessão marcada ainda, e o cadastro nascia
     impossível de corrigir. Fechar isso de verdade é dar dono ao `Venue`.
     """
     porteiro = db.get(User, gate_id)
@@ -137,7 +137,7 @@ def my_showings(db: DbSession, gate: Gate) -> list[ShowingBriefOut]:
     """Só as do cinema onde a conta trabalha.
 
     É o escopo que impede alguém da portaria de um cinema validar ingresso de
-    outro — e ele vem da conta, não da escolha de quem opera.
+    outro, e ele vem da conta, não da escolha de quem opera.
     """
     if gate.role == Role.GATE and gate.gate_venue_id is None:
         raise HTTPException(
@@ -155,7 +155,7 @@ def choose_shift(data: GateShiftIn, db: DbSession, gate: Gate) -> GateOut:
     """Quem escolhe o turno é quem trabalha.
 
     O organizador não precisa estar por perto na virada de uma sessão para a
-    seguinte — reapontar cada porta a cada duas horas não sobrevive a uma
+    seguinte, porque reapontar cada porta a cada duas horas não sobrevive a uma
     noite de operação real (D24).
 
     A liberdade é escolher *entre as sessões do próprio cinema*, e a lista é
@@ -226,7 +226,7 @@ def my_gates(db: DbSession, _: Organizer) -> list[GateOut]:
 
     Sem recorte por organizador pela mesma razão de `_funcionario`: `Venue`
     não tem dono, e a listagem precisa concordar com o que a edição permite.
-    Os sem cinema entram porque são justamente os que precisam de atenção —
+    Os sem cinema entram porque são justamente os que precisam de atenção:
     escondê-los sumiria com o cadastro que ficou pela metade.
     """
     porteiros = db.scalars(
@@ -248,7 +248,7 @@ def create_gate(
 ) -> GateOut:
     """Portaria não se auto-cadastra.
 
-    O papel decide quem entra na sala, então quem o concede é o organizador —
+    O papel decide quem entra na sala, então quem o concede é o organizador,
     nunca o formulário público, que aceitaria qualquer visitante se
     declarando portaria.
 
@@ -290,7 +290,7 @@ def update_gate(
 
     Trocar a senha pelo painel obrigaria a entregar a nova por algum canal, e
     o projeto evita exatamente isso (D22). Quem esquecer a senha precisa de
-    uma conta nova — recuperação por e-mail está fora de escopo.
+    uma conta nova, porque recuperação por e-mail está fora de escopo.
     """
     porteiro = _funcionario(db, gate_id)
     campos = data.model_dump(exclude_unset=True)
@@ -314,7 +314,7 @@ def update_gate(
         # O organizador também escala, além de o funcionário escolher. As
         # duas portas para o mesmo campo não se contradizem: a escolha do
         # funcionário é o caminho normal (D24), e esta é a correção de quem
-        # coordena a noite — remanejar alguém sem depender de ele estar com
+        # coordena a noite, para remanejar alguém sem depender de ele estar com
         # o aparelho na mão.
         alvo = campos["showing_id"]
         if alvo is not None:
@@ -341,7 +341,7 @@ def delete_gate(gate_id: int, db: DbSession, organizer: Organizer) -> None:
 
     `tickets.validated_by` aponta para quem estava na porta. Apagar a conta
     exigiria zerar esse campo, e o histórico deixaria de dizer quem deixou
-    cada pessoa entrar — que é metade do motivo de a conta ser de gente e
+    cada pessoa entrar, que é metade do motivo de a conta ser de gente e
     não de posto (D24).
     """
     porteiro = _funcionario(db, gate_id)
@@ -371,7 +371,7 @@ def coverage(db: DbSession, organizer: Organizer) -> list[CoverageOut]:
 
     A tabela de equipe responde "o que o João está atendendo?". Quem opera um
     cinema pergunta o contrário: "a sessão das 21:30 tem alguém na porta?".
-    Sem esta lista, a resposta sai de cruzar duas colunas na cabeça — e o
+    Sem esta lista, a resposta sai de cruzar duas colunas na cabeça, e o
     erro só aparece quando a fila já se formou (D26).
 
     A janela é a mesma da escolha de turno: o organizador enxerga exatamente
@@ -412,7 +412,7 @@ def coverage(db: DbSession, organizer: Organizer) -> list[CoverageOut]:
 
     # Organizador entra junto: ele assume turno pelo próprio papel (D27), e
     # contar só `Role.GATE` fazia a sessão que ele estava atendendo aparecer
-    # como "sem ninguém" — a pergunta que esta lista existe para responder,
+    # como "sem ninguém": a pergunta que esta lista existe para responder,
     # respondida errado (D33).
     for nome, sessao, papel in db.execute(
         select(User.name, User.gate_showing_id, User.role)

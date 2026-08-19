@@ -31,7 +31,7 @@ services:
     # Montado em `/var/lib/postgresql`, e não em `.../data`.
     #
     # A partir do Postgres 18 a imagem guarda os dados numa subpasta por
-    # versão maior — `/var/lib/postgresql/18/docker` —, para que a atualização
+    # versão maior, em `/var/lib/postgresql/18/docker`, para que a atualização
     # de versão possa usar `pg_upgrade --link` sem cruzar a fronteira do
     # ponto de montagem. Montado no caminho antigo, o contêiner recusa subir
     # em vez de arriscar corromper dados de uma versão anterior.
@@ -57,7 +57,7 @@ services:
       SECRET_KEY: cinerini-desenvolvimento-nao-usar-em-producao
 
       # Opcional. Sem ela, o seed usa a ficha embutida e todo o fluxo funciona
-      # — só a busca de filmes pelo organizador fica indisponível. Para usar a
+      # e só a busca de filmes pelo organizador fica indisponível. Para usar a
       # sua: `TMDB_API_KEY=xxxx docker compose up --build`.
       TMDB_API_KEY: ${TMDB_API_KEY:-}
 

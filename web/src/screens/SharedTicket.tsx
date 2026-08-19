@@ -1,7 +1,7 @@
 /* Ingresso aberto por link.
 
    Público: quem tem o link é quem apresenta o ingresso na portaria. Não
-   mostra quem comprou — o link circula por mensagem e pode chegar a mais
+   mostra quem comprou, porque o link circula por mensagem e pode chegar a mais
    gente do que o titular pretendia. */
 
 import { useEffect, useState } from 'react';

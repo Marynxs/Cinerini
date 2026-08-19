@@ -1,6 +1,6 @@
 """Eventos e suas sessões, do rascunho à publicação.
 
-Operações sobre uma sessão específica vivem em showings.py — aqui ficam as
+Operações sobre uma sessão específica vivem em showings.py. Aqui ficam as
 que são de fato do evento.
 """
 
@@ -63,7 +63,7 @@ def create_event(data: EventIn, db: DbSession, organizer: Organizer) -> Event:
     """O mesmo filme não entra duas vezes.
 
     Dois eventos do mesmo `tmdb_id` produziriam dois blocos idênticos no
-    catálogo, com as sessões repartidas entre eles — o cliente veria "Duna"
+    catálogo, com as sessões repartidas entre eles, e o cliente veria "Duna"
     duas vezes e teria de abrir os dois para saber onde está o horário que
     procura. Um filme é um evento, e as sessões se penduram nele (D30).
     """
@@ -101,7 +101,7 @@ def create_event(data: EventIn, db: DbSession, organizer: Organizer) -> Event:
 def delete_event(event_id: int, db: DbSession, _: Organizer) -> None:
     """Só rascunho, e só sem sessões.
 
-    Publicado não sai porque pode ter ingresso vendido — e apagar levaria
+    Publicado não sai porque pode ter ingresso vendido, e apagar levaria
     junto o comprovante de quem comprou. Rascunho com sessões também não:
     esvaziar antes torna a consequência visível passo a passo, em vez de
     escondê-la atrás de uma confirmação genérica (D30).
@@ -114,7 +114,7 @@ def delete_event(event_id: int, db: DbSession, _: Organizer) -> None:
     if event.status != EventStatus.DRAFT:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Só rascunhos podem ser removidos. Despublique o evento antes — "
+            "Só rascunhos podem ser removidos. Despublique o evento antes, "
             "e se ele já vendeu ingressos, despublicar é o mais longe que dá.",
         )
 

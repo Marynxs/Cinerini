@@ -1,9 +1,9 @@
-/* Tokens do sistema. Nenhuma tela inventa cor, tamanho ou espaçamento —
+/* Tokens do sistema. Nenhuma tela inventa cor, tamanho ou espaçamento, e
    tudo sai daqui. Direção "recibo térmico", travada na decisão D2. */
 
 /* Hospedadas no projeto, e não pelo CDN do Google: evita requisição a
    terceiro e o piscar de fonte no primeiro carregamento. Só o subconjunto
-   latino, que é o que o português usa — 52 KB no total. */
+   latino, que é o que o português usa, com 52 KB no total. */
 
 @font-face {
   font-family: 'IBM Plex Mono';

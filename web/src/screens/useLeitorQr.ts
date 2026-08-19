@@ -1,7 +1,7 @@
 /* Leitura de QR pela câmera.
 
    Usa o jsQR e não o `BarcodeDetector` nativo do navegador: nenhum navegador
-   de iPhone implementa a API — todos usam o WebKit, e a Apple a mantém
+   de iPhone implementa a API: todos usam o WebKit, e a Apple a mantém
    desligada. Numa portaria, o aparelho mais provável na mão de quem valida é
    justamente um celular, e um caminho que falha em metade deles não é
    caminho (D20).
@@ -35,7 +35,7 @@ interface Retorno {
 /**
  * Liga a câmera e chama `aoLer` quando encontra um QR.
  *
- * Enquanto `ativo` for falso a câmera é desligada de verdade — não basta
+ * Enquanto `ativo` for falso a câmera é desligada de verdade, e não basta
  * parar de decodificar, porque o indicador de gravação continuaria aceso e
  * a bateria continuaria sendo gasta.
  */
@@ -46,7 +46,7 @@ export function useLeitorQr(ativo: boolean, aoLer: (texto: string) => void): Ret
   const [tentativa, setTentativa] = useState(0);
 
   // A função de leitura muda a cada render da tela, mas o laço da câmera não
-  // deve ser remontado por isso — remontar reabriria o fluxo de vídeo e
+  // deve ser remontado por isso, porque remontar reabriria o fluxo de vídeo e
   // piscaria a imagem a cada quadro lido.
   const leitor = useRef(aoLer);
   leitor.current = aoLer;

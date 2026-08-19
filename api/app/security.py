@@ -1,7 +1,7 @@
 """Primitivas de senha e token.
 
 O mesmo segredo assina a sessão do usuário e o código do ingresso, mas os
-dois têm formatos distintos e são verificados por caminhos distintos —
+dois têm formatos distintos e são verificados por caminhos distintos, e
 misturá-los permitiria usar um ingresso como credencial de acesso.
 """
 
@@ -57,7 +57,7 @@ def create_ticket_token(jti: str, showing_id: int) -> str:
 
     A exibição vai dentro, e não o evento: é ela que a portaria confere
     (D21), e carregar o evento junto criaria dois campos que podem divergir
-    para dizer a mesma coisa — a exibição já sabe de que evento é.
+    para dizer a mesma coisa, porque a exibição já sabe de que evento é.
     """
     return jwt.encode(
         {"jti": jti, "shw": showing_id, "type": TOKEN_TYPE_TICKET},

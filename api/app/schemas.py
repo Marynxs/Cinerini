@@ -3,7 +3,7 @@
 Separados dos modelos de propósito: o modelo descreve o que existe no banco,
 o schema descreve o que atravessa a fronteira HTTP. Sem essa separação,
 adicionar uma coluna interna a User exporia esse campo na resposta sem que
-ninguém decidisse isso — password_hash seria o primeiro a vazar.
+ninguém decidisse isso, password_hash seria o primeiro a vazar.
 """
 
 from datetime import datetime
@@ -76,7 +76,7 @@ class VenueIn(BaseModel):
     """O nome da cidade não entra por aqui.
 
     Só a UF e o código do município: o nome é resolvido no servidor contra a
-    lista do IBGE. Aceitá-lo do cliente reabriria a porta que a D23 fecha —
+    lista do IBGE. Aceitá-lo do cliente reabriria a porta que a D23 fecha:
     dois cadastros escrevendo "São Paulo" e "sao paulo" para o mesmo lugar.
     """
 
@@ -88,7 +88,7 @@ class VenueIn(BaseModel):
     # Só é olhado quando o IBGE não responde: aí o nome vem daqui, porque a
     # alternativa seria não conseguir cadastrar cinema nenhum enquanto um
     # serviço de terceiro estiver fora (D28). Com o IBGE no ar este campo é
-    # ignorado — o nome oficial sempre vence.
+    # ignorado: o nome oficial sempre vence.
     city_fallback: str | None = Field(default=None, min_length=2, max_length=120)
 
     @field_validator("state")
@@ -187,7 +187,7 @@ class EventIn(BaseModel):
     """Criado a partir do catálogo ou à mão.
 
     Com tmdb_id, os demais campos são preenchidos pelo catálogo e o que vier
-    no corpo é ignorado — a origem é uma só. Sem tmdb_id, o título é
+    no corpo é ignorado, porque a origem é uma só. Sem tmdb_id, o título é
     obrigatório.
     """
 

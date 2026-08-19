@@ -22,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["autenticação"])
     dependencies=[Depends(rate_limit(limit=20, window_seconds=3600, scope="register"))],
 )
 def register(data: RegisterIn, db: DbSession) -> TokenOut:
-    """Cadastro público. Cria CUSTOMER — exceto na instalação vazia.
+    """Cadastro público. Cria CUSTOMER, exceto na instalação vazia.
 
     O papel nunca vem do corpo da requisição: aceitá-lo deixaria qualquer
     visitante se declarar organizador e decidir quem entra na sala. Portaria
@@ -30,7 +30,7 @@ def register(data: RegisterIn, db: DbSession) -> TokenOut:
 
     A resposta de e-mail duplicado revela que a conta existe. Ver decisão D8:
     esconder isso exigiria confirmação por e-mail, fora do escopo. O limite
-    acima é a mitigação — cinco tentativas por hora inviabilizam varrer uma
+    acima é a mitigação: cinco tentativas por hora inviabilizam varrer uma
     lista de e-mails atrás de quem tem conta.
     """
     existing = db.scalar(select(User).where(User.email == data.email))
@@ -42,7 +42,7 @@ def register(data: RegisterIn, db: DbSession) -> TokenOut:
 
     # Banco sem ninguém: o primeiro a se cadastrar vira organizador, senão a
     # instalação nasce sem caminho para o primeiro (D22). A condição é a
-    # tabela estritamente vazia, e não "não há organizador" — assim a regra
+    # tabela estritamente vazia, e não "não há organizador". Assim a regra
     # se fecha no primeiro cadastro e nunca reabre, nem se um organizador
     # for removido depois.
     vazio = db.scalar(select(User.id).limit(1)) is None
@@ -135,13 +135,13 @@ def promote_organizer(
     """Promoção em vez de criação: a conta e a senha já são da pessoa.
 
     Criar a conta pelo painel obrigaria o organizador a inventar uma senha e
-    entregá-la por algum canal — e senha que trafega por mensagem é senha
+    entregá-la por algum canal, e senha que trafega por mensagem é senha
     que fica no histórico de alguém. Aqui a conta já existe, e o que se
     concede é só o papel (D22).
 
     Funcionário é promovível: quem trabalha na casa é justamente quem se
     espera promover. Ele deixa de ser funcionário, mas não deixa de poder
-    validar — o organizador abre a portaria pelo próprio papel (D27). O que
+    validar, porque o organizador abre a portaria pelo próprio papel (D27). O que
     muda é o escopo: em vez das sessões de um cinema, passa a enxergar as
     dos eventos que publicou, e por isso o vínculo com o cinema é desfeito.
     """
@@ -159,7 +159,7 @@ def promote_organizer(
 
     # Funcionário promovido deixa de ser funcionário: os papéis são
     # exclusivos, e quem passa a publicar não continua validando na porta.
-    # Se precisar dos dois, são duas contas — e aí fica registrado que são
+    # Se precisar dos dois, são duas contas, e aí fica registrado que são
     # duas pessoas diferentes na mesma sessão.
     alvo.gate_venue_id = None
     alvo.gate_showing_id = None
@@ -216,11 +216,11 @@ def demote_organizer(user_id: int, db: DbSession, quem: Organizer) -> UserOut:
     """Revoga o papel; não apaga a conta.
 
     Apagar levaria junto os eventos publicados por ela, e com eles as sessões
-    e os ingressos vendidos — quem comprou perderia o ingresso porque alguém
+    e os ingressos vendidos, e quem comprou perderia o ingresso porque alguém
     saiu da equipe. Revogado, o que ela publicou continua de pé (D27).
 
     Volta a funcionário, e não a cliente: promover era um caminho de mão
-    única. Quem subia e descia virava cliente, e o e-mail ficava queimado —
+    única. Quem subia e descia virava cliente, e o e-mail ficava queimado:
     `create_gate` recusa e-mail existente, e não há recuperação de senha, de
     modo que a pessoa perdia o acesso de trabalho para sempre. Promoção e
     revogação agora se desfazem uma à outra (D32).

@@ -133,7 +133,7 @@ export function Payment() {
     );
   }
 
-  // Recusado continua pagável enquanto a reserva não vence — é o caso de
+  // Recusado continua pagável enquanto a reserva não vence, que é o caso de
   // quem errou um dígito e vai tentar outro cartão.
   const finalizado = pedido.status === 'paid' || pedido.status === 'cancelled';
 
@@ -143,7 +143,7 @@ export function Payment() {
         <Vazio titulo="A reserva expirou">
           <p>
             As poltronas ficaram reservadas por 10 minutos e voltaram para o
-            mapa. Escolha de novo — elas podem ainda estar livres.
+            mapa. Escolha de novo, porque elas podem ainda estar livres.
           </p>
           <p style={{ marginTop: 'var(--e4)' }}>
             <Link to={`/sessoes/${sessao.id}`} className="elo">
@@ -315,7 +315,7 @@ function Desfecho({
         <p className="desfecho-texto">
           {aprovado
             ? `${poltronas.length === 1 ? 'Sua poltrona' : 'Suas poltronas'} `
-              + `${poltronas.join(', ')} — o ingresso com o código já está em `
+              + `${poltronas.join(', ')}. O ingresso com o código já está em `
               + 'Meus ingressos.'
             : `${resultado.reason ?? 'A operadora recusou a cobrança.'} `
               + 'As poltronas continuam reservadas até a espera vencer: '

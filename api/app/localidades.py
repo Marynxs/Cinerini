@@ -2,7 +2,7 @@
 
 Existe por um defeito concreto: cidade e UF eram texto livre, e o filtro do
 catálogo agrupa cinemas por cidade. "São Paulo" e "sao paulo" viravam duas
-cidades na lista, e nenhuma validação de formato pega isso — as duas são
+cidades na lista, e nenhuma validação de formato pega isso, porque as duas são
 strings perfeitamente válidas.
 
 A UF não vem da rede. São 27 e não mudam desde 1988; buscá-las seria trocar

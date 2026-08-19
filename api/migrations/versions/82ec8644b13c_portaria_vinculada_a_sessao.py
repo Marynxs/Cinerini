@@ -23,7 +23,7 @@ def upgrade() -> None:
 
     # A portaria que atendia um filme passa a atender a primeira exibição
     # dele. Sem esta conversão, quem já tinha portaria montada acordaria com
-    # ela desvinculada — e a única pista seria a recusa de todo ingresso.
+    # ela desvinculada, e a única pista seria a recusa de todo ingresso.
     op.execute("""
         UPDATE users u
         SET gate_showing_id = (

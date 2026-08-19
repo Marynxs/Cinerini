@@ -22,7 +22,7 @@
 }
 
 /* Ancorado no próprio disco: o rótulo fica embaixo do ícone da etapa, que é
-   onde ele pertence — o nome descreve aquela etapa, não a trilha.
+   onde ele pertence, porque o nome descreve aquela etapa e não a trilha.
 
    No celular isso quebra, e a regra é invertida mais abaixo: com a tela
    estreita, o disco da primeira etapa fica junto da borda e o rótulo
@@ -56,7 +56,7 @@
 }
 
 /* Concluída: tinta cheia. Distinta da atual pela cor, e do que ainda vem
-   pelo preenchimento — três estados legíveis sem depender só de matiz. */
+   pelo preenchimento: três estados legíveis sem depender só de matiz. */
 .trilha-etapa--feita .trilha-disco {
   background: var(--tinta);
   border-color: var(--tinta);
@@ -100,7 +100,7 @@
 
 @media (max-width: 620px) {
   /* Na tela estreita o rótulo passa a ser posicionado contra a trilha
-     inteira. Ancorado no disco, o da primeira etapa saía pela esquerda —
+     inteira. Ancorado no disco, o da primeira etapa saía pela esquerda,
      e é justamente a etapa em que a compra começa. */
   .trilha {
     position: relative;

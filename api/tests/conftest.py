@@ -2,7 +2,7 @@
 
 Cada teste roda dentro de uma transação que é desfeita ao final. Isso permite
 executar a suíte contra o mesmo banco de desenvolvimento sem destruir os
-dados semeados — o avaliador roda os testes e continua com o cenário
+dados semeados: o avaliador roda os testes e continua com o cenário
 intacto para percorrer o fluxo.
 """
 
@@ -36,7 +36,7 @@ def db(connection: Connection) -> Iterator[Session]:
     """Sessão isolada: tudo que o teste gravar é descartado no fim.
 
     A transação externa nunca é confirmada. O modo de savepoint permite que
-    o código sob teste chame commit() normalmente — o commit vira um
+    o código sob teste chame commit() normalmente, porque o commit vira um
     savepoint dentro da transação externa, que é desfeita depois.
     """
     outer = connection.begin()

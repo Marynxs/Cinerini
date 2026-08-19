@@ -6,7 +6,7 @@
 Existe por um problema concreto: `uvicorn --reload` cria um processo filho que
 herda o socket. Se o processo pai é encerrado à força, o filho sobrevive e
 continua atendendo. Depois de algumas execuções, vários servidores dividem a
-mesma porta — cada um com uma versão diferente do código em memória — e as
+mesma porta, cada um com uma versão diferente do código em memória, e as
 respostas passam a alternar entre eles.
 
 O sintoma é enganoso: o código no disco está certo, mas a API responde com o

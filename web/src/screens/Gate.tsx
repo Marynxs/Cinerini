@@ -25,7 +25,7 @@ const quando = (iso: string) =>
 /* Cada veredito tem palavra, explicação e uma marca própria. O par
    fundo/borda vive no CSS, e a distinção não depende de cor: cheio escuro,
    cheio carmim, contorno espesso, tracejado, duplo e hachurado se separam no
-   preto e branco também — o par carmim/bege é indistinguível para parte das
+   preto e branco também, porque o par carmim/bege é indistinguível para parte das
    pessoas. */
 const VEREDITOS: Record<GateResult, { palavra: string; explica: string }> = {
   valid: { palavra: 'Válido', explica: 'Pode entrar.' },
@@ -179,7 +179,7 @@ export function Gate() {
   const [trocando, setTrocando] = useState(false);
 
   /* Quem valida, e não quem "é" a portaria: o organizador abre a mesma tela
-     pelo próprio papel (D27). A API já concordava — era só o front que
+     pelo próprio papel (D27). A API já concordava, e era só o front que
      escondia o caminho. */
   const podeValidar = user?.role === 'gate' || user?.role === 'organizer';
 
@@ -212,7 +212,7 @@ export function Gate() {
 
      A câmera tenta decodificar seis vezes por segundo, e desligá-la depende
      de um novo render. Nesse intervalo o mesmo QR é lido de novo, e a
-     segunda resposta viria `already_used` — sobrescrevendo na tela o
+     segunda resposta viria `already_used`, sobrescrevendo na tela o
      `valid` da primeira e mandando embora quem tinha ingresso bom.
 
      Precisa ser `ref` e não estado: estado só vale no próximo render, e a
@@ -275,7 +275,7 @@ export function Gate() {
 
   /* Escolher o turno é o primeiro gesto de quem chega para trabalhar. Fica
      antes da câmera porque validar sem saber que sessão se atende é como a
-     porta aceitar qualquer um — e porque o operador troca de sessão sozinho
+     porta aceitar qualquer um, e porque o operador troca de sessão sozinho
      ao longo da noite, sem depender do organizador (D24). */
   if (precisaEscolher) {
     return (

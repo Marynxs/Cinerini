@@ -15,7 +15,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# A URL vem do .env, nunca do alembic.ini — o .ini é versionado.
+# A URL vem do .env, nunca do alembic.ini, porque o .ini é versionado.
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
 target_metadata = Base.metadata

@@ -22,7 +22,7 @@ const normalizar = (texto: string) =>
 
 /** Nome do dia e a data em si.
 
-    "Hoje" e "Amanhã" sozinhos obrigam quem lê a calcular a data — e quem
+    "Hoje" e "Amanhã" sozinhos obrigam quem lê a calcular a data, e quem
     está escolhendo sessão quer conferir o dia, não deduzi-lo. */
 function rotuloDia(iso: string): { nome: string; data: string } {
   const quando = new Date(iso);
@@ -114,7 +114,7 @@ function filtrar(filmes: CatalogEvent[], termo: string): CatalogEvent[] {
 /** Última resposta por cidade, mantida enquanto a aba viver.
 
     Não é cache com prazo: a busca acontece igual, toda vez. O que isto evita
-    é a tela se apagar antes de ter o que colocar no lugar — voltar ao
+    é a tela se apagar antes de ter o que colocar no lugar: voltar ao
     catálogo mostrava "Buscando sessões" sobre um vazio, e com a API
     hibernando isso vira meio minuto de tela em branco.
 
@@ -252,7 +252,7 @@ export function Catalog() {
 
       {/* Só quando não há o que mostrar. Com o catálogo anterior na tela, uma
           atualização que falhou não justifica trocar conteúdo útil por um
-          aviso — a próxima navegação tenta de novo. */}
+          aviso, porque a próxima navegação tenta de novo. */}
       {erro && filmes === null && (
         <Vazio titulo="Não deu para carregar o catálogo">
           <p>{erro}</p>

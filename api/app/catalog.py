@@ -1,7 +1,7 @@
 """Montagem do catálogo público.
 
 Fora dos handlers de rota porque a consulta cruza cinco tabelas e resolve
-disponibilidade — e porque a mesma montagem serve à listagem e ao detalhe
+disponibilidade, e porque a mesma montagem serve à listagem e ao detalhe
 de uma sessão.
 """
 

@@ -117,7 +117,7 @@ def my_tickets(db: DbSession, customer: Customer) -> list[MyTicketOut]:
     # O ingresso cancelado sai da lista, mas os dois cancelamentos têm prazos
     # diferentes porque servem a leitores diferentes: quem cancelou já sabe o
     # motivo, quem teve a sessão cancelada precisa lê-lo justamente perto da
-    # data em que iria. Filtrar aqui e nunca apagar a linha — o ingresso é
+    # data em que iria. Filtrar aqui e nunca apagar a linha, porque o ingresso é
     # registro de uma compra, e o índice parcial depende do status.
     ainda_listavel = or_(
         Ticket.status != TicketStatus.CANCELLED,

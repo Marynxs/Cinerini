@@ -2,7 +2,7 @@
 
    Duas telas em uma: a de mira, com a câmera, e a de veredito, que toma o
    espaço inteiro. A segunda é lida de um metro de distância, por alguém em
-   pé com uma fila esperando — daí o corpo grande e a marca antes da palavra.
+   pé com uma fila esperando, e daí o corpo grande e a marca antes da palavra.
 */
 
 .portaria-cabeca {
@@ -289,13 +289,13 @@
   cursor: pointer;
 }
 
-/* No hover o botão inverte, e as duas cores são declaradas — nenhuma sai de
+/* No hover o botão inverte, e as duas cores são declaradas: nenhuma sai de
    `currentColor`.
 
    A tentativa anterior usava `background: currentColor` com `color` trocado
    na mesma regra, e sumia com o botão inteiro: `currentColor` resolve contra
    a cor **já computada do próprio elemento**, então fundo e texto caíam na
-   mesma cor — a da superfície, que é também a do veredito atrás. O botão
+   mesma cor, a da superfície, que é também a do veredito atrás. O botão
    virava um retângulo invisível no exato momento em que o dedo o procura.
 
    Vale para o teclado também: numa tela operada na porta, quem navega por
@@ -322,7 +322,7 @@
 }
 
 /* Inválido: carmim cheio. O oposto exato do válido, e o único outro
-   preenchimento sólido — os dois extremos não se confundem de longe. */
+   preenchimento sólido, e os dois extremos não se confundem de longe. */
 .veredito--invalid {
   --cor-marca: var(--papel);
   --cor-superficie: var(--carimbo);
@@ -342,7 +342,7 @@
 }
 
 /* Outro evento: contorno tracejado de tinta, sem carmim nenhum. Não é
-   recusa por irregularidade — é encaminhamento, e o carmim faria o operador
+   recusa por irregularidade: é encaminhamento, e o carmim faria o operador
    tratar como fraude quem só errou a porta. */
 .veredito--wrong_event {
   --cor-marca: var(--tinta);
@@ -353,7 +353,7 @@
 }
 
 /* Outra sessão: contorno duplo sobre papel escurecido. Vizinho do "outro
-   evento" porque a natureza é a mesma — encaminhamento, não recusa —, e
+   evento" porque a natureza é a mesma, que é encaminhamento e não recusa, e
    distinto dele porque o operador manda a pessoa para outro *horário*, não
    para outra sala. Duas linhas em vez de tracejado separam os dois de longe
    e sem depender de cor. */

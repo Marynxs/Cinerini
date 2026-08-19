@@ -1,7 +1,7 @@
 /* Pagamento.
 
    Duas colunas: o formulário à esquerda, o recibo do que está sendo comprado
-   à direita — o cliente confere o que vai pagar sem sair da tela. */
+   à direita, para o cliente conferir o que vai pagar sem sair da tela. */
 
 .pagamento {
   display: grid;

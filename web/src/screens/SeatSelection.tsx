@@ -14,7 +14,7 @@ const MAX_POLTRONAS = 10;
 
    Quem não tem conta escolhe as poltronas, clica em reservar e é mandado
    para o login. Ao voltar, o componente é montado de novo e a seleção nascia
-   vazia — a pessoa era punida por não ter previsto que precisaria de conta.
+   vazia, e a pessoa era punida por não ter previsto que precisaria de conta.
 
    `sessionStorage` e não `localStorage`: a escolha vale para esta visita, e
    guardá-la entre sessões faria o mapa reabrir dias depois com poltronas que
@@ -336,7 +336,7 @@ export function SeatSelection({
       {/* Barra fixa do celular: total e ação sempre à mão, sem obrigar a
           rolar até o fim para saber quanto deu.
 
-          Ela se apaga quando o botão do resumo aparece na tela — em vez de
+          Ela se apaga quando o botão do resumo aparece na tela, em vez de
           duas ações iguais empilhadas, o painel completo "absorve" a barra
           ao ser alcançado. */}
       <div

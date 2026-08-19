@@ -5,7 +5,7 @@
    e cor sozinha deixaria o mapa inutilizável para essas pessoas.
 
    A tela do cinema fica embaixo, e as fileiras são desenhadas de trás para
-   frente — a fileira A, mais próxima da tela, encosta nela. Ordem invertida
+   frente: a fileira A, mais próxima da tela, encosta nela. Ordem invertida
    colocaria a primeira fila no fundo da sala. */
 
 .mapa {
@@ -26,7 +26,7 @@
   max-width: 100%;
   /* `min-width: 0` porque este bloco é item de um grid: sem ele o conteúdo
      largo impõe a própria largura à coluna e a rolagem interna nunca chega
-     a existir — o mapa simplesmente vaza para fora da tela. */
+     a existir, e o mapa simplesmente vaza para fora da tela. */
   min-width: 0;
 }
 
@@ -36,7 +36,7 @@
   width: 100%;
   max-height: 100%;
   /* Nos dois eixos. `overflow-y: hidden` cortava as fileiras de cima numa
-     sala alta, e elas ficavam inalcançáveis — o defeito que motivou o zoom. */
+     sala alta, e elas ficavam inalcançáveis. Foi o defeito que motivou o zoom. */
   overflow: auto;
 
   /* `none` porque a pinça e o arrastar são tratados no código: deixar o
@@ -126,7 +126,7 @@
   transform: translateY(1px);
 }
 
-/* Ocupada: preenchimento cheio no tom do picote. Recua sem sumir — em bege
+/* Ocupada: preenchimento cheio no tom do picote. Recua sem sumir, porque em bege
    claro demais a poltrona vendida passava despercebida. */
 .assento--ocupado {
   background: var(--picote);
@@ -157,7 +157,7 @@
 }
 
 /* Acessível: círculo em vez de quadrado, mais o símbolo internacional.
-   Duas marcações redundantes de propósito — a forma funciona em miniatura,
+   Duas marcações redundantes de propósito: a forma funciona em miniatura,
    o símbolo comunica o motivo. */
 .assento--acessivel {
   border-radius: 50%;
@@ -168,7 +168,7 @@
   height: 60%;
 }
 
-/* Em espera: hachura diagonal — outra pessoa está pagando por ela agora. */
+/* Em espera: hachura diagonal, porque outra pessoa está pagando por ela agora. */
 .assento--espera {
   cursor: not-allowed;
   border-style: dashed;
@@ -245,7 +245,7 @@
 @media (max-width: 620px) {
   /* O tamanho da poltrona não vem mais daqui: quem o define é o zoom, que
      escreve a variável no próprio elemento (D31). Repetir o valor nesta
-     regra criaria uma declaração morta — inline sempre vence — e a próxima
+     regra criaria uma declaração morta, já que inline sempre vence, e a próxima
      pessoa a ler o arquivo mudaria o número errado.
 
      Fica só o corredor, que é espaçamento e não alvo de toque. */

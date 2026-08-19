@@ -1,7 +1,7 @@
 /* Diálogo de confirmação.
    Desenhado como a via do estabelecimento: papel estreito, etiqueta no topo,
    picote separando cabeçalho, corpo e ações. É o mesmo objeto que o sistema
-   produz — só que pedindo autorização em vez de registrando. */
+   produz, só que pedindo autorização em vez de registrando. */
 
 .dialogo {
   border: none;
@@ -56,7 +56,7 @@
   margin-top: var(--e2);
 }
 
-/* O dado que a pessoa precisa reconhecer antes de confirmar — a poltrona, a
+/* O dado que a pessoa precisa reconhecer antes de confirmar: a poltrona, a
    sessão. Destacado para que a conferência não dependa de ler a frase. */
 .dialogo-destaque {
   font-weight: 600;

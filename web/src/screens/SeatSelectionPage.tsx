@@ -76,7 +76,7 @@ export function SeatSelectionPage() {
   }, [buscarReserva, carregar, navegar, showingId]);
 
   async function reservar(seatIds: number[]) {
-    // Quem não entrou vai para o login e volta para cá — perder a seleção
+    // Quem não entrou vai para o login e volta para cá, e perder a seleção
     // seria punir a pessoa por não ter previsto que precisaria de conta.
     if (!user) {
       navegar('/entrar', { state: { de: `/sessoes/${showingId}` } });

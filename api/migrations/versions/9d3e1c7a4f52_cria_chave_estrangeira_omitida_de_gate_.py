@@ -2,7 +2,7 @@
 
 users.gate_event_id foi declarada com use_alter na migration inicial. Esse
 parâmetro faz o Alembic omitir a chave do CREATE TABLE para resolver a
-referência circular entre users e events — mas o ALTER TABLE correspondente
+referência circular entre users e events, mas o ALTER TABLE correspondente
 nunca foi emitido, e a constraint não chegou a existir no banco.
 
 Sem ela, nada impedia gravar um usuário de portaria apontando para um evento

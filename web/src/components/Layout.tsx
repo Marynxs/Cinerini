@@ -34,7 +34,7 @@ export function Layout({ children, semPadding }: Props) {
                 )}
                 {/* O organizador chega à portaria pelo próprio papel: ele
                     administra o catálogo inteiro, e validar na entrada é
-                    mais uma coisa que pode fazer — inclusive quando o
+                    mais uma coisa que pode fazer, inclusive quando o
                     funcionário escalado falta (D27). */}
                 {(user.role === 'gate' || user.role === 'organizer') && (
                   <Link to="/portaria" className="elo">Portaria</Link>
@@ -57,7 +57,7 @@ export function Layout({ children, semPadding }: Props) {
 
 /** Retorno explícito para a tela anterior.
 
-    O botão do navegador existe, mas não é visível dentro da página — e num
+    O botão do navegador existe, mas não é visível dentro da página, e num
     fluxo de compra a pessoa precisa ver que dá para recuar sem perder o que
     já escolheu. */
 export function Voltar({ para, texto }: { para: string; texto: string }) {

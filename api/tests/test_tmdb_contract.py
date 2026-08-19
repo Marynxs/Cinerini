@@ -1,7 +1,7 @@
 """Contrato com o TMDb: a resposta real ainda tem o formato esperado.
 
 Bate na API de verdade, e por isso fica fora da execução padrão. O resto da
-suíte usa um TMDb falso — teste que depende de rede é lento, quebra sem
+suíte usa um TMDb falso, porque teste que depende de rede é lento, quebra sem
 internet e falha para quem não tem chave própria, tudo sem que o código
 tenha mudado.
 

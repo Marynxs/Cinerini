@@ -37,7 +37,7 @@ app.include_router(gate.router)
 def raiz() -> dict[str, str]:
     """Existe porque a raiz de um serviço é o que as pessoas digitam.
 
-    Sem esta rota, abrir o endereço da API devolvia `404 Not Found` — tecnicamente
+    Sem esta rota, abrir o endereço da API devolvia `404 Not Found`, tecnicamente
     correto e inútil: quem chegou ali não sabe se errou o endereço, se o
     serviço caiu, ou se é assim mesmo. Este corpo diz o que é e para onde ir.
 

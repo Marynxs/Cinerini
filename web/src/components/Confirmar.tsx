@@ -1,7 +1,7 @@
 /* Confirmação de ação destrutiva.
    Sobre o <dialog> nativo e não sobre uma <div> com posição fixa: ele já
    traz camada superior, prisão de foco, fechamento pelo Esc e restauração
-   do foco ao elemento que abriu — quatro coisas que uma div exigiria
+   do foco ao elemento que abriu: quatro coisas que uma div exigiria
    reimplementar, cada uma com um jeito de sair errada. */
 
 import { useEffect, useRef, useState } from 'react';

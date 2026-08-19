@@ -47,7 +47,7 @@ def has_seats(db: Session, showing_id: int) -> bool:
 def taken_seat_ids(db: Session, showing_id: int) -> set[int]:
     """Assentos com ingresso vivo: vendidos ou em checkout.
 
-    Espera vencida não conta — o assento já voltou ao estoque, e considerá-lo
+    Espera vencida não conta, porque o assento já voltou ao estoque, e considerá-lo
     ocupado esconderia poltrona livre do cliente.
     """
     agora = datetime.now(timezone.utc)
@@ -68,7 +68,7 @@ def taken_seat_ids(db: Session, showing_id: int) -> set[int]:
 
 
 def sold_count(db: Session, showing_id: int) -> int:
-    """Ingressos vivos da exibição — reservados, válidos ou já utilizados."""
+    """Ingressos vivos da exibição: reservados, válidos ou já utilizados."""
     return db.scalar(
         select(func.count(Ticket.id))
         .join(Seat, Ticket.seat_id == Seat.id)

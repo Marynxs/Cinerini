@@ -79,7 +79,7 @@ def update_showing(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Sala não encontrada.")
 
         # Decisão D9: com ingresso vendido, trocar a sala deixaria o mapa
-        # descrevendo uma sala que não é a da sessão — o cliente teria
+        # descrevendo uma sala que não é a da sessão, e o cliente teria
         # comprado a F7 de uma sala que pode não ter fileira F.
         if sold_count(db, showing.id):
             raise HTTPException(

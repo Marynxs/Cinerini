@@ -67,6 +67,6 @@ Customer = Annotated[User, Depends(require_role(Role.CUSTOMER))]
 
 # O organizador também abre a portaria (D27). Num cinema pequeno quem publica
 # a sessão é quem fica na porta, e obrigá-lo a manter uma segunda conta só
-# para validar seria burocracia sem ganho de segurança — ele já pode tudo o
+# para validar seria burocracia sem ganho de segurança, porque ele já pode tudo o
 # que a portaria pode, e mais.
 Gate = Annotated[User, Depends(require_role(Role.GATE, Role.ORGANIZER))]

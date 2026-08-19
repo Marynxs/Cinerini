@@ -1,7 +1,7 @@
 /* Painel do organizador: cinemas, salas, eventos e sessões numa tela só.
 
-   Uma tela em vez de várias porque as quatro coisas se encadeiam — não dá
-   para criar sessão sem sala, nem publicar evento sem sessão — e navegar
+   Uma tela em vez de várias porque as quatro coisas se encadeiam: não dá
+   para criar sessão sem sala, nem publicar evento sem sessão, e navegar
    entre abas para completar um cadastro esconderia essa dependência. */
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
@@ -114,8 +114,8 @@ export function Organizer() {
       )}
 
       {/* Abas em vez de tudo empilhado: as quatro áreas são usadas em
-          momentos diferentes — publicar é semanal, montar portaria é diário,
-          cadastrar cinema é uma vez só — e empilhá-las obrigava a rolar por
+          momentos diferentes, já que publicar é semanal, montar portaria é
+          diário e cadastrar cinema é uma vez só, e empilhá-las obrigava a rolar por
           três assuntos para chegar ao quarto. */}
       <div className="abas" role="tablist" aria-label="Áreas do painel">
         {ABAS.map((a) => (
@@ -191,7 +191,7 @@ export function Organizer() {
 
 /** Contas de portaria: uma pessoa, um cinema.
 
-    Fica no painel do organizador porque portaria não se auto-cadastra — o
+    Fica no painel do organizador porque portaria não se auto-cadastra: o
     papel decide quem entra na sala, e concedê-lo pelo formulário público
     deixaria qualquer visitante abrir a porta.
 
@@ -219,7 +219,7 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
   /* Sessões que cada cinema pode oferecer, para o seletor de escala.
 
      Vem da cobertura, que já traz as sessões da janela em que alguém pode
-     assumir — buscar de novo por outro caminho daria duas listas com
+     assumir, e buscar de novo por outro caminho daria duas listas com
      prazos possivelmente diferentes (D26). */
   const [turnosPorCinema, setTurnosPorCinema] =
     useState<Record<number, ShowingBrief[]>>({});
@@ -410,7 +410,7 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
           </p>
           <p className="dialogo-consequencia">
             A conta deixa de existir e não entra mais no sistema. Quem já
-            validou ingressos não pode ser removido — o histórico deixaria de
+            validou ingressos não pode ser removido, porque o histórico deixaria de
             dizer quem estava na porta. Esta ação é irreversível.
           </p>
         </Confirmar>
@@ -421,7 +421,7 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
 
 /** Edição de um organizador: só o nome.
 
-    E-mail e senha são identidade da pessoa, não cadastro — trocar o e-mail
+    E-mail e senha são identidade da pessoa, não cadastro. Trocar o e-mail
     pelo painel mudaria a credencial de alguém sem que ele soubesse (D27). */
 function EditarOrganizador(
   { alvo, aoSalvar }: { alvo: User; aoSalvar: () => void },
@@ -468,7 +468,7 @@ function EditarOrganizador(
 /** Sessões que começam em breve e quem está na porta de cada uma.
 
     Existe porque a tabela abaixo responde a pergunta errada. Ela diz o que
-    cada funcionário atende; quem opera um cinema precisa do contrário — se a
+    cada funcionário atende; quem opera um cinema precisa do contrário: se a
     sessão das 21:30 tem alguém. Cruzar as duas colunas na cabeça funciona
     com três funcionários e falha numa noite cheia, e o erro só aparece
     quando a fila já se formou (D26).
@@ -507,7 +507,7 @@ function Cobertura({ versao }: { versao: number }) {
               {c.showing.event_title} · {c.showing.room_name}
             </span>
             {/* O organizador vem marcado: ele cobre a porta pelo próprio
-                papel (D27), mas não é funcionário alocado — quem lê precisa
+                papel (D27), mas não é funcionário alocado, e quem lê precisa
                 saber que aquela sessão está coberta por quem também
                 administra, e não por alguém da escala (D33). */}
             <span className="cobertura-quem">
@@ -572,7 +572,7 @@ function EditarFuncionario(
       <label className="campo-curto portaria-escolha">
         <span className="campo-rotulo">Cinema onde trabalha</span>
         <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
-          <option value="">Sem cinema — não valida nada</option>
+          <option value="">Sem cinema, não valida nada</option>
           {venues.map((v) => (
             <option key={v.id} value={v.id}>{v.name} · {v.city}</option>
           ))}
@@ -593,7 +593,7 @@ function EditarFuncionario(
 /** Quem mais pode publicar eventos.
 
     Promoção e não criação: a conta e a senha já são da pessoa. Criá-la aqui
-    obrigaria o organizador a inventar uma senha e mandá-la por algum canal —
+    obrigaria o organizador a inventar uma senha e mandá-la por algum canal,
     e senha que trafega por mensagem fica no histórico de alguém (D22). */
 function Organizadores({ versao, aoMudar }: EquipeProps) {
   const [lista, setLista] = useState<User[] | null>(null);
@@ -714,7 +714,7 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
             {' · '}{revogando.email}
           </p>
           <p className="dialogo-consequencia">
-            A conta volta a ser de funcionário, sem cinema definido — escolha
+            A conta volta a ser de funcionário, sem cinema definido. Escolha
             um na seção <em>Funcionários</em> para que ela possa validar de
             novo. Os eventos que ela publicou seguem no ar: apagar levaria
             junto sessões e ingressos vendidos.
@@ -1079,7 +1079,7 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
           <option value="">Escolha</option>
           {salas.map((sala) => (
             <option key={sala.id} value={sala.id}>
-              {venues.find((v) => v.id === sala.venue_id)?.name} — {sala.name}
+              {venues.find((v) => v.id === sala.venue_id)?.name} · {sala.name}
             </option>
           ))}
         </select>
@@ -1151,7 +1151,7 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
   const [endereco, setEndereco] = useState('');
 
   /* Cidade e UF escolhidas em lista, nunca digitadas: eram texto livre, e o
-     filtro do catálogo agrupa cinemas por cidade — "São Paulo" e "sao paulo"
+     filtro do catálogo agrupa cinemas por cidade, e "São Paulo" e "sao paulo"
      viravam duas cidades, e nenhuma validação de formato pega isso (D23).
 
      As UFs vêm de uma constante no servidor; os municípios, do IBGE. */

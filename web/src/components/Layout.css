@@ -206,7 +206,7 @@
   margin: 0 auto;
 }
 
-/* Explicação da espera longa. Sem carmim: é informação, não atenção — o
+/* Explicação da espera longa. Sem carmim: é informação, não atenção, e o
    carmim aqui faria parecer erro justamente onde se diz que não há erro. */
 .aviso-demora {
   margin-top: var(--e4);

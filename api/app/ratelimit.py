@@ -2,7 +2,7 @@
 
 Em memória e não em banco: gravar uma linha por tentativa transformaria cada
 requisição numa escrita, e um atacante encheria o disco só insistindo. O
-preço é que a contagem zera quando o processo reinicia — no Render, que
+preço é que a contagem zera quando o processo reinicia, o que ocorre no Render, que
 hiberna por inatividade, isso acontece. É mitigação de custo, não garantia:
 encarece o ataque em massa sem prometer bloqueio absoluto.
 """
@@ -56,7 +56,7 @@ def client_ip(request: Request) -> str:
 
     X-Forwarded-For é forjável por quem fala direto com a aplicação, então só
     é lido quando a configuração declara que existe um proxy confiável à
-    frente — em produção, o do Render, que sobrescreve o cabeçalho.
+    frente, que em produção é o do Render, e sobrescreve o cabeçalho.
     """
     if get_settings().trust_proxy:
         forwarded = request.headers.get("x-forwarded-for")
@@ -88,7 +88,7 @@ def rate_limit(limit: int, window_seconds: int, scope: str):
 
 # Por conta, não por IP: sem isto, um atacante com muitos IPs testaria senhas
 # de uma mesma conta sem nunca esbarrar no limite de rede. É esta janela que
-# defende de fato contra força bruta de senha — a de IP existe para encarecer
+# defende de fato contra força bruta de senha, e a de IP existe para encarecer
 # varredura em massa, e por isso é folgada.
 login_by_account = SlidingWindow(limit=8, window_seconds=900)
 

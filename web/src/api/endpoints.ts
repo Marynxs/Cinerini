@@ -59,7 +59,7 @@ export const catalogo = {
 };
 
 export const organizador = {
-  // Tudo que o painel administra, publicado ou não — e de toda a
+  // Tudo que o painel administra, publicado ou não, e de toda a
   // equipe, não só de quem está logado (D29).
   eventos: () => request<EventOut[]>('/events/managed'),
 
@@ -200,7 +200,7 @@ export const portaria = {
   /* Nome, cinema e escala. Nunca a senha: trocá-la pelo painel obrigaria a
      entregar a nova por algum canal (D22).
 
-     `showing_id` aqui não substitui a escolha do próprio funcionário (D24) —
+     `showing_id` aqui não substitui a escolha do próprio funcionário (D24):
      é a correção de quem coordena a noite, para remanejar alguém sem
      depender de ele estar com o aparelho na mão. */
   editar: (gateId: number, dados: Partial<{

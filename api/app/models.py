@@ -123,7 +123,7 @@ class Venue(Base):
     name: Mapped[str] = mapped_column(String(255))
 
     # Código do município no IBGE. É ele que o catálogo agrupa, e não o nome:
-    # nome de cidade não é único no Brasil — há dezenas de "Bom Jesus" e
+    # nome de cidade não é único no Brasil, pois há dezenas de "Bom Jesus" e
     # "Santa Luzia" em estados diferentes, e agrupar por texto juntaria
     # cidades que não têm relação (D23).
     city_ibge_id: Mapped[int] = mapped_column(Integer, index=True)
@@ -188,7 +188,7 @@ class Showing(Base):
 
     # Sessão cancelada não é removida: quem tem ingresso precisa encontrar a
     # explicação onde procuraria o ingresso (D10). O motivo é texto livre
-    # porque a causa é operacional — projetor, interdição, público mínimo — e
+    # porque a causa é operacional, como projetor, interdição ou público mínimo, e
     # uma lista fechada obrigaria a escolher "outro" na maior parte das vezes.
     cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True)
@@ -275,7 +275,7 @@ class Ticket(Base):
 
     # Instante do cancelamento, par de `used_at`. Existe porque o ingresso
     # cancelado deixa de ser listado depois de um prazo, e sem a data não há
-    # de onde contá-lo — `status` sozinho não diz quando mudou.
+    # de onde contá-lo, porque `status` sozinho não diz quando mudou.
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     order: Mapped["Order"] = relationship(back_populates="tickets")

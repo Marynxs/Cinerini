@@ -1,4 +1,4 @@
-# Segredos — nunca versionar
+# Segredos. Nunca versionar.
 .env
 .env.*
 !.env.example
@@ -29,7 +29,7 @@ skills-lock.json
 .github/hooks/
 .github/skills/
 
-# Enunciado do desafio — material da Verzel, não redistribuir
+# Enunciado do desafio: material da Verzel, não redistribuir
 Desafio-Elite-Dev-2026.pdf
 
 # Sistema
@@ -37,5 +37,5 @@ Desafio-Elite-Dev-2026.pdf
 Thumbs.db
 
 # Protótipo de design: a imagem é artefato de processo e vai versionada.
-# O arquivo de edição fica de fora — pesa megabytes e ninguém o abriria.
+# O arquivo de edição fica de fora: pesa megabytes e ninguém o abriria.
 Prototipos/*.psd

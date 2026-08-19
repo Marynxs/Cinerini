@@ -247,7 +247,7 @@
   font-size: 11px;
 }
 
-/* O rótulo da sessão junta filme, data, cinema e sala — não cabe curto, e
+/* O rótulo da sessão junta filme, data, cinema e sala. Não cabe curto, e
    truncar tiraria justamente o que distingue duas sessões do mesmo filme. */
 .portaria-vinculo {
   width: 100%;
@@ -307,7 +307,7 @@
 }
 
 /* A margem negativa cobre a linha do contêiner, emendando a aba ativa com o
-   conteúdo — é o que faz a pasta parecer aberta. */
+   conteúdo, e é o que faz a pasta parecer aberta. */
 .aba--ativa {
   background: var(--papel);
   border-color: var(--tinta);
@@ -352,8 +352,8 @@
 /* --- cobertura das próximas sessões ---
 
    Fica acima da tabela de equipe porque responde a pergunta operacional:
-   qual porta está sem gente. A tabela responde a outra — o que cada pessoa
-   atende — e serve para conferir depois. */
+   qual porta está sem gente. A tabela responde a outra, que é o que cada
+   pessoa atende, e serve para conferir depois. */
 
 .cobertura {
   margin: var(--e4) var(--e4) 0;

@@ -242,7 +242,7 @@ class TestPromotion:
     ) -> None:
         """Promovido não perde a porta: o organizador também a abre (D27).
 
-        O que muda é o escopo — deixa de ser o cinema onde trabalhava e passa
+        O que muda é o escopo: deixa de ser o cinema onde trabalhava e passa
         a ser o catálogo que publica. Sem turno escolhido, a resposta é 409
         de configuração, não 403 de acesso.
         """
@@ -343,7 +343,7 @@ class TestDemotingOrganizers:
     def test_demotion_clears_the_venue_and_the_shift(
         self, client: TestClient, auth, db: Session, users: dict[str, User]
     ) -> None:
-        """Sem cinema, a conta reaparece na Equipe pedindo correção — e o
+        """Sem cinema, a conta reaparece na Equipe pedindo correção, e o
         turno que ela atendia como organizador não é herdado (D32)."""
         alvo = users["organizer2"]
         client.delete(f"/auth/organizers/{alvo.id}", headers=auth("organizer"))

@@ -56,7 +56,7 @@ SALAS = [
 ]
 
 # Filmes reais do TMDb. Se a chave não estiver configurada, o seed cai para
-# a ficha embutida — o avaliador precisa conseguir semear mesmo sem ter
+# a ficha embutida, porque o avaliador precisa conseguir semear mesmo sem ter
 # pedido chave própria ao TMDb.
 FILMES = [
     (693134, "Duna: Parte Dois"),
@@ -101,7 +101,7 @@ def _ficha(tmdb_id: int) -> dict:
 
 
 # Horário de Brasília. Declarado explicitamente para que as sessões caiam nos
-# horários que um cinema realmente usa — combinar em UTC jogaria a sessão da
+# horários que um cinema realmente usa, já que combinar em UTC jogaria a sessão da
 # noite para o dia seguinte no banco.
 BRT = timezone(timedelta(hours=-3))
 
@@ -219,7 +219,7 @@ def semear(db: Session) -> None:
         # A portaria trabalha no cinema da primeira sessão do primeiro filme,
         # e nasce **sem turno escolhido**: escolher é o primeiro gesto de quem
         # opera, e deixá-lo pronto esconderia o passo (D24). Esse cinema dá os
-        # dois recusados de uma vez — as outras sessões do mesmo filme
+        # dois recusados de uma vez: as outras sessões do mesmo filme
         # demonstram "outra sessão", e os demais filmes, "outro evento".
         if i == 0 and primeira is not None:
             sala_da_primeira = next(s for s in salas if s.id == primeira.room_id)
@@ -255,7 +255,7 @@ def main() -> int:
         semear(db)
 
         print()
-        print("Contas criadas — senha de todas: " + SENHA)
+        print("Contas criadas. Senha de todas: " + SENHA)
         for nome, email, papel in USUARIOS:
             print(f"  {papel.value:<10} {email:<32} {nome}")
         return 0

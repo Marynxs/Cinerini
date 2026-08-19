@@ -2,7 +2,7 @@
 
 ## Problema
 
-Um organizador precisa publicar sessões de cinema e vender lugares numerados. Um cliente precisa escolher a poltrona, pagar e receber um comprovante que a portaria consiga validar na entrada — uma vez só, na sessão certa.
+Um organizador precisa publicar sessões de cinema e vender lugares numerados. Um cliente precisa escolher a poltrona, pagar e receber um comprovante que a portaria consiga validar na entrada, uma vez só e na sessão certa.
 
 O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não pode ser vendido duas vezes** e **o mesmo ingresso não pode entrar duas vezes**, mesmo com pessoas agindo no mesmo instante.
 
@@ -16,7 +16,7 @@ O ponto difícil não é o cadastro nem o pagamento: é que **o mesmo lugar não
 
 A conta é de um funcionário e pertence a um cinema; quem a cria é o organizador. Portaria é a tela que ele abre para trabalhar, não a identidade da conta. A sessão do turno é escolhida pelo próprio funcionário, entre as daquele cinema (D24). É essa vinculação que permite responder "outra sessão" ou "outro evento" em vez de "inválido".
 
-O primeiro cadastro numa instalação vazia nasce organizador; depois disso, um organizador promove um funcionário existente, escolhido em lista. Quem é promovido deixa de ser funcionário — os papéis são exclusivos (D22) — e revogar o papel devolve a conta à equipe, sem cinema definido (D32).
+O primeiro cadastro numa instalação vazia nasce organizador; depois disso, um organizador promove um funcionário existente, escolhido em lista. Quem é promovido deixa de ser funcionário, porque os papéis são exclusivos (D22), e revogar o papel devolve a conta à equipe, sem cinema definido (D32).
 
 ## Fluxos
 
@@ -25,30 +25,30 @@ Organizador busca no TMDb → escolhe o filme → o sistema importa título, sin
 
 Cinemas e salas são cadastrados uma vez e reaproveitados por qualquer exibição: o cinema guarda nome, cidade, estado e endereço; a sala guarda nome e dimensões.
 
-Cidade e UF são escolhidas em lista, nunca digitadas — a UF de uma constante, o município do IBGE — e o cadastro guarda o código do município. Sem isso o filtro do catálogo agrupa por texto, e duas grafias da mesma cidade viram duas cidades (D23).
+Cidade e UF são escolhidas em lista, nunca digitadas: a UF vem de uma constante e o município vem do IBGE. O cadastro guarda o código do município. Sem isso o filtro do catálogo agrupa por texto, e duas grafias da mesma cidade viram duas cidades (D23).
 
 ### Compra
 Cliente abre a sessão → vê o mapa com assentos livres, ocupados e em espera → escolhe → o assento entra em espera por 10 minutos → paga → o ingresso é emitido com código assinado.
 
-Se o pagamento for recusado, o pedido fica recusado mas continua pagável, e as poltronas seguem reservadas até a espera vencer — quem errou um dígito tenta outro cartão sem perder a escolha (D13). Se o cliente abandonar, a espera expira e o assento volta sozinho.
+Se o pagamento for recusado, o pedido fica recusado mas continua pagável, e as poltronas seguem reservadas até a espera vencer, de modo que quem errou um dígito tenta outro cartão sem perder a escolha (D13). Se o cliente abandonar, a espera expira e o assento volta sozinho.
 
 ### Validação
-Cada portaria atende **uma exibição** — aquele filme, naquele horário, naquela sala (D21). Aponta a câmera para o QR, ou digita o código, e o sistema responde com um de seis estados:
+Cada portaria atende **uma exibição**: aquele filme, naquele horário, naquela sala (D21). Aponta a câmera para o QR, ou digita o código, e o sistema responde com um de seis estados:
 
 | Estado | Quando | Mostra também |
 |---|---|---|
 | **Válido** | Assinatura confere, exibição confere, ainda não usado | Poltrona, cliente e a sessão |
-| **Inválido** | Assinatura não confere ou código inexistente | — |
+| **Inválido** | Assinatura não confere ou código inexistente | nada |
 | **Já utilizado** | Ingresso legítimo, já validado antes | Horário da validação anterior |
 | **Outra sessão** | Mesmo filme, exibição diferente | Para qual sessão o ingresso vale |
 | **Outro evento** | Ingresso legítimo, de outro filme | Qual é o filme correto |
 | **Cancelado** | Ingresso legítimo, reembolsado antes da sessão | Poltrona e nome do cliente |
 
-Os dois recusados por encaminhamento são separados porque a reação de quem opera é diferente: um manda a pessoa para outra sala, o outro para outro horário. Nenhum dos dois consome o ingresso — a portaria certa ainda precisa aceitá-lo.
+Os dois recusados por encaminhamento são separados porque a reação de quem opera é diferente: um manda a pessoa para outra sala, o outro para outro horário. Nenhum dos dois consome o ingresso, porque a portaria certa ainda precisa aceitá-lo.
 
 O ingresso é marcado como usado no mesmo passo em que é validado.
 
-Ao entrar, a portaria escolhe qual sessão está atendendo, e pode trocar a qualquer momento — é o gesto da virada de uma exibição para a seguinte, e não depende do organizador. O cadastro público nunca concede o papel: ele decide quem entra na sala.
+Ao entrar, a portaria escolhe qual sessão está atendendo, e pode trocar a qualquer momento. É o gesto da virada de uma exibição para a seguinte, e não depende do organizador. O cadastro público nunca concede o papel: ele decide quem entra na sala.
 
 ### Compartilhamento
 Cliente gera um link para um ingresso. Quem abre vê o ingresso e o QR. O link é revogável, e revogá-lo não invalida o ingresso.
@@ -85,10 +85,10 @@ Duas colunas porque o comportamento pode estar correto na API antes de existir t
 | Mesmo ingresso validado duas vezes retorna "já utilizado" na segunda | ✅ | ✅ |
 | Ingresso de outro evento retorna "outro evento", não "inválido" | ✅ | ✅ |
 | QR com assinatura adulterada retorna "inválido" | ✅ | ✅ |
-| Banco reproduzível do zero por migration e seed | ✅ | — |
+| Banco reproduzível do zero por migration e seed | ✅ | n/a |
 
 A portaria devolve seis estados, dois a mais que os quatro exigidos. O ingresso cancelado se distingue do inválido, e "outra sessão" se distingue de "outro evento", pela mesma razão: ingresso legítimo recusado não é ingresso falso, e a reação de quem opera muda em cada caso (D16, D21).
 
 ## Fora de escopo
 
-Nota fiscal, revenda entre usuários, aplicativo nativo, recuperação de senha, envio por e-mail. Pista por quantidade não é implementada — o desafio pede um dos dois modos, e a escolha foi mapa de assentos.
+Nota fiscal, revenda entre usuários, aplicativo nativo, recuperação de senha, envio por e-mail. Pista por quantidade não é implementada: o desafio pede um dos dois modos, e a escolha foi mapa de assentos.

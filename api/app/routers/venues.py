@@ -136,7 +136,7 @@ def update_venue(
 def delete_venue(venue_id: int, db: DbSession, _: Organizer) -> None:
     """Só sai se estiver vazio.
 
-    Apagar em cascata levaria junto salas, sessões e ingressos vendidos — e
+    Apagar em cascata levaria junto salas, sessões e ingressos vendidos, e
     quem comprou perderia o ingresso por causa de uma limpeza de cadastro.
     Exigir esvaziar antes torna a consequência visível passo a passo.
     """
@@ -150,7 +150,7 @@ def delete_venue(venue_id: int, db: DbSession, _: Organizer) -> None:
         )
 
     # A conta de funcionário perde o cinema por `ondelete=SET NULL`, e passa a
-    # aparecer no painel como cadastro pela metade — que é o estado correto.
+    # aparecer no painel como cadastro pela metade, que é o estado correto.
     db.delete(venue)
     db.commit()
 
