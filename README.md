@@ -75,7 +75,7 @@ A exibição é conferida **antes** do estado do ingresso. Na ordem inversa, rec
 docker compose up --build
 ```
 
-Front em **http://localhost:5173**, API em **http://localhost:8000**, documentação interativa em **/docs**. A primeira subida leva alguns minutos construindo as imagens; as seguintes são imediatas.
+Front em **http://localhost:5173**, API em **http://localhost:8000**, documentação interativa em **/docs**. A primeira subida leva alguns minutos construindo as imagens e ocupa cerca de 850 MB; as seguintes são imediatas.
 
 Sobe um PostgreSQL próprio em contêiner, aplica as migrations e semeia o cenário de teste antes de abrir a porta. **Não usa credencial nenhuma da máquina**: o banco é o contêiner ao lado, a chave que assina os ingressos é um valor de desenvolvimento declarado no `docker-compose.yml`, e o `.env` local fica de fora pelos `.dockerignore`.
 
