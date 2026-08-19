@@ -148,12 +148,6 @@ Um banco só para os dois ambientes é escolha de escopo, não descuido: o siste
 
 **Ordem.** O front precisa da URL da API, e o `CORS_ORIGINS` da API precisa do domínio do front. Sobe a API primeiro com um valor provisório, publica o front, e volta para corrigir o `CORS_ORIGINS` com o domínio definitivo.
 
-**Hibernação.** O plano gratuito do Render dorme após 15 minutos parado, e religar leva dezenas de segundos. Três camadas tratam isso, e nenhuma resolve sozinha:
-
-1. O front chama `/health` assim que a página monta, gastando o religamento enquanto a pessoa ainda lê a tela.
-2. Um agendamento do GitHub Actions (`.github/workflows/manter-api-acordada.yml`) mantém o serviço acordado das 8h às 23h — é o que cobre o primeiro visitante do dia, que a camada anterior não alcança. Exige a variável de repositório `API_URL`, em *Settings → Secrets and variables → Actions → Variables*.
-3. Passados quatro segundos, a tela de carregamento explica o motivo da espera. Dizer o porquê é o que separa "está lento" de "está quebrado".
-
 ---
 
 ## Contas de teste

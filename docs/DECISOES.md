@@ -240,8 +240,6 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **Por quê não serverless:** o limitador de tentativas e o cache do TMDb vivem em memória. Numa função que sobe e morre a cada requisição, os dois perderiam o efeito — o limitador zeraria a contagem a cada tentativa, que é exatamente o que ele existe para impedir. Um processo de vida longa é requisito, não preferência.
 
-**Hibernação tratada em três camadas**, porque nenhuma resolve sozinha: o front chama `/health` ao montar e gasta o religamento enquanto a pessoa lê a tela; um agendamento do GitHub Actions mantém o serviço acordado das 8h às 23h, cobrindo o primeiro visitante do dia; e a tela de carregamento explica a espera depois de quatro segundos. As duas primeiras encurtam a espera, a terceira trata a que sobrar — dizer o motivo é o que separa "está lento" de "está quebrado".
-
 **Migration no build e não no pre-deploy:** comando de pré-deploy exige instância paga. Com uma instância só e sem exigência de janela sem downtime, aplicar no build basta e mantém `alembic upgrade head` como o único caminho de mudança de schema.
 
 ---

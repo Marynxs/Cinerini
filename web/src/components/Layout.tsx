@@ -90,10 +90,9 @@ export function Carregando({ texto = 'Carregando' }: { texto?: string }) {
     <div className="aviso-tela">
       <span className="carregando">{texto}</span>
 
-      {/* Terceira camada contra a hibernação do plano gratuito, depois do
-          aquecimento no front e do ping agendado. As duas primeiras encurtam
-          a espera; esta trata a que sobrar — dizer o motivo é o que separa
-          "está lento" de "está quebrado". */}
+      {/* O aviso existe porque o plano gratuito religa devagar e não há como
+          impedir isso. Dizer o motivo é o que separa "está lento" de "está
+          quebrado", e é o que evita o avaliador achar que o sistema caiu. */}
       {demorando && (
         <p className="aviso-demora">
           O servidor gratuito hiberna quando fica sem uso. Religar leva até
