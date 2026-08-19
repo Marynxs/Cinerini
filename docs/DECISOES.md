@@ -4,6 +4,58 @@ Ordem cronológica. Cada entrada registra o que foi decidido, o que foi descarta
 
 ---
 
+## Índice
+
+O corpo segue ordem cronológica; o índice agrupa por assunto.
+
+**Produto e identidade**  
+[D1](#d1--catálogo-externo-tmdb-em-vez-de-ticketmaster) Catálogo externo: TMDb em vez de Ticketmaster  
+[D2](#d2--identidade-visual-recibo-térmico-sobre-papel) Identidade visual: recibo térmico sobre papel  
+[D3](#d3--monoespaçado-com-uma-exceção) Monoespaçado com uma exceção  
+[D4](#d4--estados-de-assento-distinguíveis-sem-cor) Estados de assento distinguíveis sem cor  
+[D5](#d5--front-sem-framework-de-servidor) Front sem framework de servidor  
+
+**Modelagem e domínio**  
+[D6](#d6--sala-como-entidade-própria) Sala como entidade própria  
+[D7](#d7--cinema-como-entidade-própria) Cinema como entidade própria  
+[D9](#d9--sala-travada-depois-da-primeira-venda) Sala travada depois da primeira venda  
+[D11](#d11--regra-de-negócio-em-módulos-não-em-classes-de-serviço) Regra de negócio em módulos, não em classes de serviço  
+[D12](#d12--sessão-é-recurso-de-primeiro-nível) Sessão é recurso de primeiro nível  
+[D23](#d23--cidade-e-uf-escolhidas-em-lista-com-o-código-do-ibge-guardado) Cidade e UF escolhidas em lista, com o código do IBGE guardado  
+[D28](#d28--cidade-digitada-à-mão-quando-o-ibge-não-responde) Cidade digitada à mão quando o IBGE não responde  
+[D29](#d29--catálogo-único-sem-dono-por-organizador) Catálogo único, sem dono por organizador  
+[D30](#d30--um-filme-um-evento-e-rascunho-é-o-único-apagável) Um filme, um evento, e rascunho é o único apagável  
+[D35](#d35--encolher-a-sala-é-recusado-sobre-poltrona-vendida) Encolher a sala é recusado sobre poltrona vendida  
+
+**Compra, ingresso e catálogo**  
+[D10](#d10--sessão-cancelada-permanece-visível-com-motivo) Sessão cancelada permanece visível, com motivo  
+[D13](#d13--recusa-de-pagamento-não-devolve-a-poltrona) Recusa de pagamento não devolve a poltrona  
+[D14](#d14--uma-reserva-aberta-por-cliente-e-sessão) Uma reserva aberta por cliente e sessão  
+[D15](#d15--ingresso-cancelado-sai-da-lista-em-dois-prazos-diferentes) Ingresso cancelado sai da lista em dois prazos diferentes  
+[D19](#d19--catálogo-mantém-a-tela-anterior-enquanto-atualiza) Catálogo mantém a tela anterior enquanto atualiza  
+[D31](#d31--zoom-no-mapa-por-roda-pinça-e-barra) Zoom no mapa por roda, pinça e barra  
+
+**Portaria**  
+[D16](#d16--portaria-desfechos-no-corpo-e-o-lugar-conferido-antes-do-estado) Portaria: desfechos no corpo, e o lugar conferido antes do estado  
+[D20](#d20--leitura-do-qr-por-biblioteca-não-pela-api-do-navegador) Leitura do QR por biblioteca, não pela API do navegador  
+[D21](#d21--portaria-vinculada-à-exibição-não-ao-filme) Portaria vinculada à exibição, não ao filme  
+[D24](#d24--portaria-é-posto-funcionário-é-a-conta-e-o-turno-é-dele) Portaria é posto, funcionário é a conta, e o turno é dele  
+[D26](#d26--cobertura-por-sessão-não-por-funcionário) Cobertura por sessão, não por funcionário  
+[D33](#d33--cobertura-conta-quem-está-na-porta-não-quem-tem-o-cargo) Cobertura conta quem está na porta, não quem tem o cargo  
+
+**Contas e papéis**  
+[D8](#d8--cadastro-revela-e-mail-já-cadastrado-com-limite-de-tentativas) Cadastro revela e-mail já cadastrado, com limite de tentativas  
+[D18](#d18--credenciais-de-teste-visíveis-no-ambiente-publicado) Credenciais de teste visíveis no ambiente publicado  
+[D22](#d22--primeiro-cadastro-vira-organizador-e-organizador-promove-organizador) Primeiro cadastro vira organizador, e organizador promove organizador  
+[D25](#d25--cadastro-editável-remoção-só-do-que-está-vazio) Cadastro editável, remoção só do que está vazio  
+[D27](#d27--organizador-abre-a-portaria-e-o-papel-se-revoga-sem-apagar-a-conta) Organizador abre a portaria, e o papel se revoga sem apagar a conta  
+[D32](#d32--promoção-e-revogação-se-desfazem-uma-à-outra) Promoção e revogação se desfazem uma à outra  
+
+**Infraestrutura**  
+[D17](#d17--deploy-em-três-serviços-com-o-banco-fora-do-render) Deploy em três serviços, com o banco fora do Render  
+[D34](#d34--compose-sobe-o-sistema-sem-credencial-da-máquina) Compose sobe o sistema sem credencial da máquina  
+---
+
 ## D1 · Catálogo externo: TMDb em vez de Ticketmaster
 
 **Decidido:** TMDb como fonte do catálogo, modelando o domínio como cinema.
