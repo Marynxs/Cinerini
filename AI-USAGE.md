@@ -126,6 +126,9 @@ Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
+**A tela de pagamento recusado mentia sobre as poltronas.**
+Apareceu ao escrever os testes de front: a tela dizia "as poltronas voltaram para o mapa", e a D13 estabelece o contrário, que elas seguem reservadas para quem quiser tentar outro cartão. Conferido contra a API, a poltrona continua ocupada. O texto mandava o cliente reescolher o que ainda era dele.
+
 **Revogar organizador devolvia a conta a cliente.**
 Pedi que revogar o papel devolvesse a pessoa a funcionário, e não a cliente. O agente havia tratado a revogação como se o papel anterior não importasse. Ao destrinchar, o defeito era maior do que o incômodo que me fez pedir: como a criação de funcionário recusa e-mail já cadastrado e não há recuperação de senha no escopo, quem subisse e descesse ficava com o e-mail queimado e sem caminho de volta. Uma operação e a sua inversa precisam se cancelar. Virou a decisão D32.
 

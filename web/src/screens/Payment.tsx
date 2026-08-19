@@ -318,7 +318,8 @@ function Desfecho({
               + `${poltronas.join(', ')} — o ingresso com o código já está em `
               + 'Meus ingressos.'
             : `${resultado.reason ?? 'A operadora recusou a cobrança.'} `
-              + 'As poltronas voltaram para o mapa.'}
+              + 'As poltronas continuam reservadas até a espera vencer: '
+              + 'dá para tentar outro cartão sem perder a escolha.'}
         </p>
 
         <div className="desfecho-acoes">
