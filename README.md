@@ -204,7 +204,7 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 267 casos, sem rede e sem chave do TMDb
+pytest                  # 268 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
@@ -251,7 +251,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 31 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado — 34 decisões |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
 | `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |
