@@ -126,6 +126,9 @@ Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
+**Um teste da suíte padrão saía para a rede.**
+Apareceu como falha intermitente durante os testes de front: `test_the_official_name_wins_when_the_ibge_answers` era o único caso que consultava o IBGE de verdade, e o teste anterior limpava o cache, então a chamada acontecia toda vez. A regra do projeto é que a suíte padrão roda sem rede, com contrato atrás de `-m contract`. Passou a usar dublê, como os outros.
+
 **A ficha da sessão encolhia para 84 pixels quando o filme não tinha pôster.**
 Pedi testes de front no celular e no tablet, com captura de cada tela. Uma das imagens mostrou o cabeçalho da sessão espremido numa coluna estreita, com "Cine Odeon" quebrando em duas linhas. A causa: o elemento de imagem do pôster só é renderizado quando existe, e sem ele o bloco de texto virava o primeiro filho do grid e caía na coluna reservada à imagem. Acontece em todo filme sem pôster, que é exatamente o cenário semeado sem chave do TMDb, ou seja, o que o avaliador vê ao subir o Docker Compose.
 

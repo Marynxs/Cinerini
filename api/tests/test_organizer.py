@@ -519,8 +519,24 @@ class TestCityFallback:
         assert r.status_code == 201
         assert r.json()["city"] == "Curitiba"
 
+    @pytest.fixture
+    def ibge_no_ar(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Dublê do IBGE respondendo, em vez da API de verdade.
+
+        Este era o único caso da suíte padrão que saía para a rede: o teste
+        anterior limpa o cache, então a consulta acontecia toda vez e falhava
+        quando o IBGE demorava. A regra do projeto é que a suíte padrão roda
+        sem rede, e teste de contrato fica atrás de `-m contract`.
+        """
+        from app import localidades
+
+        monkeypatch.setattr(
+            localidades, "municipios",
+            lambda uf: [{"id": 4106902, "nome": "Curitiba"}])
+        localidades.clear_cache()
+
     def test_the_official_name_wins_when_the_ibge_answers(
-        self, client: TestClient, auth
+        self, client: TestClient, auth, ibge_no_ar: None
     ) -> None:
         """Com o IBGE no ar o texto digitado é ignorado, e é o ponto todo."""
         r = client.post("/venues",
