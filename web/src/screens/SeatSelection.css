@@ -2,7 +2,7 @@
 
    Ocupa exatamente a altura da janela, sem rolagem: o cliente decide a
    compra vendo mapa, resumo e total ao mesmo tempo. Se a janela for baixa
-   demais, quem rola é o mapa por dentro — nunca a página, e nada é cortado.
+   demais, quem rola é o mapa por dentro, nunca a página, e nada é cortado.
 
    Composição de recibo: cabeçalho com filete forte e o bloco de total
    alinhado como cupom fiscal. */
@@ -87,6 +87,14 @@
   /* Deslocada para a direita: o mapa fica centralizado na coluna, e a ficha
      colada na borda esquerda parecia solta em relação a ele. */
   padding-left: var(--e7);
+}
+
+/* Sem pôster, o bloco de texto é o único filho e cairia na coluna estreita
+   reservada à imagem, espremendo a ficha inteira em 104px (84 no celular).
+   Acontece sempre que o filme não tem pôster, que é o caso do cenário semeado
+   quando não há chave do TMDb configurada. */
+.ficha > *:only-child {
+  grid-column: 1 / -1;
 }
 
 .ficha-poster {
