@@ -284,16 +284,25 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   background: transparent;
-  color: inherit;
-  border: 2px solid currentColor;
+  color: var(--cor-marca);
+  border: 2px solid var(--cor-marca);
   cursor: pointer;
 }
 
-/* No hover o botão inverte. `currentColor` no fundo apagaria o rótulo, então
-   o texto assume a cor da superfície daquele veredito — cada um declara a
-   sua em `--cor-superficie`. */
-.veredito-seguir:hover {
-  background: currentColor;
+/* No hover o botão inverte, e as duas cores são declaradas — nenhuma sai de
+   `currentColor`.
+
+   A tentativa anterior usava `background: currentColor` com `color` trocado
+   na mesma regra, e sumia com o botão inteiro: `currentColor` resolve contra
+   a cor **já computada do próprio elemento**, então fundo e texto caíam na
+   mesma cor — a da superfície, que é também a do veredito atrás. O botão
+   virava um retângulo invisível no exato momento em que o dedo o procura.
+
+   Vale para o teclado também: numa tela operada na porta, quem navega por
+   tabulação precisa ver onde está. */
+.veredito-seguir:hover,
+.veredito-seguir:focus-visible {
+  background: var(--cor-marca);
   color: var(--cor-superficie);
 }
 
@@ -305,6 +314,7 @@
 /* Válido: inversão total. É o único que preenche com tinta, e a leitura à
    distância se resolve pelo contraste antes da palavra. */
 .veredito--valid {
+  --cor-marca: var(--papel);
   --cor-superficie: var(--tinta);
   background: var(--tinta);
   color: var(--papel);
@@ -314,6 +324,7 @@
 /* Inválido: carmim cheio. O oposto exato do válido, e o único outro
    preenchimento sólido — os dois extremos não se confundem de longe. */
 .veredito--invalid {
+  --cor-marca: var(--papel);
   --cor-superficie: var(--carimbo);
   background: var(--carimbo);
   color: var(--papel);
@@ -323,6 +334,7 @@
 /* Já utilizado: papel com contorno espesso de carmim. Ingresso legítimo,
    então não leva o vermelho cheio de quem tentou fraudar. */
 .veredito--already_used {
+  --cor-marca: var(--carimbo);
   --cor-superficie: var(--papel);
   background: var(--papel);
   color: var(--carimbo);
@@ -333,6 +345,7 @@
    recusa por irregularidade — é encaminhamento, e o carmim faria o operador
    tratar como fraude quem só errou a porta. */
 .veredito--wrong_event {
+  --cor-marca: var(--tinta);
   --cor-superficie: var(--papel);
   background: var(--papel);
   color: var(--tinta);
@@ -345,6 +358,7 @@
    para outra sala. Duas linhas em vez de tracejado separam os dois de longe
    e sem depender de cor. */
 .veredito--wrong_showing {
+  --cor-marca: var(--tinta);
   --cor-superficie: var(--papel-escuro);
   background: var(--papel-escuro);
   color: var(--tinta);
@@ -353,6 +367,7 @@
 
 /* Cancelado: hachura diagonal, a textura de documento anulado. */
 .veredito--cancelled {
+  --cor-marca: var(--carimbo);
   --cor-superficie: var(--papel);
   color: var(--carimbo);
   border: 4px solid var(--carimbo);
