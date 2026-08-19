@@ -18,6 +18,16 @@ dist/
 
 # Ferramentas de apoio (não fazem parte da entrega)
 .superpowers/
+.agents/
+.claude/
+.codex/
+skills-lock.json
+
+# As skills instaladas se espalham por .github/. O workflow continua
+# versionado: é infraestrutura do projeto, não ferramenta de autoria.
+.github/agents/
+.github/hooks/
+.github/skills/
 
 # Enunciado do desafio — material da Verzel, não redistribuir
 Desafio-Elite-Dev-2026.pdf
