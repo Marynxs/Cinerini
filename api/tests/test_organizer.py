@@ -18,10 +18,14 @@ CINEMA = {"name": "Cine Novo", "city_ibge_id": 4106902, "state": "PR",
           "address": "Rua XV, 100"}
 
 
-def _vender(db: Session, showing: Showing, users: dict[str, User]) -> Ticket:
-    assento = db.scalars(
-        select(Seat).where(Seat.showing_id == showing.id).limit(1)
-    ).one()
+def _vender(db: Session, showing: Showing, users: dict[str, User],
+            label: str | None = None) -> Ticket:
+    """Vende a primeira poltrona da sessão, ou a de rótulo pedido."""
+    stmt = select(Seat).where(Seat.showing_id == showing.id)
+    if label is not None:
+        stmt = stmt.where(Seat.row_label == label[0],
+                          Seat.number == int(label[1:]))
+    assento = db.scalars(stmt.limit(1)).one()
     pedido = Order(customer_id=users["customer"].id, showing_id=showing.id,
                    total_cents=3200, status=OrderStatus.PAID)
     db.add(pedido)
@@ -403,6 +407,76 @@ class TestEditingRooms:
         depois = db.scalar(
             select(func.count(Seat.id)).where(Seat.showing_id == showing.id))
         assert depois == antes
+
+    def test_shrinking_below_a_sold_row_is_refused(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room, users: dict[str, User]
+    ) -> None:
+        """A D9 impede trocar a sala da exibição depois da venda. Encolher a
+        própria sala chegava ao mesmo estrago pela outra porta: a poltrona
+        vendida ficava numa fileira que o cadastro passa a negar (D35)."""
+        _vender(db, showing, users, label="C4")
+
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"rows": 2}, headers=auth("organizer"))
+
+        assert r.status_code == 409
+        assert "fileira C" in r.json()["detail"]
+
+    def test_shrinking_below_a_sold_seat_number_is_refused(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room, users: dict[str, User]
+    ) -> None:
+        _vender(db, showing, users, label="C4")
+
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"seats_per_row": 2}, headers=auth("organizer"))
+
+        assert r.status_code == 409
+        assert "C4" in r.json()["detail"]
+
+    def test_growing_is_allowed_with_tickets_sold(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room, users: dict[str, User]
+    ) -> None:
+        """Só o encolhimento perigoso é barrado. Corrigir um número para
+        cima nunca deixa ingresso sem lugar."""
+        _vender(db, showing, users, label="C4")
+
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"rows": 10, "seats_per_row": 20},
+                         headers=auth("organizer"))
+
+        assert r.status_code == 200
+        assert r.json()["capacity"] == 200
+
+    def test_renaming_is_allowed_with_tickets_sold(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room, users: dict[str, User]
+    ) -> None:
+        _vender(db, showing, users, label="C4")
+
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"name": "Sala Renomeada"},
+                         headers=auth("organizer"))
+
+        assert r.status_code == 200
+
+    def test_cancelled_ticket_does_not_block_shrinking(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        room: Room, users: dict[str, User]
+    ) -> None:
+        """Cancelado devolveu a poltrona ao estoque, então não há lugar a
+        preservar. É a mesma cláusula do índice único parcial."""
+        ingresso = _vender(db, showing, users, label="C4")
+        ingresso.status = TicketStatus.CANCELLED
+        db.commit()
+
+        r = client.patch(f"/venues/{room.venue_id}/rooms/{room.id}",
+                         json={"rows": 2, "seats_per_row": 2},
+                         headers=auth("organizer"))
+
+        assert r.status_code == 200
 
     def test_room_of_another_venue_is_404(
         self, client: TestClient, auth, room: Room

@@ -557,3 +557,19 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Espera por `healthcheck`, não por `sleep`:** o Postgres só aceita conexão depois de inicializar o cluster, e tempo fixo ora sobra ora falta — a migration falharia de forma intermitente, que é o pior modo de falhar.
 
 **O seed roda em toda subida** porque é idempotente: já semeado, não faz nada. Condicioná-lo exigiria guardar estado fora do banco para responder uma pergunta que o próprio banco responde.
+
+---
+
+## D35 · Encolher a sala é recusado sobre poltrona vendida
+
+**Decidido:** o layout da sala continua editável com sessões marcadas, menos quando a redução deixaria uma poltrona já vendida fora do mapa. A recusa nomeia a poltrona.
+
+**Descartado:** travar a edição do layout depois da primeira venda, e deixar como estava, permitindo qualquer redução.
+
+**O defeito:** a D9 impede trocar a **sala de uma exibição** depois da primeira venda, justamente para que ninguém fique com ingresso da F7 numa sala sem fileira F. Mas nada impedia mexer nas **dimensões da própria sala**. Reproduzido contra a API: sala 8x12, poltrona H12 vendida, `PATCH` para 3x4 devolvia 200, e o cliente ficava com um ingresso válido para uma fileira que o cadastro passou a negar.
+
+**Por que não travar tudo:** o caso comum é corrigir um número errado no cadastro, e travar obrigaria a criar uma sala nova para consertar um dígito. O perigoso é um subconjunto pequeno, e é ele que a checagem isola.
+
+**Cancelado não conta:** a poltrona cancelada voltou ao estoque, então não há lugar a preservar. É a mesma cláusula do índice único parcial da garantia 1, aplicada de novo.
+
+**A consulta pega o extremo, não a lista:** basta a maior fileira e a maior poltrona já vendidas, porque o mapa é retangular. Percorrer ingresso por ingresso responderia a mesma pergunta pagando mais caro.

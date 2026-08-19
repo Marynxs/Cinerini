@@ -126,6 +126,9 @@ Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
+**Encolher a sala passava por cima de ingresso vendido.**
+Perguntei se travar a sala depois da primeira venda não deixaria algum buraco. Deixava, e não onde eu imaginava: a regra existente cobria trocar a sala de uma exibição, mas não mexer nas dimensões da própria sala. Reproduzido contra a API, uma sala 8x12 com a poltrona H12 vendida aceitava virar 3x4, e o cliente ficava com ingresso de uma fileira que o cadastro passou a negar. Virou a decisão D35.
+
 **A tela de pagamento recusado mentia sobre as poltronas.**
 Apareceu ao escrever os testes de front: a tela dizia "as poltronas voltaram para o mapa", e a D13 estabelece o contrário, que elas seguem reservadas para quem quiser tentar outro cartão. Conferido contra a API, a poltrona continua ocupada. O texto mandava o cliente reescolher o que ainda era dele.
 

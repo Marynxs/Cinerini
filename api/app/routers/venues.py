@@ -1,12 +1,12 @@
 """Cinemas e salas. Cadastro do organizador, leitura pública."""
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.deps import DbSession, Organizer
 from app.localidades import UFS, municipios, resolver
-from app.models import Room, Showing, Venue
+from app.models import Room, Seat, Showing, Ticket, TicketStatus, Venue
 from app.schemas import (
     CityOut, MunicipioOut, RoomIn, RoomOut, RoomUpdate, UfOut, VenueIn,
     VenueOut, VenueUpdate,
@@ -185,22 +185,81 @@ def create_room(venue_id: int, data: RoomIn, db: DbSession, _: Organizer) -> Roo
     return room
 
 
+def _recusa_encolher_sobre_venda(
+    db: DbSession, room_id: int, campos: dict
+) -> None:
+    """Barra a redução que deixaria uma poltrona vendida fora da sala.
+
+    Consulta o extremo já vendido em vez de percorrer ingresso por ingresso:
+    basta a maior fileira e a maior poltrona, porque o mapa é retangular.
+    Cancelado não conta, já que a poltrona voltou ao estoque.
+    """
+    novo_fileiras = campos.get("rows")
+    novas_por_fileira = campos.get("seats_per_row")
+    if novo_fileiras is None and novas_por_fileira is None:
+        return
+
+    extremos = db.execute(
+        select(func.max(Seat.row_label), func.max(Seat.number))
+        .join(Showing, Seat.showing_id == Showing.id)
+        .join(Ticket, Ticket.seat_id == Seat.id)
+        .where(
+            Showing.room_id == room_id,
+            Ticket.status != TicketStatus.CANCELLED,
+        )
+    ).one()
+
+    fileira_vendida, numero_vendido = extremos
+    if fileira_vendida is None:
+        return
+
+    # A fileira é uma letra só, gerada de `ascii_uppercase`, então a ordem
+    # alfabética e a numérica coincidem.
+    fileiras_necessarias = ord(fileira_vendida) - ord("A") + 1
+
+    if novo_fileiras is not None and novo_fileiras < fileiras_necessarias:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Já há ingresso vendido na fileira {fileira_vendida} desta sala. "
+            f"O layout não pode ficar com menos de {fileiras_necessarias} "
+            "fileiras sem deixar esse ingresso sem lugar.",
+        )
+
+    if novas_por_fileira is not None and novas_por_fileira < numero_vendido:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Já há ingresso vendido na poltrona "
+            f"{fileira_vendida}{numero_vendido} desta sala. O layout não pode "
+            f"ficar com menos de {numero_vendido} poltronas por fileira sem "
+            "deixar esse ingresso sem lugar.",
+        )
+
+
 @router.patch("/{venue_id}/rooms/{room_id}", response_model=RoomOut)
 def update_room(
     venue_id: int, room_id: int, data: RoomUpdate, db: DbSession, _: Organizer
 ) -> Room:
-    """Layout editável mesmo com sessões marcadas.
+    """Layout editável, menos onde encolher deixaria ingresso órfão.
 
     Os assentos pertencem à exibição e são gerados na publicação (D6), então
     mudar as dimensões vale para as próximas sessões e não reescreve mapa já
-    vendido. Travar a edição aqui obrigaria a criar uma sala nova para
-    corrigir um número errado no cadastro.
+    vendido. Travar a edição por completo obrigaria a criar uma sala nova
+    para corrigir um número errado no cadastro.
+
+    O que é recusado é o subconjunto perigoso: encolher abaixo de uma
+    poltrona já vendida. Sem esta checagem, a sala passava de 8x12 para 3x4
+    com a H12 vendida, e o cliente ficava com ingresso de uma fileira que o
+    cadastro diz não existir. É a mesma falha que a D9 impede ao trocar a
+    sala de uma exibição, alcançada pela outra porta (D35).
     """
     room = db.get(Room, room_id)
     if room is None or room.venue_id != venue_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sala não encontrada.")
 
-    for campo, valor in data.model_dump(exclude_none=True).items():
+    campos = data.model_dump(exclude_none=True)
+    _recusa_encolher_sobre_venda(db, room_id, campos)
+
+    for campo, valor in campos.items():
         setattr(room, campo, valor)
 
     try:
