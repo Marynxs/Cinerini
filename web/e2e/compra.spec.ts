@@ -65,7 +65,7 @@ test.describe('compra', () => {
 
     /* A D13 diz que a poltrona continua reservada e o pedido segue pagável:
        um dígito errado não pode custar a escolha inteira. A tela precisa
-       dizer isso, e dizia o contrário — "as poltronas voltaram para o mapa" —
+       dizer isso, e dizia o contrário, com "as poltronas voltaram para o mapa",
        mandando o cliente reescolher o que ainda era dele. */
     await expect(page.getByText(/continuam reservadas/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /tentar outro cart/i }))

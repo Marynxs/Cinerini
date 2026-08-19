@@ -225,7 +225,7 @@ Os seletores são os que a pessoa vê: papel e nome acessível, nunca classe de 
 
 Cada teste roda duas vezes, em **computador e em celular**. Não é redundância: o mapa vazando pela lateral, a barra fixa de ação e o rótulo da trilha só existem como problema em uma das duas larguras. Quatro casos são exclusivos do celular, um é exclusivo do computador, e o restante vale nos dois.
 
-A sessão é autenticada uma vez por papel e reaproveitada. Sem isso a suíte estoura o **limitador de tentativas da própria API** (D8) e passa a falhar com 429 — e falha no teste seguinte, não no que gastou as tentativas. O formulário de login continua coberto: o teste que verifica se a seleção de poltronas sobrevive ao login percorre a tela de verdade.
+A sessão é autenticada uma vez por papel e reaproveitada. Sem isso a suíte estoura o **limitador de tentativas da própria API** (D8) e passa a falhar com 429, no teste seguinte e não no que gastou as tentativas. O formulário de login continua coberto pelo caso que verifica se a seleção de poltronas sobrevive a ele.
 
 Um trabalhador só, de propósito: os testes compram poltronas num banco compartilhado, e dois em paralelo disputariam o mesmo assento. A recusa por disputa é o sistema funcionando, e faria o teste falhar por um motivo que não é o dele.
 

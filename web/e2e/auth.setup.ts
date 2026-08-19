@@ -2,7 +2,7 @@
  *
  * Existe por um motivo concreto: o sistema tem limitador de tentativas (D8),
  * oito por conta a cada quinze minutos. Uma suíte que faz login em cada teste
- * estoura esse limite e passa a falhar com 429 — e o pior é que falha nos
+ * estoura esse limite e passa a falhar com 429, e o pior é que falha nos
  * testes seguintes, não no que gastou as tentativas.
  *
  * Reaproveitar a sessão também deixa a suíte muito mais rápida: o login deixa
