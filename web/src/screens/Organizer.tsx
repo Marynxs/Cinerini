@@ -351,26 +351,26 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
       )}
 
       <form className="forma-inline" onSubmit={criar}>
-        <div className="campo-curto">
+        <label className="campo-curto">
           <span className="campo-rotulo">Novo funcionário</span>
           <input value={nome} onChange={(e) => setNome(e.target.value)}
                  placeholder="Nome da pessoa" minLength={2} required />
-        </div>
+        </label>
 
-        <div className="campo-curto">
+        <label className="campo-curto">
           <span className="campo-rotulo">E-mail de acesso</span>
           <input type="email" value={email} autoComplete="off" required
                  onChange={(e) => setEmail(e.target.value)} />
-        </div>
+        </label>
 
-        <div className="campo-curto">
+        <label className="campo-curto">
           <span className="campo-rotulo">Senha (mín. 8)</span>
           <input type="password" value={senha} minLength={8} required
                  autoComplete="new-password"
                  onChange={(e) => setSenha(e.target.value)} />
-        </div>
+        </label>
 
-        <div className="campo-curto portaria-escolha">
+        <label className="campo-curto portaria-escolha">
           <span className="campo-rotulo">Cinema onde trabalha</span>
           <select value={venueId} required
                   onChange={(e) => setVenueId(e.target.value)}>
@@ -379,7 +379,7 @@ function Portarias({ venues, versao, aoMudar }: EquipeProps & { venues: Venue[] 
               <option key={v.id} value={v.id}>{v.name} · {v.city}</option>
             ))}
           </select>
-        </div>
+        </label>
 
         <button type="submit" className="botao-compacto"
                 disabled={salvando || !venueId}>
@@ -448,11 +448,11 @@ function EditarOrganizador(
     <form className="forma-inline" onSubmit={salvar}>
       {erro && <p className="motivo">{erro}</p>}
 
-      <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 200px' }}>
         <span className="campo-rotulo">Nome</span>
         <input value={nome} onChange={(e) => setNome(e.target.value)}
                minLength={2} required />
-      </div>
+      </label>
 
       <button type="submit" className="botao-compacto" disabled={salvando}>
         {salvando ? 'Salvando…' : 'Salvar'}
@@ -563,13 +563,13 @@ function EditarFuncionario(
     <form className="forma-inline" onSubmit={salvar}>
       {erro && <p className="motivo">{erro}</p>}
 
-      <div className="campo-curto" style={{ flex: '1 1 160px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 160px' }}>
         <span className="campo-rotulo">Nome</span>
         <input value={nome} onChange={(e) => setNome(e.target.value)}
                minLength={2} required />
-      </div>
+      </label>
 
-      <div className="campo-curto portaria-escolha">
+      <label className="campo-curto portaria-escolha">
         <span className="campo-rotulo">Cinema onde trabalha</span>
         <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
           <option value="">Sem cinema — não valida nada</option>
@@ -577,7 +577,7 @@ function EditarFuncionario(
             <option key={v.id} value={v.id}>{v.name} · {v.city}</option>
           ))}
         </select>
-      </div>
+      </label>
 
       <button type="submit" className="botao-compacto" disabled={salvando}>
         {salvando ? 'Salvando…' : 'Salvar'}
@@ -728,7 +728,7 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
         </p>
       ) : (
         <form className="forma-inline" onSubmit={promover}>
-          <div className="campo-curto portaria-escolha">
+          <label className="campo-curto portaria-escolha">
             <span className="campo-rotulo">Promover funcionário a organizador</span>
             <select value={email} required
                     onChange={(e) => setEmail(e.target.value)}>
@@ -739,7 +739,7 @@ function Organizadores({ versao, aoMudar }: EquipeProps) {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
 
           <button type="submit" className="botao-compacto"
                   disabled={salvando || !email}>
@@ -794,7 +794,7 @@ function NovoEvento({ aoCriar }: { aoCriar: () => void }) {
       <h2 className="painel-titulo">Novo evento a partir do catálogo</h2>
 
       <form className="forma-inline" onSubmit={buscar} style={{ border: 'none', padding: 0 }}>
-        <div className="campo-curto" style={{ flex: '1 1 260px' }}>
+        <label className="campo-curto" style={{ flex: '1 1 260px' }}>
           <span className="campo-rotulo">Título do filme</span>
           <input
             value={termo}
@@ -803,7 +803,7 @@ function NovoEvento({ aoCriar }: { aoCriar: () => void }) {
             minLength={2}
             required
           />
-        </div>
+        </label>
         <button type="submit" className="botao-compacto" disabled={buscando}>
           {buscando ? 'Buscando…' : 'Buscar no TMDb'}
         </button>
@@ -1073,7 +1073,7 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
 
   return (
     <form className="forma-inline" onSubmit={criar}>
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Sala</span>
         <select value={roomId} onChange={(e) => setRoomId(e.target.value)} required>
           <option value="">Escolha</option>
@@ -1083,9 +1083,9 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
             </option>
           ))}
         </select>
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Data</span>
         <input
           type="date"
@@ -1094,9 +1094,9 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
           className="campo-data"
           required
         />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Horário</span>
         <input
           type="time"
@@ -1105,9 +1105,9 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
           className="campo-hora"
           required
         />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Preço</span>
         <input
           value={preco}
@@ -1115,15 +1115,15 @@ function NovaSessao({ eventoId, salas, venues, aoCriar }: NovaSessaoProps) {
           style={{ width: '80px' }}
           required
         />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Áudio</span>
         <select value={audio} onChange={(e) => setAudio(e.target.value)}>
           <option>Dublado</option>
           <option>Legendado</option>
         </select>
-      </div>
+      </label>
 
       <button type="submit" className="botao-compacto" disabled={enviando}>
         {enviando ? 'Criando…' : 'Adicionar sessão'}
@@ -1298,12 +1298,12 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
 
       <form className="forma-inline" onSubmit={criarCinema}
             style={{ border: 'none', paddingLeft: 0 }}>
-        <div className="campo-curto">
+        <label className="campo-curto">
           <span className="campo-rotulo">Novo cinema</span>
           <input value={nome} onChange={(e) => setNome(e.target.value)}
                  placeholder="Nome" minLength={2} required />
-        </div>
-        <div className="campo-curto">
+        </label>
+        <label className="campo-curto">
           <span className="campo-rotulo">UF</span>
           <select value={uf} onChange={(e) => setUf(e.target.value)} required>
             <option value="" disabled>UF</option>
@@ -1311,8 +1311,8 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
               <option key={u.sigla} value={u.sigla}>{u.sigla}</option>
             ))}
           </select>
-        </div>
-        <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+        </label>
+        <label className="campo-curto" style={{ flex: '1 1 200px' }}>
           <span className="campo-rotulo">Cidade</span>
           <select value={cidadeId} required disabled={!uf || municipios === null}
                   onChange={(e) => setCidadeId(e.target.value)}>
@@ -1325,12 +1325,12 @@ function Cinemas({ venues, salas, aoMudar }: CinemasProps) {
               <option key={m.id} value={m.id}>{m.nome}</option>
             ))}
           </select>
-        </div>
-        <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+        </label>
+        <label className="campo-curto" style={{ flex: '1 1 200px' }}>
           <span className="campo-rotulo">Endereço</span>
           <input value={endereco} onChange={(e) => setEndereco(e.target.value)}
                  minLength={4} required />
-        </div>
+        </label>
         <button type="submit" className="botao-compacto" disabled={!cidadeId}>
           Adicionar cinema
         </button>
@@ -1411,25 +1411,25 @@ function EditarSala(
     <form className="forma-inline" onSubmit={salvar}>
       {erro && <p className="motivo">{erro}</p>}
 
-      <div className="campo-curto" style={{ flex: '1 1 140px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 140px' }}>
         <span className="campo-rotulo">Sala</span>
         <input value={nome} onChange={(e) => setNome(e.target.value)}
                minLength={1} required />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Fileiras</span>
         <input type="number" min={1} max={26} value={fileiras}
                style={{ width: '72px' }} required
                onChange={(e) => setFileiras(e.target.value)} />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Por fileira</span>
         <input type="number" min={1} max={40} value={porFileira}
                style={{ width: '72px' }} required
                onChange={(e) => setPorFileira(e.target.value)} />
-      </div>
+      </label>
 
       <button type="submit" className="botao-compacto" disabled={salvando}>
         {salvando ? 'Salvando…' : 'Salvar'}
@@ -1482,20 +1482,20 @@ function EditarCinema(
     <form className="forma-inline" onSubmit={salvar}>
       {erro && <p className="motivo">{erro}</p>}
 
-      <div className="campo-curto" style={{ flex: '1 1 160px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 160px' }}>
         <span className="campo-rotulo">Nome</span>
         <input value={nome} onChange={(e) => setNome(e.target.value)}
                minLength={2} required />
-      </div>
+      </label>
 
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">UF</span>
         <select value={uf} onChange={(e) => { setUf(e.target.value); setCidadeId(''); }}>
           {ufs.map((u) => <option key={u.sigla} value={u.sigla}>{u.sigla}</option>)}
         </select>
-      </div>
+      </label>
 
-      <div className="campo-curto" style={{ flex: '1 1 180px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 180px' }}>
         <span className="campo-rotulo">Cidade</span>
         <select value={cidadeId} required disabled={municipios === null}
                 onChange={(e) => setCidadeId(e.target.value)}>
@@ -1506,13 +1506,13 @@ function EditarCinema(
             <option key={m.id} value={m.id}>{m.nome}</option>
           ))}
         </select>
-      </div>
+      </label>
 
-      <div className="campo-curto" style={{ flex: '1 1 200px' }}>
+      <label className="campo-curto" style={{ flex: '1 1 200px' }}>
         <span className="campo-rotulo">Endereço</span>
         <input value={endereco} onChange={(e) => setEndereco(e.target.value)}
                minLength={4} required />
-      </div>
+      </label>
 
       <button type="submit" className="botao-compacto"
               disabled={salvando || !cidadeId}>
@@ -1546,23 +1546,23 @@ function NovaSala({ venueId, aoCriar }: { venueId: number; aoCriar: () => void }
 
   return (
     <form className="forma-inline" onSubmit={criar}>
-      <div className="campo-curto">
+      <label className="campo-curto">
         <span className="campo-rotulo">Nova sala</span>
         <input value={nome} onChange={(e) => setNome(e.target.value)}
                placeholder="Sala 3" required />
-      </div>
-      <div className="campo-curto">
+      </label>
+      <label className="campo-curto">
         <span className="campo-rotulo">Fileiras</span>
         <input type="number" min={1} max={26} value={fileiras}
                onChange={(e) => setFileiras(e.target.value)}
                style={{ width: '64px' }} required />
-      </div>
-      <div className="campo-curto">
+      </label>
+      <label className="campo-curto">
         <span className="campo-rotulo">Por fileira</span>
         <input type="number" min={1} max={40} value={porFileira}
                onChange={(e) => setPorFileira(e.target.value)}
                style={{ width: '64px' }} required />
-      </div>
+      </label>
       <button type="submit" className="botao-compacto botao-compacto--vazado">
         Adicionar
       </button>

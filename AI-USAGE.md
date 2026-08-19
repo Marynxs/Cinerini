@@ -126,6 +126,9 @@ Cobri as duas coisas. Ficou remoção só de rascunho sem sessões — publicado
 **Protótipo de design versionado.**
 Desenhei um protótipo da sala de cinema antes de a tela existir. A imagem entra no repositório como artefato de processo; o arquivo de edição fica de fora por peso.
 
+**Campos do painel sem rótulo associado.**
+Apareceu ao escrever o teste da busca de filme: o seletor por rótulo não encontrava o campo. Vinte e oito campos do painel usavam um `<span>` que parecia rótulo mas não estava ligado a nada, então leitor de tela anunciava campo sem nome. Trocados por `<label>`, sem mudança visual, já que o estilo era o mesmo.
+
 **Encolher a sala passava por cima de ingresso vendido.**
 Perguntei se travar a sala depois da primeira venda não deixaria algum buraco. Deixava, e não onde eu imaginava: a regra existente cobria trocar a sala de uma exibição, mas não mexer nas dimensões da própria sala. Reproduzido contra a API, uma sala 8x12 com a poltrona H12 vendida aceitava virar 3x4, e o cliente ficava com ingresso de uma fileira que o cadastro passou a negar. Virou a decisão D35.
 
