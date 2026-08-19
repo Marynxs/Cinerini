@@ -2,6 +2,8 @@
 
 Plataforma de eventos e ingressos de cinema. O organizador publica sessões a partir do catálogo do TMDb, o cliente escolhe a poltrona num mapa e paga (simulado), recebe um ingresso com código em QR e pode compartilhá-lo por link. Na entrada, a portaria valida o ingresso.
 
+![Compra de um ingresso do catálogo à poltrona, e a validação do QR na portaria](Cinerini.gif)
+
 *Cinerini* — cinema + Marini (meu sobrenome).
 
 **No ar:** [cinerini.vercel.app](https://cinerini.vercel.app) · API em [cinerini-api.onrender.com](https://cinerini-api.onrender.com) ([`/docs`](https://cinerini-api.onrender.com/docs))
