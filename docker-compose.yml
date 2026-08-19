@@ -1,0 +1,82 @@
+# Sobe o sistema inteiro num comando, sem conta em serviço nenhum.
+#
+#     docker compose up --build
+#
+# Existe porque a alternativa custa quinze minutos e um cadastro na Neon:
+# instalar Python, criar venv, instalar dependências, provisionar um Postgres,
+# colar a string de conexão, migrar, semear, instalar Node e subir dois
+# processos. Quem recebe o projeto para avaliar não deveria pagar esse pedágio.
+#
+# NENHUMA credencial sua é usada aqui. O banco é o contêiner ao lado, a chave
+# de assinatura é um valor de desenvolvimento declarado abaixo, e a do TMDb é
+# opcional. O `.env` da máquina fica de fora pelos `.dockerignore`.
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: cinerini
+      POSTGRES_PASSWORD: cinerini
+      POSTGRES_DB: cinerini
+
+    # A API espera por este teste, e não por um `sleep`: o Postgres aceita
+    # conexão só depois de terminar a inicialização do cluster, e um tempo
+    # fixo ora sobra ora falta.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinerini -d cinerini"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+    # Nomeado, e não montado do disco: o banco sobrevive a `down` e volta
+    # semeado. Para começar do zero: `docker compose down -v`.
+    volumes:
+      - cinerini-dados:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # `db` é o nome do serviço, e dentro da rede do Compose ele resolve
+      # como endereço. Não há IP nem porta a configurar à mão.
+      DATABASE_URL: postgresql+psycopg://cinerini:cinerini@db:5432/cinerini
+
+      # Valor fixo de desenvolvimento, deliberadamente diferente do de
+      # produção: é ele que assina os ingressos, então um QR emitido aqui não
+      # vale lá e vice-versa. Os dois ambientes ficam isolados por construção.
+      SECRET_KEY: cinerini-desenvolvimento-nao-usar-em-producao
+
+      # Opcional. Sem ela, o seed usa a ficha embutida e todo o fluxo funciona
+      # — só a busca de filmes pelo organizador fica indisponível. Para usar a
+      # sua: `TMDB_API_KEY=xxxx docker compose up --build`.
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+
+      CORS_ORIGINS: http://localhost:5173
+
+      # Desligado: não há proxy confiável à frente aqui, e ligado sem proxy o
+      # cliente forja o próprio IP e escapa do limite de tentativas.
+      TRUST_PROXY: "false"
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./web
+      args:
+        # Endereço visto pelo navegador de quem abre a página, e não pela
+        # rede interna: o JavaScript roda na máquina de fora, onde `api` não
+        # resolve. Por isso `localhost` e não o nome do serviço.
+        VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
+    # 5173 do lado de fora para bater com a porta do modo de desenvolvimento
+    # que o README já documenta; 80 do lado de dentro porque é onde o nginx
+    # escuta.
+    ports:
+      - "5173:80"
+
+volumes:
+  cinerini-dados:

@@ -1,0 +1,11 @@
+# O .env fica de fora por segurança, não por tamanho: ele aponta para o banco
+# de produção e carrega a chave que assina os ingressos. Copiado, viveria
+# numa camada da imagem — e imagem se compartilha.
+.env
+.env.*
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

@@ -69,6 +69,26 @@ A exibição é conferida **antes** do estado do ingresso. Na ordem inversa, rec
 
 ## Como executar
 
+### Com Docker, num comando
+
+```bash
+docker compose up --build
+```
+
+Front em **http://localhost:5173**, API em **http://localhost:8000**, documentação interativa em **/docs**. A primeira subida leva alguns minutos construindo as imagens; as seguintes são imediatas.
+
+Sobe um PostgreSQL próprio em contêiner, aplica as migrations e semeia o cenário de teste antes de abrir a porta. **Não usa credencial nenhuma da máquina**: o banco é o contêiner ao lado, a chave que assina os ingressos é um valor de desenvolvimento declarado no `docker-compose.yml`, e o `.env` local fica de fora pelos `.dockerignore`.
+
+A chave do TMDb é opcional: sem ela o seed cai para a ficha embutida, que tem título, sinopse e duração, mas **não traz pôster** — o catálogo aparece sem as imagens, e a busca de filmes pelo organizador fica indisponível. Todo o resto do fluxo funciona igual. Para usar a sua:
+
+```bash
+TMDB_API_KEY=sua-chave docker compose up --build
+```
+
+Para apagar o banco e semear do zero: `docker compose down -v`.
+
+### Sem Docker
+
 Requisitos: **Python 3.13 ou 3.14 (64-bit)**, **Node 20+** e um banco PostgreSQL.
 
 ### 1. Banco

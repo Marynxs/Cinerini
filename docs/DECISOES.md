@@ -533,3 +533,25 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **A marca é etiqueta, não cor:** o carmim já significa "sem ninguém", e reusá-lo no organizador diria "atenção" sobre uma porta que está coberta.
 
 **O rótulo mudou junto:** era "N sem funcionário alocado", e virou "N sem ninguém na porta". A contagem sempre foi de portas descobertas, não de vagas na escala — o texto é que descrevia o filtro antigo em vez do que a lista mede.
+
+---
+
+## D34 · Compose sobe o sistema sem credencial da máquina
+
+**Decidido:** `docker compose up --build` levanta banco, API e front. O Postgres é um contêiner, a chave de assinatura é um valor de desenvolvimento no próprio arquivo, e a do TMDb é opcional. Migration e seed rodam no arranque da API.
+
+**Descartado:** apontar o Compose para a Neon, reaproveitando o `.env` da máquina. E deixar migration e seed como dois comandos manuais depois de subir.
+
+**Por que banco em contêiner:** o pedágio que o Compose existe para remover é justamente o cadastro na Neon. Reaproveitar o `.env` traria dois defeitos de uma vez — quem clona o repositório não tem esse arquivo, e quem tem apontaria os contêineres para o banco de **produção**, onde um `--reset` apaga o cenário publicado.
+
+**As chaves não vazam para a imagem:** o `.env` está nos dois `.dockerignore`. As variáveis de ambiente têm precedência sobre o arquivo no `pydantic-settings`, então copiá-lo não mudaria o comportamento — mas gravaria a string da Neon e a chave dos ingressos numa camada da imagem, e imagem se compartilha.
+
+**Chave de assinatura diferente da de produção, de propósito:** é ela que assina os ingressos. Sendo outra, um QR emitido no Compose não vale no ambiente publicado e vice-versa. Os dois ficam isolados por construção, e não por disciplina.
+
+**A URL da API é argumento de build, não variável de execução:** o Vite embute as `VITE_*` no bundle durante o build — declará-la em `environment` não teria efeito nenhum. E é `localhost` e não `api`, porque quem faz a chamada é o navegador de fora, onde o nome do serviço não resolve.
+
+**Base Debian na API, não Alpine:** `psycopg[binary]` publica wheel para glibc. Em musl o pip cairia para compilar o driver, exigindo toolchain e cabeçalhos do libpq.
+
+**Espera por `healthcheck`, não por `sleep`:** o Postgres só aceita conexão depois de inicializar o cluster, e tempo fixo ora sobra ora falta — a migration falharia de forma intermitente, que é o pior modo de falhar.
+
+**O seed roda em toda subida** porque é idempotente: já semeado, não faz nada. Condicioná-lo exigiria guardar estado fora do banco para responder uma pergunta que o próprio banco responde.

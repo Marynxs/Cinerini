@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+
+# Copiado, sobrescreveria a URL da API que o Compose passa como argumento de
+# build.
+.env
+.env.*
