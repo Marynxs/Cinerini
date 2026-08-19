@@ -202,9 +202,11 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ## Testes
 
+### API
+
 ```bash
 cd api
-pytest                  # 268 casos, sem rede e sem chave do TMDb
+pytest                  # 273 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
@@ -213,6 +215,25 @@ Cada teste roda dentro de uma transação desfeita ao final, com savepoints para
 As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
 
 O TMDb é substituído por um duplo na suíte padrão — teste que depende de rede é lento, quebra sem internet e falha para quem não tem chave. Como o duplo concorda consigo mesmo por definição, os três testes de contrato batem na API real e verificam só o formato da resposta.
+
+### Front, com Playwright
+
+```bash
+docker compose up -d          # banco, API e front semeados
+cd web
+npm run e2e                   # 68 testes, em computador, tablet e celular
+npm run e2e:ui                # o mesmo, com navegador visível e passo a passo
+```
+
+Rodam contra a pilha do Compose, e não contra dublês de API: o teste exercita o mesmo artefato que o avaliador abre, pela mesma razão que a verificação da API é sempre por HTTP contra o servidor de verdade.
+
+Os seletores são os que a pessoa vê: papel e nome acessível, nunca classe de CSS. Um teste que procura `.btn-primary` passa com o botão invisível; um que procura o botão chamado *Reservar* falha quando o rótulo some, que é o defeito que importa. De quebra, escrever assim obriga a interface a ter nomes acessíveis.
+
+Cada caso roda em **três larguras**: 1280 no computador, 810 no tablet com WebKit, e 412 no celular. Não é redundância, porque o mapa vazando pela lateral, a barra fixa de ação e o rótulo da trilha só existem como problema em uma delas.
+
+A sessão é autenticada uma vez por papel e reaproveitada. Sem isso a suíte estoura o **limitador de tentativas da própria API** (D8) e passa a falhar com 429, no teste seguinte e não no que gastou as tentativas. O formulário de login continua coberto pelo caso que verifica se a seleção de poltronas sobrevive a ele.
+
+Um trabalhador só, de propósito: os testes compram poltronas num banco compartilhado, e dois em paralelo disputariam o mesmo assento. A recusa por disputa é o sistema funcionando, e faria o teste falhar por um motivo que não é o dele.
 
 ---
 

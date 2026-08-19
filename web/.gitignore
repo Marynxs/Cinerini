@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Saída do Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+e2e/.auth/
+e2e/capturas/
