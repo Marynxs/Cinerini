@@ -552,6 +552,8 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **Base Debian na API, não Alpine:** `psycopg[binary]` publica wheel para glibc. Em musl o pip cairia para compilar o driver, exigindo toolchain e cabeçalhos do libpq.
 
+**O volume monta `/var/lib/postgresql`, não `.../data`:** do Postgres 18 em diante a imagem guarda os dados numa subpasta por versão maior, para que a atualização use `pg_upgrade --link` sem cruzar a fronteira do ponto de montagem. Montado no caminho antigo — o de toda a documentação escrita até 2025 — o contêiner recusa subir em vez de arriscar corromper dados de uma versão anterior.
+
 **Espera por `healthcheck`, não por `sleep`:** o Postgres só aceita conexão depois de inicializar o cluster, e tempo fixo ora sobra ora falta — a migration falharia de forma intermitente, que é o pior modo de falhar.
 
 **O seed roda em toda subida** porque é idempotente: já semeado, não faz nada. Condicioná-lo exigiria guardar estado fora do banco para responder uma pergunta que o próprio banco responde.

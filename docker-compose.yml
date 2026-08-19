@@ -28,10 +28,18 @@ services:
       timeout: 3s
       retries: 20
 
+    # Montado em `/var/lib/postgresql`, e não em `.../data`.
+    #
+    # A partir do Postgres 18 a imagem guarda os dados numa subpasta por
+    # versão maior — `/var/lib/postgresql/18/docker` —, para que a atualização
+    # de versão possa usar `pg_upgrade --link` sem cruzar a fronteira do
+    # ponto de montagem. Montado no caminho antigo, o contêiner recusa subir
+    # em vez de arriscar corromper dados de uma versão anterior.
+    #
     # Nomeado, e não montado do disco: o banco sobrevive a `down` e volta
     # semeado. Para começar do zero: `docker compose down -v`.
     volumes:
-      - cinerini-dados:/var/lib/postgresql/data
+      - cinerini-dados:/var/lib/postgresql
 
   api:
     build: ./api
