@@ -197,10 +197,12 @@ def create_showing(
     db.add(showing)
     db.flush()
 
-    # Evento já publicado gera os assentos na hora: sessão nova num catálogo
-    # no ar precisa estar comprável imediatamente.
-    if event.status == EventStatus.PUBLISHED:
-        generate_seats(db, showing)
+    # Poltronas na criação, e não só na publicação. Adiar fazia a sessão
+    # recém-criada de um rascunho anunciar ocupação 0/0, que não é "sala
+    # vazia" e sim "sala inexistente": o painel mostrava o mesmo número para
+    # uma sessão sem mapa e para uma sessão de sala vazia. Trocar a sala
+    # segue livre enquanto ninguém comprou, porque o PATCH regenera o mapa (D9).
+    generate_seats(db, showing)
 
     db.commit()
     db.refresh(showing)

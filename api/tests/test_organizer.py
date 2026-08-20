@@ -164,17 +164,20 @@ class TestPublishing:
                         headers=auth("organizer"))
         assert r.status_code == 409
 
-    def test_publishing_generates_the_seat_map(
+    def test_a_new_showing_already_has_its_seat_map(
         self, client: TestClient, auth, room: Room
     ) -> None:
+        """Mapa na criação, e não só na publicação.
+
+        Adiar fazia a sessão recém-criada de um rascunho anunciar ocupação
+        0/0 no painel, número que é indistinguível de uma sala vazia de
+        verdade.
+        """
         evento_id = self._evento_com_sessao(client, auth, room)
         sessao = client.get(f"/events/{evento_id}/showings").json()[0]
 
-        assert client.get(f"/showings/{sessao['id']}/seats").json() == []
-
-        client.post(f"/events/{evento_id}/publish", headers=auth("organizer"))
-        assentos = client.get(f"/showings/{sessao['id']}/seats").json()
-        assert len(assentos) == 12
+        assert sessao["seats_total"] == 12
+        assert len(client.get(f"/showings/{sessao['id']}/seats").json()) == 12
 
     def test_rows_are_lettered_from_a(
         self, client: TestClient, showing: Showing
@@ -191,9 +194,10 @@ class TestPublishing:
         assert len(acessiveis) == 2
         assert all(a["row_label"] == "A" for a in acessiveis)
 
-    def test_publishing_twice_does_not_duplicate_seats(
+    def test_publishing_does_not_duplicate_seats(
         self, client: TestClient, auth, room: Room
     ) -> None:
+        """A publicação ainda gera o mapa das sessões antigas, sem repetir."""
         evento_id = self._evento_com_sessao(client, auth, room)
         sessao = client.get(f"/events/{evento_id}/showings").json()[0]
 
