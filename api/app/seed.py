@@ -107,14 +107,30 @@ BRT = timezone(timedelta(hours=-3))
 
 HORARIOS_DO_DIA = (time(14, 0), time(18, 30), time(21, 40))
 
+# Uma sessão a cada dois dias, por três semanas. O seed é um retrato tirado
+# uma vez, e o banco é visitado dias depois: a agenda de dois dias que havia
+# aqui deixava o catálogo vazio na quarta-feira seguinte, porque o catálogo
+# só lista sessão futura. O passo de dois dias é o maior que ainda mantém
+# sempre uma sessão dentro da janela da portaria, que enxerga JANELA_ADIANTE
+# à frente, sem encher a tabela do painel.
+DIAS_DA_AGENDA = tuple(range(1, 22, 2))
 
-def _horarios(dias: int) -> list[datetime]:
-    """Sessões nos próximos dias, nos três horários fixos."""
+
+def _agenda(indice_do_filme: int) -> list[datetime]:
+    """Os horários de um filme ao longo da agenda.
+
+    O horário roda por dia e por filme. Sem o deslocamento os três filmes
+    estreariam todos às 14h do mesmo dia, e o catálogo pareceria ter uma
+    sessão só, repetida.
+    """
     hoje = datetime.now(BRT).date()
     return [
-        datetime.combine(hoje + timedelta(days=d), hora, tzinfo=BRT)
-        for d in range(1, dias + 1)
-        for hora in HORARIOS_DO_DIA
+        datetime.combine(
+            hoje + timedelta(days=dia),
+            HORARIOS_DO_DIA[(indice_do_filme + k) % len(HORARIOS_DO_DIA)],
+            tzinfo=BRT,
+        )
+        for k, dia in enumerate(DIAS_DA_AGENDA)
     ]
 
 
@@ -170,10 +186,6 @@ def semear(db: Session) -> None:
         if venue.id == sala.venue_id
     }
 
-    # Dois dias, e não mais: a lista de turnos da portaria só enxerga as
-    # sessões da janela de JANELA_ADIANTE. Semear além dela produzia um
-    # filme inteiro que o catálogo vende e a portaria não consegue atender.
-    horarios = _horarios(dias=2)
     total_sessoes = 0
 
     for i, (tmdb_id, rotulo) in enumerate(FILMES):
@@ -183,14 +195,11 @@ def semear(db: Session) -> None:
         db.add(evento)
         db.flush()
 
-        # Cada filme ocupa uma sala e três horários, em dias alternados, para
-        # que o catálogo tenha mais de uma data sem ficar poluído.
+        # Cada filme ocupa uma sala e percorre a agenda inteira: é o que
+        # mantém os três em cartaz ao mesmo tempo, em datas diferentes.
         sala = salas[i % len(salas)]
-        # Modular e não fatiado: com três filmes e seis horários, fatiar
-        # jogaria o terceiro para fora da janela. Repetir horário é
-        # inofensivo porque a sala é outra.
-        agenda = [(sala, horarios[(i * 3 + k) % len(horarios)])
-                  for k in range(3)]
+        horarios = _agenda(i)
+        agenda = [(sala, h) for h in horarios]
 
         # O primeiro filme ganha sessões num cinema de outra cidade. Sem isso
         # não há como demonstrar o agrupamento por cinema nem o filtro por

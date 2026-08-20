@@ -163,7 +163,9 @@ A tela de login lista as quatro e preenche o formulário num clique, inclusive n
 | Cliente | `cliente2@cinerini.com.br` | Serve para demonstrar a disputa por poltrona |
 | Funcionário | `portaria@cinerini.com.br` | Abre a portaria, escolhe a sessão do turno e valida os ingressos dela |
 
-O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 11 sessões. Um dos filmes passa **nos dois cinemas**, para que o agrupamento por cinema e o filtro por cidade sejam perceptíveis.
+O seed cria 2 cinemas em cidades diferentes, 3 salas, 3 filmes do TMDb e 35 sessões. Um dos filmes passa **nos dois cinemas**, para que o agrupamento por cinema e o filtro por cidade sejam perceptíveis.
+
+As sessões são semeadas a cada dois dias pelas três semanas seguintes ao dia em que o comando roda. O passo é curto porque a portaria só oferece turnos dentro da janela dela, e o horizonte é longo porque o catálogo só lista sessão futura: com a agenda apertada, um banco semeado numa segunda amanhecia vazio na quinta.
 
 A portaria trabalha no Cine Belas Artes e **nasce sem turno escolhido**: ao entrar, ela escolhe qual sessão está atendendo. Esse cinema dá os dois recusados de uma vez: as demais sessões do mesmo filme demonstram **outra sessão**, e um ingresso de qualquer outro filme demonstra **outro evento**.
 
