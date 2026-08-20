@@ -233,3 +233,14 @@
   0%, 100% { opacity: 0.2; }
   50% { opacity: 1; }
 }
+
+/* Ação bloqueada que continua clicável. `disabled` tira do foco e some do
+   leitor de tela, e leva junto a única chance de dizer o que falta: o botão
+   de apagar evento precisa explicar que há sessão ou publicação no caminho,
+   e explicar exige poder ser clicado. */
+.elo[aria-disabled='true'],
+.elo[aria-disabled='true']:hover {
+  color: var(--tinta-fraca);
+  border-bottom-color: var(--picote);
+  border-bottom-style: dashed;
+}

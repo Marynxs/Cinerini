@@ -25,6 +25,7 @@ O corpo segue ordem cronológica; o índice agrupa por assunto.
 [D28](#d28--cidade-digitada-à-mão-quando-o-ibge-não-responde) Cidade digitada à mão quando o IBGE não responde  
 [D29](#d29--catálogo-único-sem-dono-por-organizador) Catálogo único, sem dono por organizador  
 [D30](#d30--um-filme-um-evento-e-rascunho-é-o-único-apagável) Um filme, um evento, e rascunho é o único apagável  
+[D36](#d36--apagar-sessão-exige-cancelar-antes-e-o-que-passou-pela-portaria-não-sai) Apagar sessão exige cancelar antes, e o que passou pela portaria não sai  
 [D35](#d35--encolher-a-sala-é-recusado-sobre-poltrona-vendida) Encolher a sala é recusado sobre poltrona vendida  
 
 **Compra, ingresso e catálogo**  
@@ -416,7 +417,7 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **Ganho colateral:** `validated_by` passa a apontar para uma pessoa, não para um posto anônimo. Se um ingresso foi validado errado, há a quem perguntar.
 
-**A janela de sessões oferecidas** vai de quatro horas atrás a dois dias adiante. O passado recente porque a sessão que começou há pouco ainda tem gente entrando; o futuro curto porque uma lista com o mês inteiro esconderia a de hoje. Sessão cancelada não aparece: ela não recebe ninguém.
+**A janela de sessões oferecidas** vai de quatro horas atrás a três dias adiante. O passado recente porque a sessão que começou há pouco ainda tem gente entrando; o futuro curto porque uma lista com o mês inteiro esconderia a de hoje. Sessão cancelada não aparece: ela não recebe ninguém.
 
 ---
 
@@ -619,3 +620,21 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **Cancelado não conta:** a poltrona cancelada voltou ao estoque, então não há lugar a preservar. É a mesma cláusula do índice único parcial da garantia 1, aplicada de novo.
 
 **A consulta pega o extremo, não a lista:** basta a maior fileira e a maior poltrona já vendidas, porque o mapa é retangular. Percorrer ingresso por ingresso responderia a mesma pergunta pagando mais caro.
+
+---
+
+## D36 · Apagar sessão exige cancelar antes, e o que passou pela portaria não sai
+
+**Decidido:** a sessão sai do sistema quando não resta ingresso ativo nela. Sessão que vendeu passa antes pelo cancelamento, que é o passo que informa o motivo a quem comprou e devolve o valor. Sessão com ingresso já validado na portaria não sai nunca. Apagar leva junto poltronas, ingressos cancelados e pedidos.
+
+**Descartado:** um botão único que apaga a sessão com tudo embaixo dela, e o oposto, esconder sessões passadas atrás de um filtro sem nunca remover nada.
+
+**Por que não o botão único:** seria a mesma confirmação removendo um horário digitado errado, que não afeta ninguém, e o ingresso que alguém pagou. A tela não teria como mostrar que são coisas diferentes, e a diferença é a única coisa que importa ali. Separar em dois passos custa um clique e torna a consequência visível antes de acontecer.
+
+**Por que não o filtro:** esconder resolve a tabela do painel e não resolve o pedido, que é tirar do sistema a sessão que não vai acontecer. Sessão escondida continua no catálogo público enquanto for futura.
+
+**Por que o utilizado trava para sempre:** a garantia 3 existe para que ninguém entre duas vezes com o mesmo ingresso, e o que a sustenta é a linha que registra a entrada. Apagar a sessão apagaria esse registro, e a garantia passaria a valer só até alguém decidir limpar o painel. Cancelar já respeita isso: o `cancel_showing` não reverte ingresso utilizado, porque a pessoa entrou.
+
+**A limpeza é explícita porque o banco não a faz:** `tickets.seat_id` e `orders.showing_id` não têm cascata. As poltronas saem junto com a sessão pela cascata do ORM, e sem apagar ingresso e pedido antes sobrariam linhas apontando para o vazio. A ordem é a inversa das dependências: `share_links`, `tickets`, `orders`, sessão.
+
+**O botão de apagar evento passou a aparecer sempre**, inclusive quando não dá. Escondê-lo enquanto o evento estava publicado ou tinha sessão fazia a remoção parecer inexistente, e quem queria tirar um filme do ar não tinha como descobrir que o caminho é despublicar, esvaziar e então apagar. Clicável de propósito, com `aria-disabled` em vez de `disabled`: é o clique que responde qual dos dois passos ainda falta, e `disabled` tira do foco justamente o elemento que tem a explicação.

@@ -309,6 +309,71 @@ class TestRoomChange:
         assert r.status_code == 409
 
 
+class TestDeletingShowings:
+    """Sair do sistema é o fim de um caminho, não um botão (D36)."""
+
+    def test_showing_without_tickets_is_deleted(
+        self, client: TestClient, auth, showing: Showing,
+    ) -> None:
+        r = client.delete(f"/showings/{showing.id}", headers=auth("organizer"))
+        assert r.status_code == 204
+        assert client.get(f"/showings/{showing.id}").status_code == 404
+
+    def test_cancelling_opens_the_way_to_delete(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        users: dict[str, User],
+    ) -> None:
+        """O cancelamento é o passo que avisa quem comprou, e só ele libera."""
+        _vender(db, showing, users)
+
+        assert client.delete(f"/showings/{showing.id}",
+                             headers=auth("organizer")).status_code == 409
+
+        assert client.post(f"/showings/{showing.id}/cancel",
+                           json={"reason": "Projetor quebrado"},
+                           headers=auth("organizer")).status_code == 200
+
+        r = client.delete(f"/showings/{showing.id}", headers=auth("organizer"))
+        assert r.status_code == 204
+
+    def test_deleting_takes_seats_orders_and_tickets_along(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        users: dict[str, User],
+    ) -> None:
+        """Nenhuma dessas chaves tem cascata: sobrariam linhas órfãs."""
+        ingresso = _vender(db, showing, users)
+        pedido_id = ingresso.order_id
+
+        client.post(f"/showings/{showing.id}/cancel",
+                    json={"reason": "Sala interditada"},
+                    headers=auth("organizer"))
+        assert client.delete(f"/showings/{showing.id}",
+                             headers=auth("organizer")).status_code == 204
+
+        assert db.get(Order, pedido_id) is None
+        assert db.scalar(select(func.count(Ticket.id))
+                         .where(Ticket.order_id == pedido_id)) == 0
+        assert db.scalar(select(func.count(Seat.id))
+                         .where(Seat.showing_id == showing.id)) == 0
+
+    def test_a_used_ticket_blocks_deletion_for_good(
+        self, client: TestClient, auth, db: Session, showing: Showing,
+        users: dict[str, User],
+    ) -> None:
+        """Alguém entrou. Apagar a linha falsificaria a garantia 3."""
+        ingresso = _vender(db, showing, users)
+        ingresso.status = TicketStatus.USED
+        db.commit()
+
+        client.post(f"/showings/{showing.id}/cancel",
+                    json={"reason": "Tarde demais"},
+                    headers=auth("organizer"))
+
+        r = client.delete(f"/showings/{showing.id}", headers=auth("organizer"))
+        assert r.status_code == 409
+        assert "portaria" in r.json()["detail"]
+
+
 class TestEditingVenues:
     """Cadastro errado se corrige; recriar levaria salas e vendas junto."""
 

@@ -93,6 +93,11 @@ export const organizador = {
       method: 'POST', body: { reason },
     }),
 
+  // Só sai quando não resta ingresso ativo. Sessão que já vendeu passa
+  // antes pelo cancelamento, e sessão que passou pela portaria não sai (D36).
+  removerSessao: (showingId: number) =>
+    request<void>(`/showings/${showingId}`, { method: 'DELETE' }),
+
   criarCinema: (dados: {
     name: string; state: string; city_ibge_id: number; address: string;
     // Só é olhado quando o IBGE não responde (D28).

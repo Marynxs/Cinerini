@@ -153,6 +153,12 @@ Depois de liberar a portaria para o organizador, notei que colocá-lo numa sess�
 **A portaria só aparecia para quem tinha o papel de portaria.**
 Pedi que o organizador também pudesse abrir a tela da portaria e validar QR. A permissão já existia na API desde a D27, porque o organizador enxerga todas as sessões e a validação nunca exigiu o papel de portaria. Mas a navegação mostrava o elo só para funcionários e a tela recusava a entrada. Permissão sem caminho na interface é permissão que não existe.
 
+**Quatro defeitos encontrados usando o sistema, não lendo o código.**
+Fui operar o painel como organizador e trouxe o que não funcionava: sessão nova aparecendo com ocupação 0/0, nenhum jeito de remover sessão pela tela, nenhum jeito de remover um filme, e o catálogo vazio porque o seed marcava sessões só para os dois dias seguintes ao dia em que rodou. Os dois primeiros eram defeito; os dois últimos eram desenho que não tinha sido pensado para quem chega dias depois. As rotas de remoção existiam na API desde sempre e nunca haviam aparecido no painel, que é o mesmo caso da portaria acima: capacidade sem caminho na interface é capacidade que não existe.
+
+**Escolhi o desenho da remoção em vez de aceitar o proposto.**
+Diante de três caminhos para apagar uma sessão vendida, recusei o botão único que apaga tudo e recusei o filtro que só esconde. Ficou o caminho em dois passos: cancelar, que avisa o motivo a quem comprou, e só então apagar. Sessão que já passou pela portaria não sai nunca, porque o registro da entrada é o que sustenta a terceira garantia. A mesma escolha valeu para o evento: despublicar, esvaziar, apagar, com o botão visível o tempo todo dizendo qual passo falta, em vez de sumir sem explicação (D36).
+
 ## Ajustes surgidos na verificação
 
 **`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**

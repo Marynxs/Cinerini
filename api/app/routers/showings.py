@@ -6,10 +6,12 @@ que é onde o evento importa.
 """
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from app.deps import DbSession, Organizer
-from app.models import Event, Room, Seat, Showing, User
+from app.models import (
+    Event, Order, Room, Seat, ShareLink, Showing, Ticket, TicketStatus, User,
+)
 from app.cancellation import CancellationError, cancel_showing
 from app.schemas import CancelIn, SeatOut, ShowingOut, ShowingUpdate
 from app.catalog import uma_sessao
@@ -120,14 +122,61 @@ def cancel(
 
 @router.delete("/{showing_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_showing(showing_id: int, db: DbSession, organizer: Organizer) -> None:
+    """Remove a sessão e tudo que só existia por causa dela.
+
+    Duas recusas, e a diferença entre elas é o ponto. Ingresso já validado
+    na portaria trava para sempre: alguém entrou naquela sessão, e apagar a
+    linha falsificaria o histórico que a garantia 3 existe para manter.
+    Ingresso ainda vivo trava até o cancelamento, que é o passo que diz o
+    motivo a quem comprou e devolve o valor (D10). Só depois disso a sessão
+    sai, levando poltronas, ingressos cancelados e pedidos.
+
+    Descartado o botão único que apaga direto: a mesma confirmação estaria
+    removendo um horário digitado errado e o ingresso que alguém pagou, e a
+    tela não teria como mostrar que são coisas diferentes (D36).
+    """
     showing = _showing_or_404(db, showing_id)
     _existe(db, showing)
 
-    if sold_count(db, showing.id):
+    usados = db.scalar(
+        select(func.count(Ticket.id))
+        .join(Seat, Ticket.seat_id == Seat.id)
+        .where(Seat.showing_id == showing_id,
+               Ticket.status == TicketStatus.USED)
+    ) or 0
+
+    if usados:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Esta sessão já tem ingressos e não pode ser removida.",
+            f"{usados} ingresso(s) desta sessão já passaram pela portaria. "
+            "A sessão aconteceu e não pode ser removida.",
         )
+
+    vivos = sold_count(db, showing_id)
+
+    if vivos:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Esta sessão tem {vivos} ingresso(s) ativo(s). Cancele a sessão "
+            "antes: é o cancelamento que informa o motivo a quem comprou e "
+            "devolve o valor.",
+        )
+
+    # Ordem inversa das dependências, porque nenhuma dessas chaves tem
+    # cascata no banco: share_links aponta para tickets, tickets apontam
+    # para seats e orders. As poltronas saem por cascata do ORM junto com a
+    # sessão, e só sobrariam ingressos cancelados apontando para o vazio.
+    ingressos = list(db.scalars(
+        select(Ticket.id)
+        .join(Seat, Ticket.seat_id == Seat.id)
+        .where(Seat.showing_id == showing_id)
+    ))
+
+    if ingressos:
+        db.execute(delete(ShareLink).where(ShareLink.ticket_id.in_(ingressos)))
+        db.execute(delete(Ticket).where(Ticket.id.in_(ingressos)))
+
+    db.execute(delete(Order).where(Order.showing_id == showing_id))
 
     db.delete(showing)
     db.commit()

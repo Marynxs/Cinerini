@@ -855,6 +855,7 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aCancelar, setACancelar] = useState<ShowingOut | null>(null);
+  const [aApagarSessao, setAApagarSessao] = useState<ShowingOut | null>(null);
   const [aApagar, setAApagar] = useState(false);
 
   async function agir(acao: () => Promise<unknown>) {
@@ -884,15 +885,32 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
             {publicado ? 'Publicado' : 'Rascunho'}
           </span>
 
-          {/* Só em rascunho: publicado pode ter ingresso vendido, e o botão
-              existir para levar a um 409 seria oferecer o que não se pode
-              cumprir (D30). */}
-          {!publicado && sessoes.length === 0 && (
-            <button type="button" className="elo elo--perigo"
-                    disabled={ocupado} onClick={() => setAApagar(true)}>
-              Apagar rascunho
-            </button>
-          )}
+          {/* Sempre visível, inclusive quando não dá. Escondê-lo enquanto
+              o evento estava publicado ou tinha sessão fazia a remoção
+              parecer inexistente, e quem queria tirar um filme do ar não
+              tinha como descobrir que o caminho é despublicar, esvaziar e
+              então apagar. Clicável de propósito: é o clique que responde
+              qual dos dois passos ainda falta (D30). */}
+          <button
+            type="button"
+            className="elo elo--perigo"
+            aria-disabled={publicado || sessoes.length > 0}
+            onClick={() => {
+              if (publicado) {
+                setErro('Evento publicado não é apagado direto: enquanto '
+                  + 'está no ar ele pode estar vendendo. Despublique '
+                  + 'primeiro.');
+              } else if (sessoes.length > 0) {
+                setErro(`Este rascunho ainda tem ${sessoes.length} `
+                  + 'sessão(ões). Apague as sessões da tabela acima antes.');
+              } else {
+                setErro(null);
+                setAApagar(true);
+              }
+            }}
+          >
+            Apagar evento
+          </button>
 
           <button
             type="button"
@@ -943,7 +961,7 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
                       ? <span className="motivo">{s.cancellation_reason}</span>
                       : `${vendidos}/${s.seats_total}`}
                   </td>
-                  <td className="tabela-num">
+                  <td className="tabela-acoes">
                     {!cancelada && (
                       <button
                         type="button"
@@ -952,6 +970,20 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
                         onClick={() => setACancelar(s)}
                       >
                         Cancelar
+                      </button>
+                    )}
+                    {/* Apagar só aparece quando não resta ingresso a avisar.
+                        Com venda viva o caminho é cancelar antes, e oferecer
+                        os dois lado a lado convidaria a escolher justamente
+                        o que não informa quem comprou (D36). */}
+                    {(cancelada || vendidos === 0) && (
+                      <button
+                        type="button"
+                        className="elo elo--perigo"
+                        disabled={ocupado}
+                        onClick={() => setAApagarSessao(s)}
+                      >
+                        Apagar
                       </button>
                     )}
                   </td>
@@ -971,8 +1003,8 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
 
       {aApagar && (
         <Confirmar
-          titulo="Apagar rascunho"
-          rotuloConfirmar="Apagar rascunho"
+          titulo="Apagar evento"
+          rotuloConfirmar="Apagar evento"
           aoFechar={() => setAApagar(false)}
           aoConfirmar={() => {
             setAApagar(false);
@@ -981,8 +1013,36 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
         >
           <p><span className="dialogo-destaque">{evento.title}</span></p>
           <p className="dialogo-consequencia">
-            O evento sai do sistema. Como não está publicado e não tem
-            sessões, ninguém comprou nada nele. Esta ação é irreversível.
+            O filme sai do catálogo do painel. Como não está publicado e não
+            tem sessões, ninguém comprou nada nele. Esta ação é irreversível.
+          </p>
+        </Confirmar>
+      )}
+
+      {aApagarSessao && (
+        <Confirmar
+          titulo="Apagar sessão"
+          rotuloConfirmar="Apagar sessão"
+          aoFechar={() => setAApagarSessao(null)}
+          aoConfirmar={() => {
+            const sessao = aApagarSessao;
+            setAApagarSessao(null);
+            agir(() => organizador.removerSessao(sessao.id));
+          }}
+        >
+          <p>
+            <span className="dialogo-destaque">{evento.title}</span>
+            {' · '}{quando(aApagarSessao.starts_at)}
+            {' · '}{aApagarSessao.venue_name}, {aApagarSessao.room_name}
+          </p>
+          <p className="dialogo-consequencia">
+            {aApagarSessao.cancelled_at
+              ? 'A sessão já está cancelada. Apagar leva junto o mapa de '
+                + 'poltronas e os ingressos estornados, e quem comprou '
+                + 'deixa de ver o motivo em Meus ingressos.'
+              : 'Nenhum ingresso vendido: a sessão sai do sistema sem '
+                + 'afetar ninguém.'}
+            {' '}Esta ação é irreversível.
           </p>
         </Confirmar>
       )}
