@@ -292,6 +292,14 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 
 **Migration no build e não no pre-deploy:** comando de pré-deploy exige instância paga. Com uma instância só e sem exigência de janela sem downtime, aplicar no build basta e mantém `alembic upgrade head` como o único caminho de mudança de schema.
 
+**A escolha de região saiu errada, e o erro tem nome.** O Render está em `oregon` e o Neon em `sa-east-1`, São Paulo. Medido: uma ida ao banco custa 15ms do Brasil e cerca de 250ms do Oregon, porque atravessa o hemisfério. É o custo fixo que sobrou depois de a D37 cortar o número de idas, e explica os 0,75s de uma rota que faz uma consulta trivial.
+
+O raciocínio que produziu o erro foi pôr o banco perto do usuário. **O banco tem de ficar perto da API, não perto do usuário:** o único cliente do Postgres é a API, e o usuário nunca fala com ele. Quem precisa estar perto do usuário é o front, e esse já está na borda da Vercel. A escolha otimizou uma conversa que não existe e penalizou a que existe, multiplicada por cada consulta de cada requisição.
+
+**Não foi corrigido, e isso é decisão e não esquecimento.** Mover o banco significa criar outro projeto no Neon, migrar e trocar a credencial no Render, na véspera da entrega, para ganhar cerca de um segundo numa tela que já responde em um e meio. O risco de deixar o ambiente publicado fora do ar vale mais do que o segundo. Fica registrado como o primeiro item a mudar se o projeto continuar.
+
+**O `pool_pre_ping` fica, apesar de custar uma ida inteira.** Ele dispara um `SELECT 1` antes de cada requisição para descartar conexão que o Neon derrubou por ociosidade. Trocá-lo por `pool_recycle` economizaria os 250ms, mas troca uma latência conhecida por uma falha ocasional de conexão, e num ambiente de demonstração o erro na tela custa mais caro que a espera.
+
 ---
 
 ## D18 · Credenciais de teste visíveis no ambiente publicado
