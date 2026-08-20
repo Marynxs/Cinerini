@@ -1,10 +1,12 @@
 """Cinemas, salas, eventos, sessões e a geração do mapa de assentos."""
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from typing import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import event as sa_event, func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -36,6 +38,22 @@ def _vender(db: Session, showing: Showing, users: dict[str, User],
     db.add(ingresso)
     db.commit()
     return ingresso
+
+
+@contextmanager
+def _contando_idas(db: Session) -> Iterator[list[str]]:
+    """Conta as instruções enviadas ao banco dentro do bloco."""
+    idas: list[str] = []
+
+    def anotar(conn, cursor, stmt, params, ctx, many) -> None:  # noqa: ANN001
+        idas.append(stmt)
+
+    bind = db.get_bind()
+    sa_event.listen(bind, "before_cursor_execute", anotar)
+    try:
+        yield idas
+    finally:
+        sa_event.remove(bind, "before_cursor_execute", anotar)
 
 
 class TestVenues:
@@ -372,6 +390,60 @@ class TestDeletingShowings:
         r = client.delete(f"/showings/{showing.id}", headers=auth("organizer"))
         assert r.status_code == 409
         assert "portaria" in r.json()["detail"]
+
+
+class TestQueryBudget:
+    """N+1 é invisível aqui e domina em produção.
+
+    O custo do padrão é o número de idas ao banco, não o trabalho de cada
+    uma. Na mesma máquina a ida é quase de graça e nada aparece; com a API
+    no Render e o banco no Neon, listar as sessões de um evento levava nove
+    segundos. Contar as idas é a única forma de o defeito falhar num teste.
+    """
+
+    def _sessoes(self, client: TestClient, auth, room: Room,
+                 quantas: int) -> int:
+        evento = client.post("/events", json={"title": "Com Muitas Sessões"},
+                             headers=auth("organizer")).json()
+        for dia in range(1, quantas + 1):
+            quando = (datetime.now(timezone.utc) + timedelta(days=dia)).isoformat()
+            client.post(f"/events/{evento['id']}/showings",
+                        json={"room_id": room.id, "starts_at": quando,
+                              "price_cents": 3200, "audio": "Dublado"},
+                        headers=auth("organizer"))
+        return evento["id"]
+
+    def test_listing_showings_costs_the_same_for_one_and_for_many(
+        self, client: TestClient, auth, db: Session, room: Room
+    ) -> None:
+        poucas = self._sessoes(client, auth, room, 1)
+        muitas = self._sessoes(client, auth, room, 12)
+
+        with _contando_idas(db) as uma:
+            assert len(client.get(f"/events/{poucas}/showings").json()) == 1
+
+        with _contando_idas(db) as doze:
+            assert len(client.get(f"/events/{muitas}/showings").json()) == 12
+
+        assert len(doze) == len(uma), (
+            f"a rota passou de {len(uma)} para {len(doze)} idas ao banco ao "
+            "sair de 1 para 12 sessões: o custo voltou a crescer com o "
+            "número de linhas"
+        )
+
+    def test_the_public_catalogue_does_not_grow_with_the_showings(
+        self, client: TestClient, auth, db: Session, room: Room
+    ) -> None:
+        evento = self._sessoes(client, auth, room, 12)
+        client.post(f"/events/{evento}/publish", headers=auth("organizer"))
+
+        with _contando_idas(db) as idas:
+            assert client.get("/events").status_code == 200
+
+        assert len(idas) <= 5, (
+            f"o catálogo público fez {len(idas)} idas ao banco; ele resolve "
+            "todas as sessões em lote e não deveria passar disso"
+        )
 
 
 class TestEditingVenues:

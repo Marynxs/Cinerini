@@ -133,6 +133,42 @@ def listar(db: Session, city: int | None = None) -> list[CatalogEventOut]:
     return list(catalogo.values())
 
 
+def listar_do_evento(db: Session, event_id: int) -> list[ShowingOut]:
+    """As sessões de um evento, publicadas ou não, com a ocupação de cada uma.
+
+    Montada em bloco, e não com uma chamada de `uma_sessao` por linha. Cada
+    `uma_sessao` custa três consultas, e o painel pede as sessões de todos os
+    eventos ao abrir: um evento com 13 sessões dava 39 idas ao banco para
+    responder o que cabe em três.
+
+    Não aparecia no desenvolvimento porque o custo do N+1 é o número de idas,
+    não o trabalho de cada uma, e na mesma máquina a ida é quase de graça. Com
+    a API no Render e o banco no Neon, as mesmas 39 viraram nove segundos por
+    evento.
+    """
+    linhas = db.execute(
+        select(Showing, Room, Venue, Event)
+        .join(Room, Showing.room_id == Room.id)
+        .join(Venue, Room.venue_id == Venue.id)
+        .join(Event, Showing.event_id == Event.id)
+        .where(Showing.event_id == event_id)
+        .order_by(Showing.starts_at)
+    ).all()
+
+    ids = [linha[0].id for linha in linhas]
+    totais = _total_por_sessao(db, ids)
+    ocupados = _ocupados_por_sessao(db, ids)
+
+    return [
+        montar_sessao(
+            showing, room, venue, event,
+            totais.get(showing.id, 0) - ocupados.get(showing.id, 0),
+            totais.get(showing.id, 0),
+        )
+        for showing, room, venue, event in linhas
+    ]
+
+
 def uma_sessao(db: Session, showing_id: int) -> ShowingOut | None:
     linha = db.execute(
         select(Showing, Room, Venue, Event)

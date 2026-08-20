@@ -62,6 +62,7 @@ Verificar sempre contra o artefato que vai para produção, nunca contra um subs
 - API subida por `python dev.py`, que recusa começar se a porta estiver ocupada. `uvicorn --reload` encerrado à força deixa processo filho vivo herdando o socket, e vários servidores passam a dividir a porta com versões diferentes do código em memória.
 - Percurso ponta a ponta por HTTP contra o servidor rodando, e não pelo `TestClient` em processo. Só o primeiro exercita serialização, CORS e o contrato realmente publicado.
 - Alteração em qualquer arquivo da API só está verificada depois de o processo reiniciar. Ele carrega o que existia ao subir, e o sintoma muda com o que mudou: **schema** faltando chega no front como `undefined`, sem erro; **rota** renomeada faz o caminho novo casar com o antigo, e `/events/managed` caiu em `/events/{event_id}` e devolveu *"unable to parse string as an integer"*, apontando para o front quando a causa era o servidor.
+- Latência medida em produção, nunca no `localhost`. O custo de N+1 é o número de idas ao banco, e na mesma máquina a ida é quase de graça: 39 consultas somavam 0,62s aqui e 9s com a API no Render e o banco no Neon. Rota que devolve coleção tem o custo de idas fixado em teste (D37).
 Antes de afirmar que algo funciona, conferir o contrato servido em `/openapi.json`, não o schema no arquivo.
 
 ## Commits

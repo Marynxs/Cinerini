@@ -38,12 +38,6 @@ def generate_seats(db: Session, showing: Showing) -> int:
     return len(seats)
 
 
-def has_seats(db: Session, showing_id: int) -> bool:
-    return db.scalar(
-        select(Seat.id).where(Seat.showing_id == showing_id).limit(1)
-    ) is not None
-
-
 def taken_seat_ids(db: Session, showing_id: int) -> set[int]:
     """Assentos com ingresso vivo: vendidos ou em checkout.
 

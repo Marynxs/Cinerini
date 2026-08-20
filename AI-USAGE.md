@@ -159,6 +159,9 @@ Fui operar o painel como organizador e trouxe o que não funcionava: sessão nov
 **Escolhi o desenho da remoção em vez de aceitar o proposto.**
 Diante de três caminhos para apagar uma sessão vendida, recusei o botão único que apaga tudo e recusei o filtro que só esconde. Ficou o caminho em dois passos: cancelar, que avisa o motivo a quem comprou, e só então apagar. Sessão que já passou pela portaria não sai nunca, porque o registro da entrada é o que sustenta a terceira garantia. A mesma escolha valeu para o evento: despublicar, esvaziar, apagar, com o botão visível o tempo todo dizendo qual passo falta, em vez de sumir sem explicação (D36).
 
+**Trouxe a lentidão e a pista que resolveu o caso.**
+Reclamei que o painel levava de dez a quinze segundos para mostrar os eventos e que, enquanto isso, a tela afirmava não haver sessão nenhuma em vez de dizer que estava carregando. Ao ser questionado, acrescentei que no `localhost` era rápido, e foi essa frase que fechou o diagnóstico: era N+1, cujo custo é o número de idas ao banco e não o trabalho de cada uma, por isso invisível na máquina onde API e Postgres são vizinhos e dominante com um no Render e o outro no Neon. Virou consulta em lote, uma rodada a menos na tela e um teste que conta as idas (D37).
+
 ## Ajustes surgidos na verificação
 
 **`passlib` e `python-jose` trocados por `bcrypt` e `PyJWT`.**

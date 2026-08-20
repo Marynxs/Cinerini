@@ -54,6 +54,7 @@ O corpo segue ordem cronológica; o índice agrupa por assunto.
 
 **Infraestrutura**  
 [D17](#d17--deploy-em-três-serviços-com-o-banco-fora-do-render) Deploy em três serviços, com o banco fora do Render  
+[D37](#d37--ocupação-em-lote-e-o-orçamento-de-idas-ao-banco-virou-teste) Ocupação em lote, e o orçamento de idas ao banco virou teste  
 [D34](#d34--compose-sobe-o-sistema-sem-credencial-da-máquina) Compose sobe o sistema sem credencial da máquina  
 ---
 
@@ -638,3 +639,21 @@ Do jeito anterior, a tela oferecia "tentar outro cartão" e o pedido já estava 
 **A limpeza é explícita porque o banco não a faz:** `tickets.seat_id` e `orders.showing_id` não têm cascata. As poltronas saem junto com a sessão pela cascata do ORM, e sem apagar ingresso e pedido antes sobrariam linhas apontando para o vazio. A ordem é a inversa das dependências: `share_links`, `tickets`, `orders`, sessão.
 
 **O botão de apagar evento passou a aparecer sempre**, inclusive quando não dá. Escondê-lo enquanto o evento estava publicado ou tinha sessão fazia a remoção parecer inexistente, e quem queria tirar um filme do ar não tinha como descobrir que o caminho é despublicar, esvaziar e então apagar. Clicável de propósito, com `aria-disabled` em vez de `disabled`: é o clique que responde qual dos dois passos ainda falta, e `disabled` tira do foco justamente o elemento que tem a explicação.
+
+---
+
+## D37 · Ocupação em lote, e o orçamento de idas ao banco virou teste
+
+**Decidido:** toda rota que devolve uma coleção resolve totais e ocupação em consultas agrupadas, nunca uma chamada por linha. Dois testes contam as idas ao banco e falham se o custo voltar a crescer com o número de linhas.
+
+**Descartado:** cache na aplicação, e paginar a lista de sessões do painel.
+
+**O defeito:** `GET /events/{id}/showings` chamava `uma_sessao` por linha, e cada chamada custava três consultas. Um evento com 13 sessões fazia 39 idas ao banco. O catálogo público já resolvia todos os eventos em três, porque busca totais e ocupações com um `IN` e um `GROUP BY`; a rota do painel nunca tinha recebido o mesmo tratamento.
+
+**Por que não apareceu antes:** o custo do N+1 é o número de idas, não o trabalho de cada uma. Em desenvolvimento a API e o Postgres estão na mesma máquina e a ida é quase de graça, então 39 somavam 0,62s e passavam despercebidas. Com a API no Render e o banco no Neon, em serviços separados, as mesmas 39 viraram 9 segundos. O defeito é invisível de um lado e dominante do outro, e é por isso que ele precisa falhar num teste em vez de esperar alguém reclamar.
+
+**Por que não cache:** invalidar é o problema, não guardar. A ocupação muda a cada compra, e um cache aqui trocaria uma lentidão honesta por um número errado na tela do organizador, que é justamente quem precisa do número certo.
+
+**Por que não paginar:** paginar reduziria o número de linhas por resposta sem reduzir o custo por linha, e a lista do painel tem dezenas de sessões, não milhares. Corrige o sintoma na metade dos casos e deixa o padrão de pé.
+
+**O orçamento é comparativo, não absoluto:** o teste não fixa "três consultas", fixa que o custo de 12 sessões é igual ao de 1. Um número absoluto quebraria a cada mudança inocente de consulta e seria atualizado sem ninguém pensar; a comparação só quebra quando o padrão volta.

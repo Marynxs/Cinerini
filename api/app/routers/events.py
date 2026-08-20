@@ -8,10 +8,10 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.deps import DbSession, Organizer
-from app.models import Event, EventStatus, Room, Showing, User
-from app.catalog import listar, uma_sessao
+from app.models import Event, EventStatus, Room, Seat, Showing, User
+from app.catalog import listar, listar_do_evento, uma_sessao
 from app.schemas import CatalogEventOut, EventIn, EventOut, ShowingIn, ShowingOut
-from app.seating import generate_seats, has_seats
+from app.seating import generate_seats
 from app.tmdb import movie_details
 
 router = APIRouter(prefix="/events", tags=["eventos"])
@@ -140,10 +140,17 @@ def publish(event_id: int, db: DbSession, organizer: Organizer) -> Event:
             "Cadastre ao menos uma sessão antes de publicar.",
         )
 
-    # Publicar é o gatilho da geração: enquanto é rascunho, o organizador
-    # ainda troca a sala livremente porque não há mapa nem venda.
+    # Só as sessões anteriores à geração na criação chegam aqui sem mapa.
+    # Quais já o têm sai numa consulta, e não numa por sessão: um evento com
+    # treze sessões fazia treze idas ao banco para descobrir o que cabe numa.
+    com_mapa = set(db.scalars(
+        select(Seat.showing_id)
+        .where(Seat.showing_id.in_([s.id for s in event.showings]))
+        .distinct()
+    ))
+
     for showing in event.showings:
-        if not has_seats(db, showing.id):
+        if showing.id not in com_mapa:
             generate_seats(db, showing)
 
     event.status = EventStatus.PUBLISHED
@@ -171,13 +178,7 @@ def list_showings(event_id: int, db: DbSession) -> list[ShowingOut]:
     if db.get(Event, event_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Evento não encontrado.")
 
-    sessoes = db.scalars(
-        select(Showing)
-        .where(Showing.event_id == event_id)
-        .order_by(Showing.starts_at)
-    ).all()
-
-    return [uma_sessao(db, s.id) for s in sessoes]
+    return listar_do_evento(db, event_id)
 
 
 @router.post(
