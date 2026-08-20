@@ -68,13 +68,20 @@ export function Organizer() {
       setVenues(cinemas);
       setEventos(meus);
 
-      const porCinema = await Promise.all(
-        cinemas.map(async (v) => [v.id, await catalogo.salas(v.id)] as const));
-      setSalas(Object.fromEntries(porCinema));
-
-      const porEvento = await Promise.all(
-        meus.map(async (e) => [e.id, await catalogo.sessoes(e.id)] as const));
-      setSessoes(Object.fromEntries(porEvento));
+      /* Salas e sessões na mesma rodada: nenhuma das duas depende da outra,
+         e encadeá-las somava uma ida ao servidor que ninguém precisava
+         esperar. Cada uma guarda o que trouxe assim que chega, em vez de
+         esperar a outra: juntá-las num só `await` fazia o formulário de
+         nova sessão dizer "cadastre um cinema" enquanto os cinemas já
+         estavam na mão, presos atrás da busca mais lenta. */
+      await Promise.all([
+        Promise.all(cinemas.map(
+          async (v) => [v.id, await catalogo.salas(v.id)] as const))
+          .then((r) => setSalas(Object.fromEntries(r))),
+        Promise.all(meus.map(
+          async (e) => [e.id, await catalogo.sessoes(e.id)] as const))
+          .then((r) => setSessoes(Object.fromEntries(r))),
+      ]);
     } catch (e) {
       setErro((e as Error).message);
     }
@@ -155,7 +162,7 @@ export function Organizer() {
                 <Evento
                   key={evento.id}
                   evento={evento}
-                  sessoes={sessoes[evento.id] ?? []}
+                  sessoes={sessoes[evento.id]}
                   salas={todasSalas}
                   venues={venues}
                   aoMudar={recarregar}
@@ -845,7 +852,8 @@ function NovoEvento({ aoCriar }: { aoCriar: () => void }) {
 
 interface EventoProps {
   evento: EventOut;
-  sessoes: ShowingOut[];
+  /** `undefined` enquanto a busca não voltou; `[]` é evento sem sessão. */
+  sessoes: ShowingOut[] | undefined;
   salas: Room[];
   venues: Venue[];
   aoMudar: () => void;
@@ -872,6 +880,12 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
   }
 
   const publicado = evento.status === 'published';
+  /* Lista ausente e lista vazia diziam a mesma coisa na tela, e a tela
+     afirmava "nenhuma sessão cadastrada" durante os segundos em que ainda
+     estava buscando. Zero que significa "não sei" é o mesmo defeito que a
+     ocupação 0/0 tinha. */
+  const carregando = sessoes === undefined;
+  const lista = sessoes ?? [];
 
   return (
     <article className="evento">
@@ -894,14 +908,16 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
           <button
             type="button"
             className="elo elo--perigo"
-            aria-disabled={publicado || sessoes.length > 0}
+            aria-disabled={publicado || carregando || lista.length > 0}
             onClick={() => {
-              if (publicado) {
+              if (carregando) {
+                setErro('As sessões deste evento ainda estão carregando.');
+              } else if (publicado) {
                 setErro('Evento publicado não é apagado direto: enquanto '
                   + 'está no ar ele pode estar vendendo. Despublique '
                   + 'primeiro.');
-              } else if (sessoes.length > 0) {
-                setErro(`Este rascunho ainda tem ${sessoes.length} `
+              } else if (lista.length > 0) {
+                setErro(`Este rascunho ainda tem ${lista.length} `
                   + 'sessão(ões). Apague as sessões da tabela acima antes.');
               } else {
                 setErro(null);
@@ -915,8 +931,9 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
           <button
             type="button"
             className="botao-compacto botao-compacto--vazado"
-            disabled={ocupado || (!publicado && sessoes.length === 0)}
-            title={!publicado && sessoes.length === 0
+            disabled={ocupado || carregando
+              || (!publicado && lista.length === 0)}
+            title={!publicado && !carregando && lista.length === 0
               ? 'Cadastre uma sessão antes de publicar' : undefined}
             onClick={() => agir(() => publicado
               ? organizador.despublicar(evento.id)
@@ -929,7 +946,9 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
 
       {erro && <p className="motivo" style={{ padding: '0 var(--e4)' }}>{erro}</p>}
 
-      {sessoes.length === 0 ? (
+      {carregando ? (
+        <Carregando aviso={false} />
+      ) : lista.length === 0 ? (
         <p className="vazio-linha">Nenhuma sessão cadastrada.</p>
       ) : (
         <table className="tabela">
@@ -945,7 +964,7 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
             </tr>
           </thead>
           <tbody>
-            {sessoes.map((s) => {
+            {lista.map((s) => {
               const cancelada = Boolean(s.cancelled_at);
               const vendidos = s.seats_total - s.seats_available;
 

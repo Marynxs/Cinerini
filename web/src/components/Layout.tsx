@@ -78,7 +78,12 @@ export function Voltar({ para, texto }: { para: string; texto: string }) {
    em seguida. */
 const ESPERA_LONGA_MS = 4000;
 
-export function Carregando({ texto = 'Carregando' }: { texto?: string }) {
+export function Carregando(
+  /* `aviso` desliga a nota sobre hibernação. Ela explica a espera da
+     primeira visita e vale uma vez por tela; repetida dentro de cada cartão
+     de evento, vira três parágrafos idênticos dizendo o óbvio. */
+  { texto = 'Carregando', aviso = true }: { texto?: string; aviso?: boolean },
+) {
   const [demorando, setDemorando] = useState(false);
 
   useEffect(() => {
@@ -93,7 +98,7 @@ export function Carregando({ texto = 'Carregando' }: { texto?: string }) {
       {/* O aviso existe porque o plano gratuito religa devagar e não há como
           impedir isso. Dizer o motivo é o que separa "está lento" de "está
           quebrado", e é o que evita o avaliador achar que o sistema caiu. */}
-      {demorando && (
+      {aviso && demorando && (
         <p className="aviso-demora">
           O servidor gratuito hiberna quando fica sem uso. Religar leva até
           um minuto, e só na primeira visita.
