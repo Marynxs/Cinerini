@@ -32,6 +32,10 @@ skills-lock.json
 # Enunciado do desafio: material da Verzel, não redistribuir
 Desafio-Elite-Dev-2026.pdf
 
+# Saída do servidor MCP do Playwright: capturas e árvores de página
+# gravadas durante a conferência, regeneráveis a cada execução.
+.playwright-mcp/
+
 # Sistema
 .DS_Store
 Thumbs.db
