@@ -54,7 +54,7 @@ try {
   # a de produção com o host trocado: mesma senha, que a restauração preserva.
   $conferir = @"
 cd /opt/cinerini
-url=`$(sed -n 's/^DATABASE_URL=//p' .env.api | sed 's/@[^:]*:/@$endpoint:/')
+url=`$(sed -n 's/^DATABASE_URL=//p' .env.api | sed 's/@[^:]*:/@${endpoint}:/')
 docker compose -f docker-compose.prod.yml run --rm -e DATABASE_URL="`$url" api python -c "
 from sqlalchemy import text
 from app.db import engine
