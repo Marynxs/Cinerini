@@ -947,7 +947,7 @@ function Evento({ evento, sessoes, salas, venues, aoMudar }: EventoProps) {
       {erro && <p className="motivo" style={{ padding: '0 var(--e4)' }}>{erro}</p>}
 
       {carregando ? (
-        <Carregando aviso={false} />
+        <Carregando />
       ) : lista.length === 0 ? (
         <p className="vazio-linha">Nenhuma sessão cadastrada.</p>
       ) : (

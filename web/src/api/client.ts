@@ -1,7 +1,7 @@
 /* Cliente HTTP.
 
    Camada única entre as telas e a API: nenhuma tela chama fetch direto. É o
-   que permite tratar token, erro e hibernação do servidor num lugar só.
+   que permite tratar token e erro num lugar só.
 */
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -94,16 +94,4 @@ export async function request<T>(
   if (!resposta.ok) throw extrairErro(resposta.status, corpo);
 
   return corpo as T;
-}
-
-/** Acorda a API antes de o cliente precisar dela.
-
-    O plano gratuito do Render hiberna após inatividade, e religar leva
-    dezenas de segundos. Chamar /health assim que a página abre gasta esse
-    tempo enquanto a pessoa ainda está lendo a tela, em vez de deixá-la
-    esperando depois do primeiro clique.
-
-    Falha em silêncio de propósito: é otimização, não requisito. */
-export function aquecer(): void {
-  fetch(`${BASE}/health`).catch(() => {});
 }

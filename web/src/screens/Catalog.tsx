@@ -115,8 +115,7 @@ function filtrar(filmes: CatalogEvent[], termo: string): CatalogEvent[] {
 
     Não é cache com prazo: a busca acontece igual, toda vez. O que isto evita
     é a tela se apagar antes de ter o que colocar no lugar: voltar ao
-    catálogo mostrava "Buscando sessões" sobre um vazio, e com a API
-    hibernando isso vira meio minuto de tela em branco.
+    catálogo mostrava "Buscando sessões" sobre um vazio a cada volta.
 
     Prazo de validade seria a solução errada aqui: a resposta carrega
     `seats_available`, e servir isso velho marcaria como disponível uma

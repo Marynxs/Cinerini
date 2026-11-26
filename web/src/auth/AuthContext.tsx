@@ -3,7 +3,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { aquecer, token as guardado } from '../api/client';
+import { token as guardado } from '../api/client';
 import { auth as api } from '../api/endpoints';
 import type { User } from '../api/types';
 
@@ -22,10 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    // Acorda a API antes de qualquer clique: no plano gratuito ela hiberna,
-    // e religar demora. Esse tempo passa enquanto a pessoa lê a tela.
-    aquecer();
-
     if (!guardado.get()) {
       setCarregando(false);
       return;

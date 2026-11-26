@@ -6,8 +6,8 @@ test.describe('catálogo', () => {
   test('lista os filmes em cartaz com data, local e preço', async ({ page }) => {
     await page.goto('/');
 
-    // Espera pelo conteúdo, e não por um tempo fixo: a API do plano gratuito
-    // hiberna, e um `waitForTimeout` ora sobra ora falta.
+    // Espera pelo conteúdo, e não por um tempo fixo: o tempo de resposta da
+    // API varia, e um `waitForTimeout` ora sobra ora falta.
     const cartoes = page.getByRole('heading', { level: 2 });
     await expect(cartoes.first()).toBeVisible({ timeout: 60_000 });
     expect(await cartoes.count()).toBeGreaterThan(0);
