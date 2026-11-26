@@ -9,7 +9,10 @@
 name: testes
 
 on:
+  # Na main quem chama este arquivo é o deploy-aws.yml; ouvir o push também
+  # rodaria a mesma suíte duas vezes por commit.
   push:
+    branches-ignore: [main]
   pull_request:
   workflow_call:
 

@@ -1,0 +1,133 @@
+# Deploy da API na AWS: testes, imagem no ECR, troca na EC2.
+#
+# Push na main publica o commit. Rollback: Actions → deploy-aws → Run
+# workflow, informando o SHA completo de um commit cuja imagem ainda está no
+# ECR (as cinco mais recentes). Rollback não desfaz migration.
+#
+# Nenhuma chave da AWS no GitHub: cada job troca um token OIDC, válido por
+# minutos, por credenciais temporárias da role cinerini-github-deploy.
+
+name: deploy-aws
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "SHA completo de uma imagem já no ECR (rollback). Vazio: publica o commit atual."
+        required: false
+        default: ""
+
+# Dois deploys ao mesmo tempo disputariam a mesma máquina; o segundo espera.
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ROLE_ARN: arn:aws:iam::618042349946:role/cinerini-github-deploy
+  ECR_REPOSITORY: cinerini-api
+
+jobs:
+  test:
+    if: inputs.image_tag == ''
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    if: inputs.image_tag == ''
+    # Runner ARM: a EC2 é Graviton, e a imagem precisa ser arm64. Emular
+    # ARM num runner x86 funcionaria, com o build várias vezes mais lento.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # A tag é o SHA completo: imutável no ECR, aponta para um commit exato.
+      - name: Build e push
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE" api
+          docker push "$IMAGE"
+
+  deploy:
+    needs: build
+    # Roda depois do build, ou sozinho num rollback, quando o build é pulado.
+    if: >-
+      always() && (needs.build.result == 'success' ||
+      (inputs.image_tag != '' && needs.build.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ inputs.image_tag || github.sha }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Localizar a instância
+        run: |
+          read -r id ip < <(aws ec2 describe-instances \
+            --filters Name=tag:Project,Values=cinerini Name=instance-state-name,Values=running \
+            --query "Reservations[0].Instances[0].[InstanceId,PublicIpAddress]" --output text)
+          if [ -z "$id" ] || [ "$id" = "None" ]; then
+            echo "::error::Nenhuma instância do projeto em execução."; exit 1
+          fi
+          echo "INSTANCE_ID=$id" >> "$GITHUB_ENV"
+          echo "API_URL=https://${ip//./-}.sslip.io" >> "$GITHUB_ENV"
+
+      # Os arquivos de deploy vêm do mesmo commit da imagem, e não da main:
+      # num rollback, compose e imagem voltam juntos.
+      - name: Executar o deploy na instância
+        run: |
+          account=$(aws sts get-caller-identity --query Account --output text)
+          image="$account.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$TAG"
+          base="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$TAG/deploy"
+          cmd="set -eu; mkdir -p /opt/cinerini; cd /opt/cinerini"
+          cmd="$cmd; for f in docker-compose.prod.yml Caddyfile deploy.sh; do curl -fsSL $base/\$f -o \$f; done"
+          cmd="$cmd; bash deploy.sh $image"
+          jq -n --arg c "$cmd" '{commands: [$c], executionTimeout: ["900"]}' > params.json
+
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy $TAG" \
+            --parameters file://params.json \
+            --query Command.CommandId --output text)
+
+          # O waiter da CLI desiste em 100 segundos, menos que um deploy com
+          # migration. A espera é feita aqui, até 15 minutos.
+          for _ in $(seq 1 90); do
+            sleep 10
+            status=$(aws ssm get-command-invocation --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Pending|InProgress|Delayed) continue ;; *) break ;; esac
+          done
+
+          aws ssm get-command-invocation --command-id "$command_id" \
+            --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$command_id" \
+            --instance-id "$INSTANCE_ID" --query StandardErrorContent --output text >&2
+          [ "$status" = "Success" ] || { echo "::error::Deploy terminou como $status"; exit 1; }
+
+      # Conferido de fora, pelo mesmo caminho que o navegador usa.
+      - name: Conferir /health por HTTPS
+        run: curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$API_URL/health"
