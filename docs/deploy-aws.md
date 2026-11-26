@@ -192,6 +192,8 @@ A métrica de saúde é publicada pela própria instância, a cada minuto, pelo 
 
 O backup automático guarda um dia, o máximo do plano gratuito: a restauração alcança qualquer minuto das últimas 24 horas.
 
+Medido em 26/11/2026: **RPO de 252 segundos e RTO de 8 min 09 s.** O RPO acompanha o envio do log de transações do RDS, feito a cada cinco minutos, e é por isso que a perda máxima fica nessa faixa. O banco restaurado tinha 4 eventos, 36 sessões e 1 ingresso, contra os 3 eventos, 35 sessões e nenhum ingresso do seed: o evento publicado e o ingresso comprado minutos antes estavam lá.
+
 ## Teste de carga
 
 `loadtest/`, com k6:

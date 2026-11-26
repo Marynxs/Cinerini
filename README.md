@@ -288,7 +288,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 
 **Sem proteção contra ataque de volume distribuído.** O teto por IP e a fila de requisições seguram abuso de uma origem ou de poucas; milhares de IPs ao mesmo tempo derrubariam a API. A resposta prevista é fechar o site por uma variável do Terraform, e não um WAF, que custaria mais que a aplicação inteira (D40).
 
-**Backup do banco de um dia.** É o máximo que o plano gratuito da conta permite no RDS. A restauração cobre qualquer minuto das últimas 24 horas; um erro percebido depois disso não tem volta.
+**Backup do banco de um dia.** É o máximo que o plano gratuito da conta permite no RDS. A restauração cobre qualquer minuto das últimas 24 horas; um erro percebido depois disso não tem volta. A restauração foi testada, não presumida: RPO de 252 segundos e RTO de 8 minutos, com os dados criados minutos antes presentes no banco restaurado (`docs/deploy-aws.md`).
 
 **O endereço depende do sslip.io.** O domínio da API é o próprio IP escrito como nome, resolvido por um DNS de terceiro. Se o serviço sair do ar, a API fica inalcançável mesmo funcionando. Um domínio próprio elimina a dependência.
 
