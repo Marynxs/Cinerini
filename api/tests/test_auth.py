@@ -22,8 +22,13 @@ class TestRegister:
         assert r.status_code == 201
         assert r.json()["access_token"]
 
-    def test_always_creates_a_customer(self, client: TestClient) -> None:
+    def test_always_creates_a_customer(
+        self, client: TestClient, users: dict[str, User]
+    ) -> None:
         """Aceitar o papel do corpo deixaria qualquer visitante virar organizador."""
+        # `users` garante que este não é o primeiro cadastro: em banco vazio a
+        # regra do primeiro organizador (D22) vale, e o teste passaria a
+        # depender de o banco já estar semeado.
         r = client.post("/auth/register", json={**NOVO, "role": "organizer"})
         assert r.json()["user"]["role"] == "customer"
 
