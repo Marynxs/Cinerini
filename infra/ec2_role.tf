@@ -75,6 +75,28 @@ data "aws_iam_policy_document" "ec2_runtime" {
   }
 }
 
+data "aws_iam_policy_document" "ec2_health" {
+  # PutMetricData não aceita recurso específico; a condição prende a
+  # permissão ao namespace do projeto.
+  statement {
+    sid       = "PublishHealth"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["Cinerini"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_health" {
+  name   = "health"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ec2_health.json
+}
+
 resource "aws_iam_role_policy" "ec2_runtime" {
   name   = "runtime"
   role   = aws_iam_role.ec2.id

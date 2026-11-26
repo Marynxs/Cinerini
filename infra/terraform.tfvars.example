@@ -1,0 +1,8 @@
+# Copie para terraform.tfvars e preencha. O terraform.tfvars fica fora do Git.
+
+# Seu IP público com /32, o único autorizado no SSH.
+# Descubra com: (Invoke-RestMethod https://checkip.amazonaws.com).Trim()
+admin_cidr = "203.0.113.10/32"
+
+# Recebe os alarmes. A AWS manda um e-mail de confirmação antes do primeiro.
+alert_email = "voce@exemplo.com"

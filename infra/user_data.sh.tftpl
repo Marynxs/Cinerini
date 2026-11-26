@@ -1,0 +1,71 @@
+#!/bin/bash
+# Preparo da instância, executado uma única vez, no primeiro boot.
+# Deixa a máquina pronta para receber o deploy: Docker, Compose, swap e a
+# verificação de saúde. Não sobe a aplicação, que é papel do deploy.
+set -euo pipefail
+
+# 1 GB de RAM é justo para API, Caddy e o próprio Docker. O swap absorve um
+# pico em vez de o kernel matar um processo por falta de memória.
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=1024
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+fi
+
+dnf install -y docker
+systemctl enable --now docker
+
+# O Compose não está nos repositórios do Amazon Linux. Versão fixa, para que
+# uma máquina recriada amanhã rode o mesmo que a de hoje.
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-aarch64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/cinerini
+
+# Saúde vista de fora: HTTPS pelo domínio público, passando por DNS,
+# certificado, Caddy e API. Publica 1 ou 0 no CloudWatch a cada minuto, e o
+# alarme dispara quando o valor cai ou para de chegar.
+cat > /usr/local/bin/cinerini-health <<'SCRIPT'
+#!/bin/bash
+token=$(curl -s -X PUT http://169.254.169.254/latest/api/token \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+ip=$(curl -s -H "X-aws-ec2-metadata-token: $token" \
+  http://169.254.169.254/latest/meta-data/public-ipv4)
+if curl -sf --max-time 10 "https://$${ip//./-}.sslip.io/health" > /dev/null; then
+  value=1
+else
+  value=0
+fi
+aws cloudwatch put-metric-data --region ${region} \
+  --namespace Cinerini --metric-name HealthCheck --value "$value"
+SCRIPT
+chmod +x /usr/local/bin/cinerini-health
+
+# Timer do systemd, e não cron: o Amazon Linux 2023 não traz o cron.
+cat > /etc/systemd/system/cinerini-health.service <<'UNIT'
+[Unit]
+Description=Publica a saude da API no CloudWatch
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cinerini-health
+UNIT
+
+cat > /etc/systemd/system/cinerini-health.timer <<'UNIT'
+[Unit]
+Description=Verificacao de saude da API a cada minuto
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now cinerini-health.timer

@@ -10,6 +10,8 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+# Variáveis pessoais (IP e e-mail); o formato está no .example.
+*.tfvars
 
 # Python
 __pycache__/

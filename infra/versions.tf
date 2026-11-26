@@ -10,7 +10,7 @@
 # cobrando e passam a ter de ser removidos à mão.
 
 terraform {
-  required_version = ">= 1.10"
+  required_version = ">= 1.11"
 
   required_providers {
     aws = {
