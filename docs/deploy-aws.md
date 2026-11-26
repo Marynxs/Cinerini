@@ -201,6 +201,8 @@ O backup automático guarda um dia, o máximo do plano gratuito: a restauração
 
 Corrida com 500 clientes, no compose de produção local: **1 reserva aceita, 499 recusadas com 409, nenhum outro status, 1 ingresso no banco**. A primeira execução travou tudo até o tempo limite do pool; o defeito está na D39.
 
+Leitura contra a AWS, a partir do Brasil: p95 de 291 ms e nenhum erro em 232 requisições. Os logs JSON da mesma janela dão p95 de 13 ms para `/events` dentro do servidor: quase todo o tempo é a rede até `us-east-1`, e uma região mais próxima é o que reduziria a latência, não o código.
+
 ## Apagar tudo
 
 ```bash

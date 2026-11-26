@@ -235,7 +235,9 @@ A garantia 1 testada sob concorrência real: 500 clientes diferentes reservando 
 | Erros ou outros status | 0 |
 | Ingressos no banco para a poltrona | **1** |
 
-Rodado no compose de produção, com Postgres 18 (`loadtest/`, procedimento em `docs/deploy-aws.md`). A primeira execução não vendeu nada: todas as requisições travaram até o tempo limite do pool de conexões, num deadlock entre as threads do FastAPI e as conexões do SQLAlchemy que só aparece acima de algumas dezenas de requisições simultâneas. O defeito e a correção estão na D39.
+Rodado no compose de produção, com Postgres 18 (`loadtest/`, procedimento em `docs/deploy-aws.md`).
+
+Contra a AWS, a leitura do catálogo responde com **p95 de 291 ms vista do Brasil e de 13 ms dentro do servidor**, sem nenhum erro em 232 requisições. A diferença é a distância até a Virgínia: a API responde em cerca de 11 ms, e o resto é rede. A primeira execução não vendeu nada: todas as requisições travaram até o tempo limite do pool de conexões, num deadlock entre as threads do FastAPI e as conexões do SQLAlchemy que só aparece acima de algumas dezenas de requisições simultâneas. O defeito e a correção estão na D39.
 
 As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
 
