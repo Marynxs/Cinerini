@@ -40,11 +40,12 @@ locals {
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
   security_group_id = aws_security_group.api.id
-  description       = "HTTP: desafio do Let's Encrypt e redirecionamento para HTTPS"
-  cidr_ipv4         = local.web_cidr
-  ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
+  # Sem apóstrofo: a AWS só aceita a-zA-Z0-9 e . _-:/()#,@[]+=&;{}!$* aqui.
+  description = "HTTP: desafio do Lets Encrypt e redirecionamento para HTTPS"
+  cidr_ipv4   = local.web_cidr
+  ip_protocol = "tcp"
+  from_port   = 80
+  to_port     = 80
 }
 
 resource "aws_vpc_security_group_ingress_rule" "https" {
