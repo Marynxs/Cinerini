@@ -6,9 +6,9 @@ Plataforma de eventos e ingressos de cinema. O organizador publica sessões a pa
 
 *Cinerini*: cinema + Marini (meu sobrenome).
 
-**No ar:** [cinerini.vercel.app](https://cinerini.vercel.app) · API em [cinerini-api.onrender.com](https://cinerini-api.onrender.com) ([`/docs`](https://cinerini-api.onrender.com/docs))
+**No ar:** [cinerini.vercel.app](https://cinerini.vercel.app) · API na AWS em [54-157-43-152.sslip.io](https://54-157-43-152.sslip.io) ([`/docs`](https://54-157-43-152.sslip.io/docs))
 
-As contas de teste e o cartão que reprova o pagamento estão logo abaixo. A primeira visita pode levar até um minuto: o plano gratuito hiberna, e a própria tela explica isso enquanto religa.
+As contas de teste e o cartão que reprova o pagamento estão logo abaixo.
 
 ---
 
@@ -61,7 +61,8 @@ A exibição é conferida **antes** do estado do ingresso. Na ordem inversa, rec
 | Front | React + Vite, TypeScript | Sem SSR: o back-end é o FastAPI, e o Next.js só somaria conceito |
 | Estilo | CSS puro com variáveis | Framework de estilo traz a estética dele junto, que é a cara que o desafio manda evitar |
 | Back | FastAPI + SQLAlchemy 2.0 + Alembic | Validação por anotação de tipo, OpenAPI automático, migrations versionadas |
-| Banco | PostgreSQL 18 (Neon) | As garantias vivem em constraints, e índice parcial é recurso dele |
+| Banco | PostgreSQL 18 (Amazon RDS) | As garantias vivem em constraints, e índice parcial é recurso dele |
+| Infra | AWS (EC2, RDS, ECR), Terraform, GitHub Actions | Infraestrutura declarada e recriável com um comando; deploy sem chave de acesso guardada |
 | Auth | PyJWT (HS256) + bcrypt | Sem `passlib` nem `python-jose`: o primeiro quebra com bcrypt 5.x, o segundo está sem manutenção |
 | Catálogo | TMDb | Filme em cartaz → sessão → poltrona é a cadeia que justifica o mapa de assentos |
 
@@ -130,23 +131,25 @@ npm run dev                   # sobe em http://localhost:5173
 
 ## Deploy
 
-Três serviços, todos em plano gratuito. O porquê de cada um está em `docs/DECISOES.md` como D17.
+API e banco na AWS, front na Vercel. A operação completa (arquitetura, custo, segredos, deploy, rollback e como apagar tudo) está em [`docs/deploy-aws.md`](docs/deploy-aws.md); o porquê, na D38.
 
-| Serviço | O quê | Configuração |
+| Peça | Onde | Configuração |
 |---|---|---|
-| Neon | PostgreSQL | Fora do Render de propósito: o Postgres gratuito de lá expira em 30 dias |
-| Render | API | `render.yaml`, na raiz |
-| Vercel | Front | `web/vercel.json`, com *Root Directory* em `web/` |
+| API | EC2 t4g.micro, atrás do Caddy com TLS automático | `deploy/`, `infra/ec2.tf` |
+| Banco | RDS PostgreSQL 18, sem IP público, mesma zona da EC2 | `infra/rds.tf` |
+| Imagem | ECR, tag imutável por commit | `infra/ecr.tf` |
+| Pipeline | GitHub Actions: testes, build arm64, deploy por SSM | `.github/workflows/deploy-aws.yml` |
+| Front | Vercel | `web/vercel.json`, com *Root Directory* em `web/` |
 
-**API.** No Render, *New → Blueprint*, apontando para o repositório. O `render.yaml` declara build, start, health check e as variáveis; as marcadas `sync: false` são preenchidas no painel: `DATABASE_URL` (a string do Neon, com o driver `postgresql+psycopg`), `TMDB_API_KEY` e `CORS_ORIGINS`. O `SECRET_KEY` é gerado uma vez na criação: **trocá-lo invalida todo QR já emitido**, porque é ele que assina os códigos de ingresso.
+**Infraestrutura em Terraform.** `terraform apply` em `infra/` cria tudo, e `terraform destroy` apaga tudo. Custo estimado de US$ 25 por mês, sem NAT Gateway nem Load Balancer.
 
-A migration roda no build. O seed **não** roda no Render: o plano gratuito não dá acesso ao shell do serviço, e não precisa, porque o banco é o mesmo Neon usado no desenvolvimento, então `python -m app.seed` executado da máquina local popula a instância que a produção lê.
+**Deploy a cada push na `main`.** O workflow roda a suíte num Postgres 18, publica a imagem no ECR e manda a EC2 baixá-la, migrar e trocar o contêiner. Não há chave da AWS no GitHub: cada execução troca um token OIDC por credenciais de minutos, aceitas só para a `main` deste repositório. A migration roda antes da troca, e falhando a versão anterior segue no ar.
 
-Um banco só para os dois ambientes é escolha de escopo, não descuido: o sistema não guarda dado real e existe para ser percorrido. Num sistema em uso seriam dois bancos, e o seed teria de rodar por um job de deploy em vez de por uma máquina de desenvolvimento.
+**Segredos no SSM Parameter Store**, nunca no repositório nem no estado do Terraform. O `SECRET_KEY` assina os códigos de ingresso: **trocá-lo invalida todo QR já emitido**.
 
-**Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com a URL do serviço no Render. O `vercel.json` existe por um motivo só: o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
+**Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com o endereço da API. O `vercel.json` existe por um motivo só: o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
 
-**Ordem.** O front precisa da URL da API, e o `CORS_ORIGINS` da API precisa do domínio do front. Sobe a API primeiro com um valor provisório, publica o front, e volta para corrigir o `CORS_ORIGINS` com o domínio definitivo.
+**Reserva no Render.** O `render.yaml` continua válido e sobe a API com banco no Neon, como antes da AWS (D17). Voltar para ele é trocar o `VITE_API_URL` da Vercel.
 
 ---
 
@@ -171,7 +174,7 @@ A portaria trabalha no Cine Belas Artes e **nasce sem turno escolhido**: ao entr
 
 Contas de funcionário são criadas pelo organizador, na aba *Equipe* do painel, escolhendo o **cinema**. Qual sessão a pessoa atende é decisão dela, a cada turno (D24).
 
-**Para criar um organizador:** numa instalação vazia, o primeiro cadastro nasce organizador. Havendo um, ele promove um funcionário escolhido em lista, na aba *Equipe* do painel. Quem é promovido deixa de ser funcionário, e revogar o papel o devolve à equipe, de modo que as duas operações se desfazem uma à outra (D32). Não há comando de linha para isso porque o plano gratuito do Render não dá acesso ao shell, e um comando deixaria a instalação publicada sem caminho nenhum (D22).
+**Para criar um organizador:** numa instalação vazia, o primeiro cadastro nasce organizador. Havendo um, ele promove um funcionário escolhido em lista, na aba *Equipe* do painel. Quem é promovido deixa de ser funcionário, e revogar o papel o devolve à equipe, de modo que as duas operações se desfazem uma à outra (D32). Não há comando de linha para isso: o caminho é o da interface, que existe em qualquer instalação (D22).
 
 **Para validar sem dois aparelhos:** cada ingresso mostra, embaixo do QR, o código para digitação. Abra "Meus ingressos" numa aba, copie o código, e cole no campo da portaria em outra. A digitação existe para quando a câmera falha, e serve igualmente para demonstrar num computador só (D20).
 
@@ -202,11 +205,13 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 273 casos, sem rede e sem chave do TMDb
+pytest                  # 279 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
 Cada teste roda dentro de uma transação desfeita ao final, com savepoints para que o `commit` do código sob teste funcione sem persistir. Isso permite rodar a suíte **contra o mesmo banco de desenvolvimento sem destruir os dados semeados**.
+
+No GitHub, a suíte roda a cada push num Postgres 18 vazio, só com as migrations (`.github/workflows/ci.yml`), e é a primeira etapa do deploy. O banco vazio é o que pega teste que só passava por contar com o seed.
 
 As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
 
@@ -253,9 +258,13 @@ Declaradas porque existem, não porque passaram despercebidas.
 
 **Não há recuperação de senha**, nem envio de e-mail, nem nota fiscal, nem revenda entre usuários, todos fora de escopo pelo enunciado.
 
-**Um banco serve desenvolvimento e produção.** A consequência é concreta e já aconteceu: aplicar uma migration na máquina de desenvolvimento altera o schema que a produção lê, e a API publicada continua rodando o código anterior até o próximo deploy. Nessa janela toda consulta à tabela alterada falha. A ordem segura é publicar o código antes de migrar, ou aceitar a janela sabendo que ela existe. Dois bancos resolveriam, ao custo de manter dois seeds e duas cadeias de migration por dois dados que não são reais.
+**Uma instância só.** Sem Load Balancer nem segunda máquina, o deploy troca o contêiner no lugar e há alguns segundos sem resposta, e uma falha da EC2 tira a API do ar até a recuperação automática da AWS. Duas instâncias atrás de um balanceador resolveriam, por mais que o dobro do custo atual (D38).
 
-**A API e o banco estão em regiões distantes.** O Render fica em Oregon e o Neon em São Paulo, e cada ida ao banco custa cerca de 250ms em vez dos 15ms medidos de dentro do Brasil. Sobra como custo fixo por requisição, depois de as consultas terem sido reduzidas ao mínimo (D37). A escolha original pôs o banco perto do usuário, quando quem precisa dele por perto é a API: o usuário nunca fala com o Postgres. Não foi corrigido porque mover o banco na véspera da entrega arriscaria o ambiente publicado para ganhar cerca de um segundo (D17).
+**Backup do banco de um dia.** É o máximo que o plano gratuito da conta permite no RDS. A restauração cobre qualquer minuto das últimas 24 horas; um erro percebido depois disso não tem volta.
+
+**O endereço depende do sslip.io.** O domínio da API é o próprio IP escrito como nome, resolvido por um DNS de terceiro. Se o serviço sair do ar, a API fica inalcançável mesmo funcionando. Um domínio próprio elimina a dependência.
+
+**Rollback não desfaz migration.** Voltar para uma imagem anterior a uma mudança de schema exige `alembic downgrade` manual antes (`docs/deploy-aws.md`).
 
 **Cinemas não têm dono.** Qualquer organizador cadastra, edita e remove cinema, sala e funcionário, inclusive de outro organizador. Eventos e sessões são protegidos por dono, o cadastro de locais não. É o que impede abrir o cadastro de organizador ao público, como fazem Sympla e Eventbrite: sem cercar o local primeiro, o catálogo ficaria à mercê de quem aparecesse. O caminho é dar `organizer_id` ao `Venue`, e não foi percorrido por escopo (D22).
 
@@ -272,7 +281,8 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado, em 34 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado, em 38 decisões |
+| `docs/deploy-aws.md` | Arquitetura na AWS, custo, deploy, rollback e como apagar tudo |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |
 | `Prototipos/` | Protótipo da sala de cinema desenhado antes da tela existir |

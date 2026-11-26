@@ -75,7 +75,7 @@ Nos commits que tocam as quatro garantias, o corpo registra a alternativa descar
 
 ## Infraestrutura na AWS
 
-Em migração a partir do Render, que segue no ar como reserva até a AWS estar validada: não alterar `render.yaml`.
+API e banco na AWS (D38, operação em `docs/deploy-aws.md`); o front segue na Vercel por decisão, não por pendência. O Render fica como reserva: não alterar `render.yaml`.
 
 - `infra/`: Terraform, região `us-east-1`. Estado local em `infra/terraform.tfstate`, fora do Git. Recurso criado pelo Terraform só se altera pelo Terraform; mudança pelo console é desfeita no próximo `apply`.
 - `deploy/`: compose de produção (API atrás do Caddy, banco no RDS). Só o Caddy publica porta; é isso que torna `TRUST_PROXY=true` seguro.

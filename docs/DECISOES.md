@@ -665,3 +665,29 @@ O raciocínio que produziu o erro foi pôr o banco perto do usuário. **O banco 
 **Por que não paginar:** paginar reduziria o número de linhas por resposta sem reduzir o custo por linha, e a lista do painel tem dezenas de sessões, não milhares. Corrige o sintoma na metade dos casos e deixa o padrão de pé.
 
 **O orçamento é comparativo, não absoluto:** o teste não fixa "três consultas", fixa que o custo de 12 sessões é igual ao de 1. Um número absoluto quebraria a cada mudança inocente de consulta e seria atualizado sem ninguém pensar; a comparação só quebra quando o padrão volta.
+
+---
+
+## D38 · API na AWS: EC2 com Caddy, banco no RDS, tudo em Terraform
+
+**Decidido:** a API sai do Render para uma EC2 t4g.micro em `us-east-1`, com Caddy à frente fazendo TLS, e o banco sai do Neon para um RDS PostgreSQL 18 na mesma zona da EC2. Imagem no ECR, deploy pelo GitHub Actions com OIDC e SSM Run Command, segredos no Parameter Store, infraestrutura inteira em `infra/`. Operação em `docs/deploy-aws.md`. O Render fica configurado como reserva.
+
+**Descartado:** ECS Fargate, Load Balancer, VPC própria com sub-rede privada, CloudFront, Postgres em contêiner na própria EC2, e chave de acesso da AWS guardada no GitHub.
+
+**Por que EC2 e não Fargate:** a aplicação é um processo de vida longa (D17), e uma instância só, sem escala, é o caso em que o orquestrador gerenciado cobra pela abstração sem entregar nada. Fargate exigiria também um Load Balancer para ter endereço fixo e TLS.
+
+**Por que não Load Balancer nem CloudFront:** o ALB custa sozinho perto de dois terços do resto da conta, e o certificado que ele forneceria o Caddy obtém e renova de graça. O CloudFront deixaria a origem aberta em HTTP ou pediria mais uma camada de configuração, para cachear uma API que não tem o que cachear.
+
+**Por que a VPC padrão:** a sub-rede privada é o desenho de referência, mas a EC2 nela precisaria de NAT Gateway para baixar imagem e falar com o SSM, e o NAT custa mais que todo o resto somado. A proteção fica nos Security Groups: a API não publica porta, só o Caddy recebe 80 e 443, e o banco aceita conexão apenas de quem carrega o grupo da API, sem IP público.
+
+**Por que RDS e não Postgres em contêiner:** o contêiner na mesma máquina sairia mais barato e funcionaria. O RDS custa cerca de metade da conta e entrega backup com restauração por minuto, atualização menor e troca de disco sem intervenção. A escolha foi pagar pela operação gerenciada. O plano gratuito da conta limita a retenção do backup a um dia.
+
+**Corrige o erro registrado na D17.** API e banco agora estão na mesma zona de disponibilidade, e a ida ao banco deixa de atravessar o hemisfério. É a correção que aquela decisão nomeou como a primeira a fazer se o projeto continuasse.
+
+**Deploy sem chave e sem porta.** O workflow troca um token OIDC do GitHub por credenciais de minutos, e a role só aceita o `sub` deste repositório na `main`, com os IDs numéricos do dono e do repositório: o nome sozinho aceitaria um repositório recriado com o mesmo nome por outra conta. O comando chega à máquina pelo agente do SSM, então o deploy não depende da porta 22, que só aceita o IP do administrador.
+
+**Migration antes da troca de contêiner, e fora da inicialização da imagem.** Falhando, a versão anterior segue no ar. O seed deixou de rodar a cada subida em produção e passou a ser executado uma vez, à mão: o banco de produção não é mais o de desenvolvimento, como era com o Neon.
+
+**Senha do banco fora do estado do Terraform.** Lida por recurso `ephemeral` e enviada por atributo write-only. Com o atributo comum, ela ficaria em texto puro no `terraform.tfstate`, que é o arquivo que mais circula numa equipe.
+
+**Domínio do sslip.io.** O nome carrega o próprio IP, o que dá ao Let's Encrypt um domínio válido sem registro. O custo é depender de um DNS de terceiro e mudar de endereço se o Elastic IP for trocado. Um domínio próprio é a troca natural quando houver um.
