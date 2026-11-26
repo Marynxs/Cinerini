@@ -3,6 +3,14 @@
 .env.*
 !.env.example
 
+# Terraform: o estado registra o que existe na conta e fica só na máquina de
+# quem aplica. O .terraform.lock.hcl vai versionado, para que todo `init`
+# baixe a mesma versão do provider.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
 # Python
 __pycache__/
 *.py[cod]
