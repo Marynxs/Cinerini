@@ -12,6 +12,13 @@ name: deploy-aws
 on:
   push:
     branches: [main]
+    # Documentação e front não mudam o que roda na EC2. Sem o filtro, cada
+    # commit deles trocaria o contêiner e passaria dez minutos testando a API.
+    paths:
+      - "api/**"
+      - "deploy/**"
+      - ".github/workflows/deploy-aws.yml"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
     inputs:
       image_tag:
