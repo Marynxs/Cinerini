@@ -1,0 +1,27 @@
+# Proxy reverso da API: HTTPS automático e o único caminho até ela.
+#
+# O certificado é pedido ao Let's Encrypt na primeira requisição e renovado
+# sozinho. Com API_DOMAIN=localhost, o Caddy usa uma autoridade própria e
+# local, o que permite conferir este arquivo fora da AWS.
+#
+# X-Forwarded-For: sem `trusted_proxies` configurado, o Caddy descarta o valor
+# que o cliente mandou e grava o IP de quem abriu a conexão. É isso que torna
+# TRUST_PROXY=true seguro do lado da API.
+
+{
+	servers {
+		# Sem HTTP/3: ele roda sobre UDP 443, e abrir mais uma porta no
+		# Security Group para ganho nenhum numa API de JSON não compensa.
+		protocols h1 h2
+	}
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# Sem includeSubDomains: o domínio é um subdomínio do sslip.io, e a
+	# política não tem por que valer para os vizinhos.
+	header Strict-Transport-Security "max-age=31536000"
+
+	reverse_proxy api:8000
+}

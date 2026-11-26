@@ -1,0 +1,86 @@
+# Produção na EC2: a API atrás do Caddy, o banco no RDS.
+#
+#     docker compose -f docker-compose.prod.yml up -d --wait
+#
+# Lê dois arquivos ao lado deste, gerados na instância a cada deploy e nunca
+# versionados (ver .env.example):
+#   .env      o que não é segredo: imagem, domínio, região. O Compose o lê
+#             sozinho para interpolar este arquivo.
+#   .env.api  os segredos, vindos do SSM Parameter Store. Só a API o recebe:
+#             o Caddy não tem por que enxergar a chave que assina ingressos.
+#
+# O banco não está aqui. Ele é o RDS, e a API o alcança pela DATABASE_URL.
+
+# Logs direto para o CloudWatch, sem agente instalado na máquina: o próprio
+# Docker entrega cada linha. Não bloqueante, para que uma lentidão do
+# CloudWatch descarte log em vez de travar a escrita da aplicação e, com ela,
+# as requisições.
+x-cloudwatch: &cloudwatch
+  driver: awslogs
+  options:
+    awslogs-region: ${AWS_REGION:-us-east-1}
+    awslogs-group: ${LOG_GROUP:-/cinerini/api}
+    mode: non-blocking
+    max-buffer-size: 4m
+    tag: "{{.Name}}"
+
+services:
+  api:
+    # Imagem pronta do ECR, marcada com o commit. A EC2 não compila nada:
+    # roda exatamente o artefato que passou nos testes do workflow.
+    image: ${API_IMAGE:?defina API_IMAGE com a imagem do ECR}
+
+    # Só o servidor. A imagem, por padrão, migra e semeia antes de subir,
+    # que é o comportamento certo para o Compose de desenvolvimento. Aqui a
+    # migration é um passo próprio do deploy, antes da troca do contêiner:
+    # falhando, a versão anterior continua no ar. O seed roda uma vez, à mão.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+    env_file: .env.api
+    environment:
+      # Fixado aqui, e não no SSM, porque a condição que o torna seguro está
+      # neste arquivo: a API não publica porta, e o único caminho até ela é
+      # o Caddy, que descarta o X-Forwarded-For vindo de fora.
+      TRUST_PROXY: "true"
+
+    # Sem `ports`: a 8000 existe só na rede interna do Compose. Publicada, ela
+    # daria um caminho que contorna o Caddy, e por ele o cliente escolheria o
+    # próprio IP no limite de tentativas.
+
+    healthcheck:
+      # A imagem slim não traz curl; Python ela tem.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    restart: unless-stopped
+    logging: *cloudwatch
+
+  caddy:
+    image: caddy:2.10-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?defina API_DOMAIN, por exemplo 1-2-3-4.sslip.io}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # O certificado precisa sobreviver à recriação do contêiner. Perdido a
+      # cada deploy, cada subida pediria um novo ao Let's Encrypt, e o limite
+      # semanal de emissões por domínio acabaria em poucos dias.
+      - caddy-data:/data
+      - caddy-config:/config
+
+    # Só abre a porta depois de a API responder, para não servir 502.
+    depends_on:
+      api:
+        condition: service_healthy
+
+    restart: unless-stopped
+    logging: *cloudwatch
+
+volumes:
+  caddy-data:
+  caddy-config:
