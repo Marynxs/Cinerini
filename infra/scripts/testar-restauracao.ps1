@@ -15,22 +15,24 @@ $ErrorActionPreference = 'Stop'
 $origem  = 'cinerini'
 $destino = 'cinerini-restore-test'
 
-function Aws { $out = & aws @args; if ($LASTEXITCODE) { throw "aws $($args -join ' ') falhou" }; $out }
+# Nome diferente de `aws`: o PowerShell não distingue maiúsculas, e uma função
+# chamada Aws que chama `aws` chamaria a si mesma até estourar a pilha.
+function Invoke-Aws { $out = & aws.exe @args; if ($LASTEXITCODE) { throw "aws $($args -join ' ') falhou" }; $out }
 
-$sg = Aws ec2 describe-security-groups --filters Name=group-name,Values=cinerini-db `
+$sg = Invoke-Aws ec2 describe-security-groups --filters Name=group-name,Values=cinerini-db `
   --query 'SecurityGroups[0].GroupId' --output text
-$instancia = Aws ec2 describe-instances `
+$instancia = Invoke-Aws ec2 describe-instances `
   --filters Name=tag:Project,Values=cinerini Name=instance-state-name,Values=running `
   --query 'Reservations[0].Instances[0].InstanceId' --output text
 
-$ultimo = [datetime](Aws rds describe-db-instances --db-instance-identifier $origem `
+$ultimo = [datetime](Invoke-Aws rds describe-db-instances --db-instance-identifier $origem `
   --query 'DBInstances[0].LatestRestorableTime' --output text)
 $rpo = (Get-Date) - $ultimo
 Write-Host ("Ultimo ponto restauravel: {0:u}  (RPO {1:N0} s)" -f $ultimo.ToUniversalTime(), $rpo.TotalSeconds)
 
 $inicio = Get-Date
 Write-Host "Restaurando em $destino..."
-Aws rds restore-db-instance-to-point-in-time `
+Invoke-Aws rds restore-db-instance-to-point-in-time `
   --source-db-instance-identifier $origem `
   --target-db-instance-identifier $destino `
   --use-latest-restorable-time `
@@ -43,11 +45,11 @@ Aws rds restore-db-instance-to-point-in-time `
 
 try {
   # O waiter da CLI desiste em 30 minutos; restauração costuma levar de 10 a 20.
-  Aws rds wait db-instance-available --db-instance-identifier $destino
+  Invoke-Aws rds wait db-instance-available --db-instance-identifier $destino
   $rto = (Get-Date) - $inicio
   Write-Host ("Instancia disponivel. RTO {0:mm\:ss}" -f $rto)
 
-  $endpoint = Aws rds describe-db-instances --db-instance-identifier $destino `
+  $endpoint = Invoke-Aws rds describe-db-instances --db-instance-identifier $destino `
     --query 'DBInstances[0].Endpoint.Address' --output text
 
   # Conferido de dentro da EC2, a única máquina que alcança o banco. A URL é
@@ -65,22 +67,27 @@ with engine.connect() as c:
 "@
   $params = @{ commands = @($conferir) } | ConvertTo-Json -Compress
   $params | Out-File -Encoding ascii "$env:TEMP\restore-params.json"
-  $cmd = Aws ssm send-command --instance-ids $instancia --document-name AWS-RunShellScript `
+  $cmd = Invoke-Aws ssm send-command --instance-ids $instancia --document-name AWS-RunShellScript `
     --parameters "file://$env:TEMP\restore-params.json" --comment 'teste de restauracao' `
     --query 'Command.CommandId' --output text
+  # Nos primeiros segundos o comando ainda não existe e a CLI escreve erro;
+  # com ErrorActionPreference em Stop, isso derrubaria o script no meio.
   do {
     Start-Sleep -Seconds 5
-    $status = & aws ssm get-command-invocation --command-id $cmd --instance-id $instancia --query Status --output text 2>$null
+    try {
+      $status = & aws.exe ssm get-command-invocation --command-id $cmd `
+        --instance-id $instancia --query Status --output text 2>$null
+    } catch { $status = 'Pending' }
   } while ($status -in @('Pending', 'InProgress', 'Delayed', $null, ''))
   Write-Host "Contagem no banco restaurado ($status):"
-  Aws ssm get-command-invocation --command-id $cmd --instance-id $instancia `
+  Invoke-Aws ssm get-command-invocation --command-id $cmd --instance-id $instancia `
     --query StandardOutputContent --output text
 }
 finally {
   Write-Host "Apagando $destino..."
-  & aws rds delete-db-instance --db-instance-identifier $destino `
+  & aws.exe rds delete-db-instance --db-instance-identifier $destino `
     --skip-final-snapshot --delete-automated-backups | Out-Null
-  & aws rds wait db-instance-deleted --db-instance-identifier $destino
+  & aws.exe rds wait db-instance-deleted --db-instance-identifier $destino
   Write-Host 'Instancia temporaria apagada.'
 }
 
