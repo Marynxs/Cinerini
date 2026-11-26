@@ -224,6 +224,10 @@ Cada teste roda dentro de uma transação desfeita ao final, com savepoints para
 
 No GitHub, a suíte roda a cada push num Postgres 18 vazio, só com as migrations (`.github/workflows/ci.yml`), e é a primeira etapa do deploy. O banco vazio é o que pega teste que só passava por contar com o seed.
 
+As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
+
+O TMDb é substituído por um duplo na suíte padrão, porque teste que depende de rede é lento, quebra sem internet e falha para quem não tem chave. Como o duplo concorda consigo mesmo por definição, os três testes de contrato batem na API real e verificam só o formato da resposta.
+
 ### Carga, com k6
 
 A garantia 1 testada sob concorrência real: 500 clientes diferentes reservando **a mesma poltrona no mesmo instante**.
@@ -235,13 +239,23 @@ A garantia 1 testada sob concorrência real: 500 clientes diferentes reservando 
 | Erros ou outros status | 0 |
 | Ingressos no banco para a poltrona | **1** |
 
-Rodado no compose de produção, com Postgres 18 (`loadtest/`, procedimento em `docs/deploy-aws.md`).
+Rodado no compose de produção, com Postgres 18 (`loadtest/`, procedimento em `docs/deploy-aws.md`). A primeira execução não vendeu nada: todas as requisições travaram até o tempo limite do pool de conexões, num deadlock entre as threads do FastAPI e as conexões do SQLAlchemy que só aparece acima de algumas dezenas de requisições simultâneas. O defeito e a correção estão na D39.
 
-Contra a AWS, a leitura do catálogo responde com **p95 de 291 ms vista do Brasil e de 13 ms dentro do servidor**, sem nenhum erro em 232 requisições. A diferença é a distância até a Virgínia: a API responde em cerca de 11 ms, e o resto é rede. A primeira execução não vendeu nada: todas as requisições travaram até o tempo limite do pool de conexões, num deadlock entre as threads do FastAPI e as conexões do SQLAlchemy que só aparece acima de algumas dezenas de requisições simultâneas. O defeito e a correção estão na D39.
+A suíte não enxerga esse tipo de defeito, porque faz uma requisição por vez. Por isso a corrida roda de novo sempre que muda o pool, o teto de requisições em andamento ou as bibliotecas que os controlam, como na atualização do SQLAlchemy 2.0 para 2.1, aprovada com o mesmo resultado acima.
 
-As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
+Contra a AWS, a leitura do catálogo responde com **p95 de 291 ms vista do Brasil e de 13 ms dentro do servidor**, sem nenhum erro em 232 requisições. A diferença é a distância até a Virgínia: a API responde em cerca de 11 ms, e o resto é rede.
 
-O TMDb é substituído por um duplo na suíte padrão, porque teste que depende de rede é lento, quebra sem internet e falha para quem não tem chave. Como o duplo concorda consigo mesmo por definição, os três testes de contrato batem na API real e verificam só o formato da resposta.
+### Dependências
+
+O Dependabot abre, toda semana, um pull request por ecossistema: bibliotecas da API, do front, imagem base, Actions e providers do Terraform. Correção de segurança vem fora do calendário. O critério para aceitar:
+
+| Atualização | O que precisa passar antes do merge |
+|---|---|
+| Actions, Terraform, imagem base | as verificações do próprio PR |
+| Front | as verificações e `npm run build` local: o CI não compila o front, só a Vercel no preview |
+| API | as verificações e a corrida do k6 contra a imagem do PR, pelo motivo acima |
+
+Merge na `main` que toque a API ou os workflows dispara o deploy, com varredura do Trivy e rollback automático se a versão nova não responder.
 
 ### Front, com Playwright
 
