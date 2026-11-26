@@ -12,6 +12,9 @@
 # RTO: do pedido de restauração até a instância aceitar conexão.
 
 $ErrorActionPreference = 'Stop'
+
+# Argumento com vírgula vai entre aspas: sem elas, o PowerShell transforma
+# `Name=a,Values=b` numa lista, e a CLI recebe System.Object[].
 $origem  = 'cinerini'
 $destino = 'cinerini-restore-test'
 
@@ -19,10 +22,10 @@ $destino = 'cinerini-restore-test'
 # chamada Aws que chama `aws` chamaria a si mesma até estourar a pilha.
 function Invoke-Aws { $out = & aws.exe @args; if ($LASTEXITCODE) { throw "aws $($args -join ' ') falhou" }; $out }
 
-$sg = Invoke-Aws ec2 describe-security-groups --filters Name=group-name,Values=cinerini-db `
+$sg = Invoke-Aws ec2 describe-security-groups --filters 'Name=group-name,Values=cinerini-db' `
   --query 'SecurityGroups[0].GroupId' --output text
 $instancia = Invoke-Aws ec2 describe-instances `
-  --filters Name=tag:Project,Values=cinerini Name=instance-state-name,Values=running `
+  --filters 'Name=tag:Project,Values=cinerini' 'Name=instance-state-name,Values=running' `
   --query 'Reservations[0].Instances[0].InstanceId' --output text
 
 $ultimo = [datetime](Invoke-Aws rds describe-db-instances --db-instance-identifier $origem `
@@ -41,7 +44,7 @@ Invoke-Aws rds restore-db-instance-to-point-in-time `
   --vpc-security-group-ids $sg `
   --no-publicly-accessible --no-multi-az `
   --backup-retention-period 0 `
-  --tags Key=Project,Value=cinerini Key=Purpose,Value=restore-test | Out-Null
+  --tags 'Key=Project,Value=cinerini' 'Key=Purpose,Value=restore-test' | Out-Null
 
 try {
   # O waiter da CLI desiste em 30 minutos; restauração costuma levar de 10 a 20.
