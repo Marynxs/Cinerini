@@ -1,0 +1,50 @@
+# Exceções declaradas ao checkov, com o motivo de cada uma.
+#
+# O checkov aplica a régua de um ambiente corporativo. Cada verificação
+# abaixo foi lida e recusada por custo ou por não se aplicar a uma API de
+# demonstração numa instância só. Verificação nova que falhar quebra o CI e
+# passa por esta mesma decisão, em vez de ser engolida em silêncio.
+
+framework: terraform
+compact: true
+quiet: true
+
+skip-check:
+  # ── Custo: chave KMS gerenciada pelo cliente, US$ 1 por mês cada.
+  # A criptografia em repouso existe em todos, com a chave da AWS.
+  - CKV_AWS_158   # log group com KMS próprio
+  - CKV_AWS_136   # ECR com KMS próprio
+  - CKV_AWS_145   # bucket do estado com KMS próprio (tem SSE-S3)
+  - CKV_AWS_297   # Scheduler com KMS próprio
+  - CKV_AWS_173   # variáveis da Lambda com KMS próprio (a única é o nome do projeto)
+  - CKV_AWS_26    # SNS cifrado: com a chave da AWS os alarmes do CloudWatch não publicam,
+                  # e a chave própria custa; o tópico só carrega aviso de alarme
+
+  # ── Custo: redundância e retenção que dobrariam ou multiplicariam a conta.
+  - CKV_AWS_157   # RDS Multi-AZ: dobra o banco para cobrir a queda de uma zona,
+                  # que a instância única de EC2 já não cobre (D38)
+  - CKV_AWS_144   # réplica do bucket do estado em outra região
+  - CKV_AWS_338   # log por 1 ano: 7 dias bastam para investigar, e log cobra por mês
+  - CKV_AWS_126   # monitoramento detalhado da EC2: métrica por minuto é cobrada
+  - CKV_AWS_118   # monitoramento avançado do RDS: idem
+  - CKV_AWS_353   # Performance Insights: não suportado na db.t4g.micro
+  - CKV_AWS_129   # exportar log do Postgres para o CloudWatch: ingestão cobrada
+  - CKV2_AWS_30   # log de consultas do Postgres: idem, e volume alto
+  - CKV_AWS_18    # log de acesso do bucket do estado: um segundo bucket para auditar o primeiro
+
+  # ── Não se aplica.
+  - CKV_AWS_260   # porta 80 aberta: o Let's Encrypt valida o domínio por ela,
+                  # e o Caddy só redireciona para 443
+  - CKV_AWS_293   # proteção contra exclusão do RDS: impediria apagar tudo com um
+                  # destroy, que é a garantia de custo do projeto
+  - CKV_AWS_161   # autenticação IAM no RDS: a API usa senha do Parameter Store,
+                  # e ligar sem usar só aumentaria a superfície
+  - CKV_AWS_135   # EBS otimizado: a família t4g já é por padrão
+  - CKV2_AWS_34   # parâmetro db-host sem cifra: é um endereço, não um segredo
+  - CKV2_AWS_62   # notificação de eventos do bucket do estado: ninguém consome
+  - CKV_AWS_117   # Lambda fora da VPC: de propósito, ela não fala com o banco
+  - CKV_AWS_116   # fila de mensagens mortas da Lambda: a falha já vira alarme
+  - CKV_AWS_115   # concorrência reservada: contas novas têm cota de 10, e reservar
+                  # para uma função diária esgotaria a reserva mínima da conta
+  - CKV_AWS_50    # X-Ray na Lambda: uma chamada por dia, sem cadeia a rastrear
+  - CKV_AWS_272   # assinatura de código da Lambda: o código vem do próprio repositório

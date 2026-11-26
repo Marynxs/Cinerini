@@ -145,7 +145,11 @@ API e banco na AWS, front na Vercel. A operação completa (arquitetura, custo, 
 
 **Deploy a cada push na `main`.** O workflow roda a suíte num Postgres 18, publica a imagem no ECR e manda a EC2 baixá-la, migrar e trocar o contêiner. Não há chave da AWS no GitHub: cada execução troca um token OIDC por credenciais de minutos, aceitas só para a `main` deste repositório. A migration roda antes da troca, e falhando a versão anterior segue no ar.
 
-**Segredos no SSM Parameter Store**, nunca no repositório nem no estado do Terraform. O `SECRET_KEY` assina os códigos de ingresso: **trocá-lo invalida todo QR já emitido**.
+**Segredos no SSM Parameter Store**, nunca no repositório nem no estado do Terraform. O `SECRET_KEY` assina os códigos de ingresso: **trocá-lo invalida todo QR já emitido**, e a API recusa subir com chave menor que 32 bytes, o mínimo do HS256.
+
+**A imagem é varrida antes de publicar.** O Trivy reprova vulnerabilidade alta ou crítica com correção disponível, e a imagem reprovada não chega ao ECR. Se a versão nova sobe e não responde por HTTPS, o deploy volta sozinho para a anterior.
+
+**Operação.** Logs em JSON no CloudWatch, painel com SLO de 99% de disponibilidade, alarmes por e-mail (saúde, 5xx, CPU, tráfego de saída), estado do Terraform no S3 com trava, e o Terraform verificado no CI por `tflint` e `checkov`. Detalhes em [`docs/deploy-aws.md`](docs/deploy-aws.md).
 
 **Front.** Na Vercel, importar o repositório com *Root Directory* em `web/`. Uma variável: `VITE_API_URL`, com o endereço da API. O `vercel.json` existe por um motivo só: o roteamento é do lado do cliente, e sem a reescrita para `index.html` qualquer link direto para `/meus-ingressos` cairia em 404 do servidor estático.
 
@@ -180,6 +184,8 @@ Contas de funcionário são criadas pelo organizador, na aba *Equipe* do painel,
 
 O seed é idempotente, e rodar duas vezes não duplica nada. Para refazer do zero: `python -m app.seed --reset`.
 
+**No ambiente publicado, tudo volta ao seed toda madrugada.** As contas são públicas e o organizador pode apagar o que quiser; o reset diário desfaz o estrago e recalcula as sessões a partir do dia (D40). Ingresso comprado lá dura até as 4h.
+
 ---
 
 ## Pagamento
@@ -205,13 +211,26 @@ Não foi feito por duas razões: colocaria um serviço externo no caminho críti
 
 ```bash
 cd api
-pytest                  # 279 casos, sem rede e sem chave do TMDb
+pytest                  # 290 casos, sem rede e sem chave do TMDb
 pytest -m contract      # 3 casos contra o TMDb real, precisa de chave
 ```
 
 Cada teste roda dentro de uma transação desfeita ao final, com savepoints para que o `commit` do código sob teste funcione sem persistir. Isso permite rodar a suíte **contra o mesmo banco de desenvolvimento sem destruir os dados semeados**.
 
 No GitHub, a suíte roda a cada push num Postgres 18 vazio, só com as migrations (`.github/workflows/ci.yml`), e é a primeira etapa do deploy. O banco vazio é o que pega teste que só passava por contar com o seed.
+
+### Carga, com k6
+
+A garantia 1 testada sob concorrência real: 500 clientes diferentes reservando **a mesma poltrona no mesmo instante**.
+
+| Resultado | |
+|---|---|
+| Reservas aceitas | **1** |
+| Recusadas com 409 | 499 |
+| Erros ou outros status | 0 |
+| Ingressos no banco para a poltrona | **1** |
+
+Rodado no compose de produção, com Postgres 18 (`loadtest/`, procedimento em `docs/deploy-aws.md`). A primeira execução não vendeu nada: todas as requisições travaram até o tempo limite do pool de conexões, num deadlock entre as threads do FastAPI e as conexões do SQLAlchemy que só aparece acima de algumas dezenas de requisições simultâneas. O defeito e a correção estão na D39.
 
 As garantias são testadas contra o schema, não contra rotas: um dos casos consulta o `pg_indexes` e confirma que o índice existe com a cláusula `WHERE`. Uma rota pode ser reescrita; a regra não pode ser enfraquecida sem quebrar esse teste.
 
@@ -258,7 +277,9 @@ Declaradas porque existem, não porque passaram despercebidas.
 
 **Não há recuperação de senha**, nem envio de e-mail, nem nota fiscal, nem revenda entre usuários, todos fora de escopo pelo enunciado.
 
-**Uma instância só.** Sem Load Balancer nem segunda máquina, o deploy troca o contêiner no lugar e há alguns segundos sem resposta, e uma falha da EC2 tira a API do ar até a recuperação automática da AWS. Duas instâncias atrás de um balanceador resolveriam, por mais que o dobro do custo atual (D38).
+**Uma instância só.** Sem Load Balancer nem segunda máquina, o deploy troca o contêiner no lugar e há alguns segundos sem resposta, e uma falha da EC2 tira a API do ar até a recuperação automática da AWS. O rollback automático encurta a queda causada por versão ruim, mas não a evita. Duas instâncias atrás de um balanceador resolveriam, por mais que o dobro do custo atual (D38).
+
+**Sem proteção contra ataque de volume distribuído.** O teto por IP e a fila de requisições seguram abuso de uma origem ou de poucas; milhares de IPs ao mesmo tempo derrubariam a API. A resposta prevista é fechar o site por uma variável do Terraform, e não um WAF, que custaria mais que a aplicação inteira (D40).
 
 **Backup do banco de um dia.** É o máximo que o plano gratuito da conta permite no RDS. A restauração cobre qualquer minuto das últimas 24 horas; um erro percebido depois disso não tem volta.
 
@@ -281,7 +302,7 @@ Declaradas porque existem, não porque passaram despercebidas.
 | Arquivo | O que responde |
 |---|---|
 | `docs/ESPECIFICACAO.md` | O que o sistema faz e quando está pronto |
-| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado, em 38 decisões |
+| `docs/DECISOES.md` | Por que faz assim, e o que foi descartado, em 40 decisões |
 | `docs/deploy-aws.md` | Arquitetura na AWS, custo, deploy, rollback e como apagar tudo |
 | `CLAUDE.md` | Contexto que restringe o agente de IA: garantias, tokens visuais, convenções |
 | `AI-USAGE.md` | Como a IA foi conduzida e onde a saída dela foi corrigida |

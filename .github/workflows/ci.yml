@@ -45,7 +45,9 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://cinerini:cinerini@localhost:5432/cinerini
-      SECRET_KEY: chave-de-teste-do-ci
+      # 32 bytes no mínimo: a API recusa subir com chave HMAC menor que o
+      # hash do HS256 (RFC 7518, 3.2).
+      SECRET_KEY: chave-de-teste-do-ci-com-ao-menos-32-bytes
 
     steps:
       - uses: actions/checkout@v5

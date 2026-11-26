@@ -1,0 +1,43 @@
+# Atualizações de dependência por pull request, uma vez por semana.
+#
+# Agrupadas por ecossistema para que a semana gere um PR de cada, e não um
+# por pacote: vinte PRs abertos viram ruído que ninguém lê. Correção de
+# segurança sai em PR próprio e fora do calendário, que é o padrão do
+# Dependabot e o caso em que a pressa se justifica.
+
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /api
+    schedule:
+      interval: weekly
+    groups:
+      api:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      web:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /api
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: terraform
+    directory: /infra
+    schedule:
+      interval: weekly

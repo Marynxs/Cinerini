@@ -5,17 +5,34 @@
 #     terraform apply      aplica
 #     terraform destroy    apaga tudo o que está aqui
 #
-# O estado fica local, em terraform.tfstate, fora do Git. Perdê-lo não apaga
-# nada na AWS, mas faz o Terraform esquecer o que criou: os recursos seguem
-# cobrando e passam a ter de ser removidos à mão.
+# O estado fica no S3, versionado e com trava (ver o backend abaixo e
+# `bootstrap/`). Perdê-lo não apaga nada na AWS, mas faz o Terraform esquecer
+# o que criou: os recursos seguem cobrando e passam a ter de ser removidos à
+# mão.
 
 terraform {
   required_version = ">= 1.11"
+
+  # Estado no S3, criado por `bootstrap/`. A trava é um objeto .tflock ao
+  # lado do estado: dois applies simultâneos, de duas máquinas ou de um
+  # terminal esquecido aberto, não sobrescrevem um ao outro. Sem DynamoDB,
+  # que o Terraform 1.10 tornou dispensável.
+  backend "s3" {
+    bucket       = "cinerini-tfstate-618042349946"
+    key          = "infra/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 6.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
     }
   }
 }

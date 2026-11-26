@@ -35,6 +35,19 @@ variable "alert_email" {
   description = "Recebe os alarmes."
 }
 
+# Emergência: true fecha 80 e 443 para todos menos admin_cidr.
+#     terraform apply -var lockdown=true
+variable "lockdown" {
+  type    = bool
+  default = false
+}
+
+# Horário do reset diário do ambiente de demonstração, em Brasília.
+variable "demo_reset_cron" {
+  type    = string
+  default = "cron(0 4 * * ? *)"
+}
+
 # A senha do banco não passa pelo estado, então o Terraform não percebe se
 # ela mudar no Parameter Store. Incrementar este número reenvia a senha.
 variable "db_password_version" {

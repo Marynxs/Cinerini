@@ -81,7 +81,9 @@ API e banco na AWS (D38, operação em `docs/deploy-aws.md`); o front segue na V
 - `deploy/`: compose de produção (API atrás do Caddy, banco no RDS). Só o Caddy publica porta; é isso que torna `TRUST_PROXY=true` seguro.
 - Segredos no SSM Parameter Store sob `/cinerini/*`. Nunca no repositório nem no estado do Terraform: senha do banco entra por recurso `ephemeral` e atributo write-only.
 - Deploy pelo GitHub Actions via OIDC. Nenhuma chave de acesso de longa duração.
-- Antes de criar recurso, informar o custo mensal estimado. A conta está no plano gratuito com créditos limitados.
+- Antes de criar recurso, informar o custo mensal estimado. A conta está no plano gratuito com créditos limitados, e o usuário recusa o que aumente a conta sem ser pedido.
+- O teto de requisições em andamento (`app/backpressure.py`) fica abaixo das conexões do pool e das threads do FastAPI (D39). Mexer em um dos três exige rodar `loadtest/corrida.js`: a suíte faz uma requisição por vez e não enxerga o travamento.
+- O ambiente publicado volta ao seed toda madrugada (D40). Dado criado lá não sobrevive, e isso é intencional.
 
 ## Fora de escopo
 

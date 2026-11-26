@@ -56,6 +56,9 @@ O corpo segue ordem cronológica; o índice agrupa por assunto.
 [D17](#d17--deploy-em-três-serviços-com-o-banco-fora-do-render) Deploy em três serviços, com o banco fora do Render  
 [D37](#d37--ocupação-em-lote-e-o-orçamento-de-idas-ao-banco-virou-teste) Ocupação em lote, e o orçamento de idas ao banco virou teste  
 [D34](#d34--compose-sobe-o-sistema-sem-credencial-da-máquina) Compose sobe o sistema sem credencial da máquina  
+[D38](#d38--api-na-aws-ec2-com-caddy-banco-no-rds-tudo-em-terraform) API na AWS: EC2 com Caddy, banco no RDS, tudo em Terraform  
+[D39](#d39--teto-de-requisições-em-andamento-achado-pelo-teste-de-carga) Teto de requisições em andamento, achado pelo teste de carga  
+[D40](#d40--ambiente-de-demonstração-refeito-todo-dia) Ambiente de demonstração refeito todo dia  
 ---
 
 ## D1 · Catálogo externo: TMDb em vez de Ticketmaster
@@ -691,3 +694,39 @@ O raciocínio que produziu o erro foi pôr o banco perto do usuário. **O banco 
 **Senha do banco fora do estado do Terraform.** Lida por recurso `ephemeral` e enviada por atributo write-only. Com o atributo comum, ela ficaria em texto puro no `terraform.tfstate`, que é o arquivo que mais circula numa equipe.
 
 **Domínio do sslip.io.** O nome carrega o próprio IP, o que dá ao Let's Encrypt um domínio válido sem registro. O custo é depender de um DNS de terceiro e mudar de endereço se o Elastic IP for trocado. Um domínio próprio é a troca natural quando houver um.
+
+---
+
+## D39 · Teto de requisições em andamento, achado pelo teste de carga
+
+**Decidido:** no máximo 30 requisições dentro da aplicação ao mesmo tempo (`app/backpressure.py`), com o pool de conexões em 40. O excedente espera numa fila antes de tocar no banco. Um teste trava a relação: o teto fica abaixo das conexões e das threads.
+
+**Descartado:** só aumentar o pool, e recusar o excedente com 503.
+
+**O defeito:** 500 reservas simultâneas da mesma poltrona (`loadtest/corrida.js`) não produziram venda dupla, produziram zero vendas. Todas ficaram de 30 a 60 segundos esperando e saíram com 500. O Postgres mostrava as conexões do pool em `idle in transaction`, paradas depois de carregar o usuário.
+
+**A causa:** o FastAPI roda código síncrono num pool de 40 threads, e uma requisição atravessa mais de uma: a dependência que autentica roda numa thread e já consulta o banco, segurando uma conexão, e a rota precisa de outra thread para continuar. Com o pool padrão de 15 conexões, 15 requisições seguravam as conexões à espera de thread, e as 40 threads estavam ocupadas por outras requisições à espera de conexão. Cada lado esperava o outro até o tempo limite do pool.
+
+**Por que aumentar o pool não bastou:** foi a primeira tentativa, com 40 conexões para 40 threads, e travou igual. O que não tinha teto era o número de requisições em andamento: 500 entram juntas, cada uma pode segurar conexão sem segurar thread, e qualquer pool menor que o pico trava do mesmo jeito. O que impede o ciclo é limitar quem entra a um número menor que as conexões e as threads. Assim toda requisição admitida encontra as duas livres.
+
+**Por que fila e não 503:** recusar o excedente transformaria um pico legítimo em erro para o cliente, e o teto por IP já recusa o volume abusivo antes. A fila converte o pico em espera: a mesma corrida passou a terminar com uma reserva aceita, 499 recusas e nenhum erro, com p95 de cinco segundos para quinhentas chegadas no mesmo instante.
+
+**Por que só o teste de carga achou:** a suíte faz uma requisição por vez, e o uso real em demonstração também. O travamento só existe acima de algumas dezenas de requisições simultâneas, e só um teste que as produz de propósito chega lá antes de um pico real.
+
+---
+
+## D40 · Ambiente de demonstração refeito todo dia
+
+**Decidido:** às 4h, o EventBridge Scheduler chama uma Lambda que manda a instância rodar `seed --reset` por SSM e espera o resultado. Falha vira alarme.
+
+**Descartado:** restringir o que as contas de teste podem fazer, esconder as contas, e WAF.
+
+**O risco:** as contas de teste são públicas desde a D18, e a do organizador pode apagar cinema, sala, sessão e funcionário. Vandalismo é a ameaça mais provável a um ambiente de demonstração, bem mais que um ataque de volume.
+
+**Por que não restringir a conta:** um organizador que não pode apagar não demonstra o fluxo de remoção da D36. Restringir esconderia justamente o que quem avalia quer ver. Com o reset, o estrago dura no máximo até a madrugada.
+
+**O reset também resolve o calendário:** o seed marca sessões pelas três semanas seguintes ao dia em que roda. Sem reset, o catálogo esvaziava sozinho três semanas depois do último seed.
+
+**Por que a Lambda não fala com o banco:** o RDS não tem IP público. Para conectar, a função precisaria entrar na VPC, levar o driver do Postgres empacotado e ler a senha. Mandando a própria instância rodar o seed, ela usa a imagem e as credenciais que já estão lá, e a função só precisa de permissão para mandar um comando.
+
+**Por que não WAF:** o mínimo do AWS WAF, com CloudFront ou balanceador na frente, custa mais que a aplicação inteira, para proteger um ambiente sem dado real. A defesa contra volume ficou nas camadas gratuitas: Shield Standard, Security Group, teto por IP, créditos de CPU que não viram cobrança, alarme de tráfego de saída e um interruptor no Terraform que fecha o site para todos menos o administrador.

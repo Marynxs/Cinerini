@@ -44,6 +44,7 @@ resource "aws_db_instance" "main" {
   # das últimas 24 horas; com plano pago, o valor pode subir até 35.
   backup_retention_period    = 1
   auto_minor_version_upgrade = true
+  copy_tags_to_snapshot      = true
   apply_immediately          = true
 
   # O destroy precisa apagar tudo de uma vez: um snapshot final continuaria

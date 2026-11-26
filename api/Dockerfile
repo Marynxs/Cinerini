@@ -13,10 +13,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# A imagem oficial é republicada de tempos em tempos, e entre uma publicação e
+# outra o Debian corrige pacotes do sistema. Aplicar as atualizações aqui fecha
+# essa janela sem esperar a próxima base.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
+
 # As dependências entram antes do código para que o cache de camada sobreviva
 # a qualquer alteração em `app/`. Só mudar `requirements.txt` reinstala.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+#
+# O pip sai depois de instalar: em execução ninguém instala nada, e ele traz
+# cópias próprias de urllib3, msgpack e setuptools que o scanner de
+# vulnerabilidades acusa sem que a aplicação jamais as carregue.
+RUN pip install --no-cache-dir -r requirements.txt \
+ && pip uninstall -y pip
 
 COPY . .
 

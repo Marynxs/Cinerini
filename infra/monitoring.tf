@@ -70,3 +70,23 @@ resource "aws_cloudwatch_metric_alarm" "health" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
 }
+
+# Tráfego de saída, a única cobrança que um ataque de volume geraria: os
+# primeiros 100 GB do mês são gratuitos, cerca de 140 MB por hora em média.
+# Um GB numa hora só acontece com abuso, e o alarme chega antes da fatura,
+# que o Budgets só atualiza algumas vezes por dia.
+resource "aws_cloudwatch_metric_alarm" "network_out" {
+  alarm_name          = "${var.project}-ec2-trafego-saida"
+  alarm_description   = "Mais de 1 GB de saida da EC2 em uma hora"
+  namespace           = "AWS/EC2"
+  metric_name         = "NetworkOut"
+  dimensions          = { InstanceId = aws_instance.api.id }
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1073741824
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+}

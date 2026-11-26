@@ -412,7 +412,7 @@ class TestTicketToken:
     ) -> None:
         forjado = jwt.encode(
             {"jti": ingresso["jti"], "shw": 1, "type": TOKEN_TYPE_TICKET},
-            "chave-errada", algorithm="HS256",
+            "chave-errada-com-tamanho-valido-de-32b", algorithm="HS256",
         )
         assert decode_token(forjado, TOKEN_TYPE_TICKET) is None
 

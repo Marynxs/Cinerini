@@ -12,6 +12,12 @@
 *.tfplan
 # Variáveis pessoais (IP e e-mail); o formato está no .example.
 *.tfvars
+# Pacote da Lambda, gerado a cada plan.
+infra/.build/
+
+# Saída da preparação do teste de carga: tokens assinados com a chave do
+# ambiente onde rodou.
+loadtest/*.json
 
 # Python
 __pycache__/

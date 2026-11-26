@@ -43,6 +43,9 @@ services:
       # o Caddy, que descarta o X-Forwarded-For vindo de fora.
       TRUST_PROXY: "true"
 
+      # Uma linha JSON por requisição, que o painel do CloudWatch consulta.
+      LOG_JSON: "true"
+
     # Sem `ports`: a 8000 existe só na rede interna do Compose. Publicada, ela
     # daria um caminho que contorna o Caddy, e por ele o cliente escolheria o
     # próprio IP no limite de tentativas.

@@ -65,12 +65,28 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       # A tag é o SHA completo: imutável no ECR, aponta para um commit exato.
-      - name: Build e push
-        env:
-          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+      # --pull para partir sempre da base mais recente, com as correções de
+      # segurança publicadas desde o último build.
+      - name: Build
         run: |
-          docker build -t "$IMAGE" api
-          docker push "$IMAGE"
+          echo "IMAGE=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> "$GITHUB_ENV"
+          docker build --pull -t "${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" api
+
+      # Antes do push: imagem reprovada não chega ao ECR e não pode ser
+      # implantada nem por rollback. Só falha com correção disponível, porque
+      # vulnerabilidade sem versão corrigida travaria todo deploy sem dar a
+      # ninguém o que fazer.
+      - name: Varredura de vulnerabilidades
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push
+        run: docker push "$IMAGE"
 
   deploy:
     needs: build

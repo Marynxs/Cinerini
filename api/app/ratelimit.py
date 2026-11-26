@@ -2,15 +2,16 @@
 
 Em memória e não em banco: gravar uma linha por tentativa transformaria cada
 requisição numa escrita, e um atacante encheria o disco só insistindo. O
-preço é que a contagem zera quando o processo reinicia, o que ocorre no Render, que
-hiberna por inatividade, isso acontece. É mitigação de custo, não garantia:
-encarece o ataque em massa sem prometer bloqueio absoluto.
+preço é que a contagem zera quando o processo reinicia, o que acontece a cada
+deploy. É mitigação de custo, não garantia: encarece o ataque em massa sem
+prometer bloqueio absoluto.
 """
 
 import time
 from collections import defaultdict, deque
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 
@@ -56,7 +57,7 @@ def client_ip(request: Request) -> str:
 
     X-Forwarded-For é forjável por quem fala direto com a aplicação, então só
     é lido quando a configuração declara que existe um proxy confiável à
-    frente, que em produção é o do Render, e sobrescreve o cabeçalho.
+    frente, que em produção é o Caddy, e sobrescreve o cabeçalho.
     """
     if get_settings().trust_proxy:
         forwarded = request.headers.get("x-forwarded-for")
@@ -93,8 +94,62 @@ def rate_limit(limit: int, window_seconds: int, scope: str):
 login_by_account = SlidingWindow(limit=8, window_seconds=900)
 
 
+class PerMinute:
+    """Teto de requisições por IP em cada minuto do relógio.
+
+    Contador por chave, e não a lista de horários da janela deslizante: sob
+    varredura distribuída, milhares de IPs com trezentos horários cada
+    esgotariam a memória de uma instância de 1 GB. Aqui cada IP custa um
+    inteiro, e tudo é descartado quando o minuto vira. O preço é a borda: um
+    cliente pode somar dois tetos na virada do minuto, o que não muda a ordem
+    de grandeza do que passa.
+    """
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self._minute = -1
+        self._counts: dict[str, int] = {}
+
+    def check(self, key: str) -> int:
+        """Devolve 0 se permitida, ou os segundos até o próximo minuto."""
+        now = time.time()
+        minute = int(now // 60)
+        if minute != self._minute:
+            self._minute = minute
+            self._counts = {}
+
+        count = self._counts.get(key, 0) + 1
+        self._counts[key] = count
+        if count > self.limit:
+            return max(1, 60 - int(now % 60))
+        return 0
+
+    def clear(self) -> None:
+        self._counts = {}
+
+
+per_ip_minute = PerMinute(limit=get_settings().requests_per_minute)
+
+# A verificação de saúde vem da própria instância a cada minuto e do Docker a
+# cada dez segundos; contada, ela ocuparia o teto do IP da máquina.
+_SEM_TETO = {"/health"}
+
+
+async def limit_per_ip(request: Request, call_next) -> Response:
+    if request.url.path not in _SEM_TETO:
+        wait = per_ip_minute.check(client_ip(request))
+        if wait:
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={"detail": "Muitas requisições. Aguarde alguns instantes."},
+                headers={"Retry-After": str(wait)},
+            )
+    return await call_next(request)
+
+
 def clear_all() -> None:
     """Zera todas as janelas. Usado por testes."""
     for window in _windows.values():
         window.clear()
     login_by_account.clear()
+    per_ip_minute.clear()

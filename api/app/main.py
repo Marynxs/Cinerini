@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.backpressure import limit_in_flight
 from app.config import get_settings
+from app.ratelimit import limit_per_ip
+from app.request_log import configure_json_logging, log_request
 from app.routers import (
     auth, bookings, catalog, events, gate, sharing, showings, venues,
 )
@@ -14,6 +17,17 @@ app = FastAPI(
     version="0.1.0",
 )
 
+if settings.log_json:
+    configure_json_logging()
+
+# O Starlette envolve na ordem inversa do registro: o primeiro fica por
+# dentro. O teto de requisições em andamento é o mais interno, para que a
+# fila dele só receba quem já passou pelo teto por IP. O teto por IP fica
+# dentro do CORS para que o 429 saia com os cabeçalhos de CORS, senão o
+# navegador o mostraria como erro de rede.
+app.middleware("http")(limit_in_flight)
+app.middleware("http")(limit_per_ip)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -21,6 +35,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Registrado depois do CORS, e por isso por fora dele: o Starlette envolve na
+# ordem inversa do registro. Assim o preflight também é medido e registrado.
+app.middleware("http")(log_request)
 
 
 app.include_router(auth.router)

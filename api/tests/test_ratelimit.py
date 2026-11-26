@@ -5,7 +5,7 @@ import time
 from fastapi.testclient import TestClient
 
 from app.models import User
-from app.ratelimit import SlidingWindow, login_by_account
+from app.ratelimit import PerMinute, SlidingWindow, login_by_account, per_ip_minute
 
 from .conftest import SENHA
 
@@ -113,3 +113,40 @@ class TestRegisterFlood:
 
         assert codigos[:20] == [201] * 20
         assert codigos[20] == 429
+
+
+class TestTetoPorIp:
+    """Teto geral, em todas as rotas, contra volume de robô."""
+
+    def test_bloqueia_acima_do_teto_e_diz_quanto_esperar(
+        self, client: TestClient, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(per_ip_minute, "limit", 3)
+        codigos = [client.get("/events").status_code for _ in range(4)]
+
+        assert codigos == [200, 200, 200, 429]
+        r = client.get("/events")
+        assert 1 <= int(r.headers["Retry-After"]) <= 60
+
+    def test_health_fica_fora_do_teto(
+        self, client: TestClient, monkeypatch
+    ) -> None:
+        """A verificação de saúde da própria instância não pode ocupar o teto."""
+        monkeypatch.setattr(per_ip_minute, "limit", 1)
+        assert all(client.get("/health").status_code == 200 for _ in range(5))
+
+    def test_ips_diferentes_tem_tetos_independentes(self) -> None:
+        teto = PerMinute(limit=1)
+        assert teto.check("a") == 0
+        assert teto.check("b") == 0
+        assert teto.check("a") > 0
+
+    def test_429_sai_com_cabecalho_de_cors(
+        self, client: TestClient, monkeypatch
+    ) -> None:
+        """Sem o cabeçalho, o navegador mostraria erro de rede, e não o 429."""
+        monkeypatch.setattr(per_ip_minute, "limit", 0)
+        r = client.get("/events", headers={"Origin": "http://localhost:5173"})
+
+        assert r.status_code == 429
+        assert r.headers["access-control-allow-origin"] == "http://localhost:5173"

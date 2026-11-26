@@ -119,7 +119,7 @@ class TestTokenIntegrity:
         self, client: TestClient
     ) -> None:
         outro = jwt.encode({"sub": "1", "role": "organizer", "type": "access"},
-                           "chave-errada", algorithm="HS256")
+                           "chave-errada-com-tamanho-valido-de-32b", algorithm="HS256")
         assert client.get(
             "/auth/me", headers={"Authorization": f"Bearer {outro}"}
         ).status_code == 401

@@ -169,7 +169,7 @@ class TestInvalid:
         """Garantia 2: sem a chave do servidor não se produz código aceito."""
         forjado = jwt.encode(
             {"jti": ticket.jti, "shw": showing.id, "type": TOKEN_TYPE_TICKET},
-            "chave-que-nao-e-a-do-servidor",
+            "chave-que-nao-e-a-do-servidor-mas-tem-32b",
             algorithm=ALGORITHM,
         )
         assert validar(client, auth, forjado)["result"] == "invalid"

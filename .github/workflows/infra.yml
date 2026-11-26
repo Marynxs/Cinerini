@@ -1,0 +1,60 @@
+# Verificação estática do Terraform: formato, validade, lint e segurança.
+#
+# Sem plan e sem credencial da AWS, de propósito. O plan lê a senha do banco
+# do Parameter Store (recurso ephemeral em rds.tf), e rodá-lo aqui exigiria
+# dar a uma role de CI acesso a esse segredo em todo pull request, inclusive
+# nos do Dependabot. O plan e o apply seguem na máquina de quem administra.
+
+name: infra
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        dir: [infra, infra/bootstrap]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.17.2"
+
+      - name: Formato
+        run: terraform fmt -check -recursive -diff
+
+      # -backend=false: valida sem acessar o bucket do estado, e por isso sem
+      # credencial nenhuma.
+      - name: Validade
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: tflint
+        run: >-
+          docker run --rm -v "$PWD/infra:/data" ghcr.io/terraform-linters/tflint:v0.55.1
+          --chdir=/data --recursive
+
+      # As exceções e o motivo de cada uma estão em infra/.checkov.yaml.
+      - name: checkov
+        run: >-
+          docker run --rm -v "$PWD/infra:/tf" -w /tf bridgecrew/checkov:3.2.400
+          --config-file /tf/.checkov.yaml -d /tf
