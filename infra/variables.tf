@@ -43,7 +43,10 @@ variable "db_password_version" {
 }
 
 # Único repositório autorizado a assumir a role de deploy, e só pela main.
-variable "github_repo" {
+# O GitHub emite o `sub` com os IDs numéricos do dono e do repositório: um
+# nome pode ser reaproveitado por outra conta depois de apagado ou
+# renomeado, o ID não. Valor conferido no CloudTrail, no token recusado.
+variable "github_oidc_subject" {
   type    = string
-  default = "Marynxs/Cinerini"
+  default = "repo:Marynxs@122127061/Cinerini@1334421585:ref:refs/heads/main"
 }
