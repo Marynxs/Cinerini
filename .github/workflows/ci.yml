@@ -1,0 +1,62 @@
+# Testes da API contra um PostgreSQL de verdade.
+#
+# Não há banco falso: as garantias vivem em constraints e índices parciais do
+# Postgres, e um SQLite em memória aprovaria código que quebra em produção.
+#
+# `workflow_call` para que o deploy chame este mesmo arquivo como primeira
+# etapa, em vez de manter uma cópia dos passos que divergiria com o tempo.
+
+name: testes
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        # Mesma versão maior de produção e do Compose local.
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: cinerini
+          POSTGRES_PASSWORD: cinerini
+          POSTGRES_DB: cinerini
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cinerini -d cinerini"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+
+    defaults:
+      run:
+        working-directory: api
+
+    env:
+      DATABASE_URL: postgresql+psycopg://cinerini:cinerini@localhost:5432/cinerini
+      SECRET_KEY: chave-de-teste-do-ci
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      # As tabelas vêm das migrations, e não de create_all: assim o CI também
+      # prova que a cadeia de migrations sobe do zero num banco vazio.
+      - run: alembic upgrade head
+
+      - run: pytest
