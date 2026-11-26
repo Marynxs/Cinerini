@@ -73,7 +73,15 @@ Conventional commits com escopo, em português, imperativo. Uma unidade de traba
 
 Nos commits que tocam as quatro garantias, o corpo registra a alternativa descartada e o motivo.
 
-Alterações em `AI-USAGE.md` entram no mesmo commit da mudança que registram, nunca em commit próprio, porque o registro e o fato são a mesma unidade de trabalho.
+## Infraestrutura na AWS
+
+Em migração a partir do Render, que segue no ar como reserva até a AWS estar validada: não alterar `render.yaml`.
+
+- `infra/`: Terraform, região `us-east-1`. Estado local em `infra/terraform.tfstate`, fora do Git. Recurso criado pelo Terraform só se altera pelo Terraform; mudança pelo console é desfeita no próximo `apply`.
+- `deploy/`: compose de produção (API atrás do Caddy, banco no RDS). Só o Caddy publica porta; é isso que torna `TRUST_PROXY=true` seguro.
+- Segredos no SSM Parameter Store sob `/cinerini/*`. Nunca no repositório nem no estado do Terraform: senha do banco entra por recurso `ephemeral` e atributo write-only.
+- Deploy pelo GitHub Actions via OIDC. Nenhuma chave de acesso de longa duração.
+- Antes de criar recurso, informar o custo mensal estimado. A conta está no plano gratuito com créditos limitados.
 
 ## Fora de escopo
 
