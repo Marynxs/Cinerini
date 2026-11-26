@@ -138,7 +138,12 @@ API e banco na AWS, front na Vercel. A operação completa (arquitetura, custo, 
 | API | EC2 t4g.micro, atrás do Caddy com TLS automático | `deploy/`, `infra/ec2.tf` |
 | Banco | RDS PostgreSQL 18, sem IP público, mesma zona da EC2 | `infra/rds.tf` |
 | Imagem | ECR, tag imutável por commit | `infra/ecr.tf` |
-| Pipeline | GitHub Actions: testes, build arm64, deploy por SSM | `.github/workflows/deploy-aws.yml` |
+| Pipeline | GitHub Actions: testes, build arm64, varredura com Trivy, deploy por SSM | `.github/workflows/deploy-aws.yml` |
+| Verificação da infra | GitHub Actions: `fmt`, `validate`, `tflint`, `checkov` | `.github/workflows/infra.yml` |
+| Estado do Terraform | S3 versionado, com trava | `infra/bootstrap/` |
+| Reset do demo | EventBridge Scheduler → Lambda → SSM, todo dia às 4h | `infra/demo_reset.tf` |
+| Monitoramento | CloudWatch: logs JSON, painel com SLO, alarmes por e-mail | `infra/dashboard.tf`, `infra/monitoring.tf` |
+| Dependências | Dependabot: pip, npm, Docker, Actions, Terraform | `.github/dependabot.yml` |
 | Front | Vercel | `web/vercel.json`, com *Root Directory* em `web/` |
 
 **Infraestrutura em Terraform.** `terraform apply` em `infra/` cria tudo, e `terraform destroy` apaga tudo. Custo estimado de US$ 25 por mês, sem NAT Gateway nem Load Balancer.
